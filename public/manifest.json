@@ -1,0 +1,13 @@
+{
+  "name": "TrendLens Pro",
+  "short_name": "TrendLens",
+  "description": "AI-Powered Trading Intelligence — Live Signals, Order Flow & Analytics",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0A0E1A",
+  "background_color": "#080C17",
+  "orientation": "any",
+  "icons": [
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" }
+  ]
+}

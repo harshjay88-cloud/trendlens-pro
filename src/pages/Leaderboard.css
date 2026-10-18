@@ -1,0 +1,55 @@
+.leaderboard-page { min-height: 100vh; padding-top: var(--topnav-h); }
+.leaderboard-content { }
+
+.lb-tabs { max-width: 400px; margin: 0 auto 48px; }
+
+.podium-wrap { margin-bottom: 48px; }
+.podium-section {
+  display: flex; justify-content: center; align-items: flex-end;
+  gap: 20px; flex-wrap: wrap;
+}
+
+.podium-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); padding: 28px 24px;
+  text-align: center; min-width: 200px; position: relative;
+  transition: all 0.3s;
+}
+.podium-card:hover { transform: translateY(-6px); border-color: var(--pc); box-shadow: 0 0 30px color-mix(in srgb, var(--pc) 20%, transparent); }
+.podium-first {
+  min-width: 240px; background: linear-gradient(180deg, color-mix(in srgb, var(--pc) 8%, var(--bg-card)), var(--bg-card));
+  border-color: var(--pc) !important; transform: translateY(-20px);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--pc) 25%, transparent);
+}
+
+.podium-crown { font-size: 2rem; margin-bottom: 8px; }
+.podium-avatar { font-size: 2.5rem; margin-bottom: 10px; }
+.podium-name { font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; }
+.podium-country { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 14px; }
+.podium-wr { font-family: var(--font-mono); font-size: 1.4rem; font-weight: 800; margin-bottom: 4px; }
+.podium-pips { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; }
+.podium-rank {
+  display: inline-block; padding: 3px 12px; border-radius: var(--radius-full);
+  font-size: 0.75rem; font-weight: 800;
+}
+
+.lb-table-wrap { padding: 0; overflow: hidden; }
+.lb-table-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+}
+
+.lb-rank-num { font-family: var(--font-mono); font-weight: 700; }
+.lb-rank-num.rank-1 { color: var(--gold); }
+.lb-rank-num.rank-2 { color: var(--silver); }
+.lb-rank-num.rank-3 { color: var(--bronze); }
+
+@media (max-width: 768px) {
+  .podium-first { transform: none; }
+  .data-table th:nth-child(3),
+  .data-table td:nth-child(3),
+  .data-table th:nth-child(6),
+  .data-table td:nth-child(6),
+  .data-table th:nth-child(8),
+  .data-table td:nth-child(8) { display: none; }
+}

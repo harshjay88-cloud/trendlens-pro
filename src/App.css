@@ -1,0 +1,6 @@
+/* App-level global overrides and utility animations */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}

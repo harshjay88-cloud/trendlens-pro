@@ -1,0 +1,172 @@
+.admin-content {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.admin-header h2 {
+  font-size: 1.5rem;
+  margin-bottom: 6px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1080px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-form-card, .admin-manage-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+
+.dispatch-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.signals-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th {
+  padding: 10px 12px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.pill-active {
+  background: var(--brand-glow);
+  color: var(--brand);
+}
+
+.pill-tp1_hit, .pill-tp2_hit, .pill-tp3_hit {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--signal-buy);
+}
+
+.pill-sl_hit {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--signal-sell);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-action {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+
+.btn-action.buy {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--signal-buy);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.btn-action.buy:hover {
+  background: var(--signal-buy);
+  color: #000;
+}
+
+.btn-action.sell {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--signal-sell);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+.btn-action.sell:hover {
+  background: var(--signal-sell);
+  color: #fff;
+}
+
+.btn-del {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.btn-del:hover {
+  color: var(--signal-sell);
+}

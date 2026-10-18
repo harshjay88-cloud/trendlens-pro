@@ -1,0 +1,26 @@
+.ticker-bar {
+  background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; overflow: hidden; height: 36px;
+}
+.ticker-label {
+  padding: 0 14px; font-size: 0.68rem; font-weight: 800;
+  letter-spacing: 0.12em; color: var(--signal-buy);
+  border-right: 1px solid var(--border); white-space: nowrap;
+  height: 100%; display: flex; align-items: center;
+  background: var(--signal-buy-bg);
+}
+.ticker-track { flex: 1; overflow: hidden; }
+.ticker-inner {
+  display: flex; align-items: center; gap: 0;
+  animation: ticker-scroll 30s linear infinite;
+  width: max-content;
+}
+.ticker-inner:hover { animation-play-state: paused; }
+
+.ticker-item { display: flex; align-items: center; gap: 8px; padding: 0 16px; white-space: nowrap; font-size: 0.78rem; }
+.ticker-asset { font-weight: 700; color: var(--text-secondary); font-size: 0.72rem; letter-spacing: 0.05em; }
+.ticker-price { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); }
+.ticker-change { font-weight: 700; font-size: 0.72rem; font-family: var(--font-mono); }
+.ticker-change.up   { color: var(--signal-buy); }
+.ticker-change.down { color: var(--signal-sell); }
+.ticker-sep { color: var(--border); }

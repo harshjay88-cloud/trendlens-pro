@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#080C17" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>TrendLens Pro — AI Trading Intelligence & Live Signals</title>
+    <meta name="description" content="TrendLens Pro — AI-powered trading signals, whale order detection, daily bias targets and live order flow analytics for XAU/USD, Forex & Crypto." />
+    <script>
+      (function(){
+        try {
+          var THEMES = ['tl-dark','tl-navy','tl-matrix','tl-amber','tl-light'];
+          var t = localStorage.getItem('tl_theme');
+          if (THEMES.indexOf(t) === -1) t = 'tl-dark';
+          document.documentElement.setAttribute('data-theme', t);
+        } catch(e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
