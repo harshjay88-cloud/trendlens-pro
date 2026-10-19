@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useThemeStore, useAuthStore } from './store/index.js';
 import Landing from './pages/Landing.jsx';
 import Login from './pages/Login.jsx';
@@ -25,7 +25,7 @@ export default function App() {
   }, [theme]);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
@@ -38,6 +38,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ToastContainer />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
