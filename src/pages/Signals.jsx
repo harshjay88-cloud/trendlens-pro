@@ -197,8 +197,7 @@ export default function Signals() {
 
   return (
     <div className="app-layout">
-      <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
+      <Navbar />
       <main className="app-main">
         <div className="signals-content">
           <div className="signals-header">

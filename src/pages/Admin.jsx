@@ -79,8 +79,7 @@ export default function Admin() {
 
   return (
     <div className="app-layout">
-      <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
+      <Navbar />
       <main className="app-main">
         <div className="admin-content">
           <div className="admin-header">

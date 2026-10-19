@@ -440,8 +440,7 @@ export default function Dashboard() {
 
   return (
     <div className="app-layout">
-      <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
+      <Navbar />
       <main className="app-main">
         {/* Top 4 Dedicated Engine Selector Bar */}
         <div className="dash-view-selector-bar">

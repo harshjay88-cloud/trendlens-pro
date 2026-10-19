@@ -4,7 +4,11 @@ import { useThemeStore, useAuthStore } from '../../store/index.js';
 import { useMarketStore } from '../../store/marketStore.js';
 import { useToastStore } from '../../store/toastStore.js';
 import CalculatorModal from './CalculatorModal.jsx';
-import { TrendingUp, Bell, ChevronDown, Sun, Zap, Settings, LogOut, User, Calculator, Volume2, VolumeX } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import {
+  TrendingUp, Bell, ChevronDown, Sun, Zap, Settings, LogOut, User,
+  Calculator, Volume2, VolumeX, LayoutDashboard, Sliders, Radio, Trophy, Shield
+} from 'lucide-react';
 import './Navbar.css';
 
 const THEMES = [
@@ -16,7 +20,7 @@ const THEMES = [
   { key: 'tl-light',     label: 'Light Clean',      icon: '☀️' },
 ];
 
-export default function Navbar({ sidebarOpen, setSidebarOpen }) {
+export default function Navbar() {
   const { theme, setTheme } = useThemeStore();
   const { user, logout } = useAuthStore();
   const { prices } = useMarketStore();
@@ -40,22 +44,66 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
   return (
     <>
       <nav className="app-navbar glass">
+        {/* Left: Logo */}
         <div className="navbar-left">
-          {setSidebarOpen && (
-            <button className="btn btn-icon btn-ghost hamburger" onClick={() => setSidebarOpen(o => !o)}>
-              <span className="hamburger-line"></span>
-              <span className="hamburger-line"></span>
-              <span className="hamburger-line"></span>
-            </button>
-          )}
-          <Link to="/" className="nav-logo">
+          <Link to="/dashboard" className="nav-logo">
             <div className="nav-logo-icon"><TrendingUp size={18} /></div>
             <span className="nav-logo-text">TrendLens <span className="text-brand">Pro</span></span>
           </Link>
         </div>
 
-        {/* Live price connected to useMarketStore */}
-        <div className="navbar-center">
+        {/* Center: Top Navigation Links (Moved from side panel for maximum chart workspace) */}
+        <div className="navbar-nav-links">
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) => `nav-tab-btn ${isActive ? 'active' : ''}`}
+            title="Institutional Trading Terminal & Engines"
+          >
+            <LayoutDashboard size={15} />
+            <span>Dashboard</span>
+          </NavLink>
+
+          <NavLink
+            to="/signals"
+            className={({ isActive }) => `nav-tab-btn ${isActive ? 'active' : ''}`}
+            title="Live Signals Hub & Signals Feed"
+          >
+            <Zap size={15} />
+            <span>Signals Hub</span>
+            <span className="nav-badge-live">Live</span>
+          </NavLink>
+
+          <NavLink
+            to="/indicators"
+            className={({ isActive }) => `nav-tab-btn ${isActive ? 'active' : ''}`}
+            title="Indicator Suite (50+ Institutional Indicators)"
+          >
+            <Sliders size={15} />
+            <span>Indicator Suite</span>
+          </NavLink>
+
+          <NavLink
+            to="/admin"
+            className={({ isActive }) => `nav-tab-btn ${isActive ? 'active' : ''}`}
+            title="Signal Dispatcher & Automated EA Relays"
+          >
+            <Radio size={15} />
+            <span>Signal Dispatcher</span>
+          </NavLink>
+
+          <NavLink
+            to="/leaderboard"
+            className={({ isActive }) => `nav-tab-btn ${isActive ? 'active' : ''}`}
+            title="Global Performance & Win-Rate Leaderboard"
+          >
+            <Trophy size={15} />
+            <span>Leaderboard</span>
+          </NavLink>
+        </div>
+
+        {/* Right: Price, Sound, Calc, Theme, Account */}
+        <div className="navbar-right">
+          {/* Live price pill */}
           <div className="live-price-pill">
             <span className="live-dot"></span>
             <span className="live-asset">XAU/USD</span>
@@ -64,9 +112,7 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
               {goldData.change >= 0 ? '+' : ''}{goldData.change.toFixed(2)}
             </span>
           </div>
-        </div>
 
-        <div className="navbar-right">
           {/* Risk Calculator Action */}
           <button
             className="btn btn-icon btn-ghost"
@@ -103,27 +149,40 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
             )}
           </div>
 
-          {/* User avatar */}
+          {/* User Account Button with Slide-Down Drawer */}
           {user ? (
             <div className="dropdown-wrap">
-              <button className="nav-avatar" onClick={() => { setUserOpen(o => !o); setThemeOpen(false); }}>
-                <span>{user.avatar}</span>
+              <button
+                className="nav-avatar"
+                onClick={() => { setUserOpen(o => !o); setThemeOpen(false); }}
+                title="Account Menu (Slide down)"
+              >
+                <span>{user.avatar || '👤'}</span>
+                <span className="nav-username">{user.username}</span>
                 <ChevronDown size={14} />
               </button>
               {userOpen && (
-                <div className="dropdown glass dropdown-right">
+                <div className="dropdown glass dropdown-right account-slide-menu">
                   <div className="dropdown-header">
-                    <div className="dropdown-avatar">{user.avatar}</div>
+                    <div className="dropdown-avatar">{user.avatar || '👤'}</div>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{user.username}</div>
-                      <div className="badge badge-brand" style={{ fontSize: '0.65rem', marginTop: 4 }}>{user.plan}</div>
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff' }}>{user.username}</div>
+                      <div className="badge badge-brand" style={{ fontSize: '0.65rem', marginTop: 4 }}>
+                        {user.plan || 'PRO TRADER'}
+                      </div>
                     </div>
                   </div>
                   <div className="dropdown-divider"></div>
-                  <Link to="/profile" className="dropdown-item" onClick={() => setUserOpen(false)}><User size={14} /> Profile</Link>
-                  <Link to="/profile" className="dropdown-item" onClick={() => setUserOpen(false)}><Settings size={14} /> Settings</Link>
+                  <Link to="/profile" className="dropdown-item" onClick={() => setUserOpen(false)}>
+                    <User size={15} /> <span>My Profile</span>
+                  </Link>
+                  <Link to="/profile#settings" className="dropdown-item" onClick={() => setUserOpen(false)}>
+                    <Settings size={15} /> <span>Terminal Settings</span>
+                  </Link>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item danger" onClick={() => { logout(); setUserOpen(false); }}><LogOut size={14} /> Sign Out</button>
+                  <button className="dropdown-item danger" onClick={() => { logout(); setUserOpen(false); }}>
+                    <LogOut size={15} /> <span>Sign Out</span>
+                  </button>
                 </div>
               )}
             </div>

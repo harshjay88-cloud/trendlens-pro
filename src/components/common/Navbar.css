@@ -9,6 +9,84 @@
 .navbar-center { display: flex; align-items: center; }
 .navbar-right  { display: flex; align-items: center; gap: 8px; }
 
+/* 🌟 Top Navigation Bar Links (Full Width Desktop Experience) */
+.navbar-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 3px 6px;
+}
+
+.nav-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.80rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.nav-tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-tab-btn.active {
+  color: #000000;
+  background: var(--brand);
+  box-shadow: 0 0 16px var(--brand-glow);
+}
+
+.nav-tab-btn.active svg {
+  color: #000000;
+}
+
+.nav-badge-live {
+  background: var(--signal-sell);
+  color: #ffffff;
+  font-size: 0.60rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  animation: pulse-glow 2s infinite;
+}
+
+.nav-username {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  margin: 0 2px;
+}
+
+/* Slide Down Account Drawer Animation */
+.account-slide-menu {
+  animation: slideDownMenu 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  min-width: 220px;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+}
+
+@keyframes slideDownMenu {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .nav-logo { display: flex; align-items: center; gap: 10px; font-family: var(--font-heading); font-size: 1.1rem; font-weight: 800; }
 .nav-logo-icon {
   width: 32px; height: 32px; background: linear-gradient(135deg, var(--brand), var(--brand-dim));
