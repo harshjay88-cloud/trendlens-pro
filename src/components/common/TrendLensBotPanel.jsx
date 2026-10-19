@@ -24,7 +24,11 @@ export default function TrendLensBotPanel({
   startLive10TradeBotRun,
   stopLiveSequentialBotTest,
   handleRunBotBatchSimulation,
-  botSimulating
+  botSimulating,
+  bybitRealPositions = [],
+  handleCloseAllBybit,
+  handleCloseSingleBybit,
+  refreshBybitPositions
 }) {
   return (
     <div className="ultra-bot-dock">
@@ -669,6 +673,113 @@ export default function TrendLensBotPanel({
               color: bybitTestStatus.loading ? '#00D4FF' : (bybitTestStatus.success ? '#00e676' : '#ff8099')
             }}>
               {bybitTestStatus.loading ? '⏳ Testing Bybit API connection...' : bybitTestStatus.message}
+            </div>
+          )}
+
+          {/* Active Real Bybit Positions Box */}
+          {bybitRealPositions && bybitRealPositions.length > 0 && (
+            <div style={{
+              marginTop: 10,
+              padding: '10px',
+              borderRadius: '6px',
+              background: 'rgba(0, 230, 118, 0.08)',
+              border: '1px solid rgba(0, 230, 118, 0.4)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#00e676', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  🟢 LIVE BYBIT POSITIONS ({bybitRealPositions.length})
+                </span>
+                {refreshBybitPositions && (
+                  <button
+                    type="button"
+                    onClick={refreshBybitPositions}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#8592a6',
+                      fontSize: '0.64rem',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                    title="Sync with Bybit"
+                  >
+                    🔄 Sync
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {bybitRealPositions.map((pos, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: 'rgba(0,0,0,0.5)',
+                    padding: '5px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.66rem'
+                  }}>
+                    <div>
+                      <b style={{ color: '#fff' }}>{pos.symbol}</b>
+                      <span style={{ color: pos.side === 'Buy' ? '#00e676' : '#ff3366', marginLeft: 6, fontWeight: 700 }}>
+                        {pos.side} {pos.size}
+                      </span>
+                      <div style={{ color: '#8592a6', fontSize: '0.60rem' }}>
+                        Entry: ${parseFloat(pos.avgPrice).toLocaleString()}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{
+                        color: parseFloat(pos.unrealisedPnl) >= 0 ? '#00e676' : '#ff3366',
+                        fontWeight: 700,
+                        fontFamily: 'monospace'
+                      }}>
+                        {parseFloat(pos.unrealisedPnl) >= 0 ? '+' : ''}{parseFloat(pos.unrealisedPnl).toFixed(4)} USDT
+                      </span>
+                      {handleCloseSingleBybit && (
+                        <button
+                          type="button"
+                          onClick={() => handleCloseSingleBybit(pos)}
+                          style={{
+                            padding: '2px 5px',
+                            background: 'rgba(255, 51, 102, 0.2)',
+                            border: '1px solid #ff3366',
+                            color: '#ff3366',
+                            borderRadius: '3px',
+                            cursor: 'pointer',
+                            fontSize: '0.60rem',
+                            fontWeight: 700
+                          }}
+                          title="Close this position on Bybit"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {handleCloseAllBybit && (
+                <button
+                  type="button"
+                  onClick={handleCloseAllBybit}
+                  style={{
+                    width: '100%',
+                    marginTop: 8,
+                    padding: '6px',
+                    borderRadius: '4px',
+                    border: '1px solid #ff3366',
+                    background: 'rgba(255, 51, 102, 0.2)',
+                    color: '#ff8099',
+                    fontSize: '0.66rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  🚨 Close All Bybit Positions ({bybitRealPositions.length})
+                </button>
+              )}
             </div>
           )}
         </div>

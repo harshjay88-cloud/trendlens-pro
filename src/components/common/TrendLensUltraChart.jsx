@@ -2143,7 +2143,7 @@ export default function TrendLensUltraChart({
 
       const sim = simulationMatrix[currentTradeIdx];
       const tradeNumber = currentTradeIdx + 1;
-      const tradeCoin = sim.coin || 'BTC/USDT';
+      const tradeCoin = asset || sim.coin || 'BTC/USDT';
       const isBuy = sim.type === 'BUY';
       const basePx = currentPx;
       const entryPx = basePx;
@@ -2317,6 +2317,18 @@ export default function TrendLensUltraChart({
 
             // Close trade in store
             closeDemoTrade(finalPrice, sim.win ? 'TP1 Hit ✅' : 'SL Hit 🛡️', pipMultiplier);
+
+            // Automatically close the position on Bybit if auto-trade is enabled
+            if (exchangeApi.isAutoTradeEnabled && exchangeApi.apiSecret && orderId) {
+              closeBybitPosition({
+                apiKey: exchangeApi.apiKey,
+                apiSecret: exchangeApi.apiSecret,
+                endpoint: exchangeApi.endpoint || 'https://api-demo.bybit.com',
+                symbol: tradeCoin,
+                side: sim.type,
+                qty: orderQty
+              }).then(() => refreshBybitPositions()).catch(() => {});
+            }
 
             if (soundEnabled) playSignalChime(sim.win);
             setToastNotice(sim.win
@@ -2983,6 +2995,10 @@ export default function TrendLensUltraChart({
             stopLiveSequentialBotTest={stopLiveSequentialBotTest}
             handleRunBotBatchSimulation={handleRunBotBatchSimulation}
             botSimulating={botSimulating}
+            bybitRealPositions={bybitRealPositions}
+            handleCloseAllBybit={handleCloseAllBybit}
+            handleCloseSingleBybit={handleCloseSingleBybit}
+            refreshBybitPositions={refreshBybitPositions}
           />
         )}
       </div>
@@ -3977,6 +3993,111 @@ export default function TrendLensUltraChart({
                 Sorted by latest execution &bull; Verified Institutional Confluence
               </div>
             </div>
+
+            {/* REAL BYBIT V5 LIVE POSITIONS TABLE */}
+            {bybitRealPositions && bybitRealPositions.length > 0 && (
+              <div style={{
+                marginBottom: 20,
+                padding: '14px 16px',
+                borderRadius: '8px',
+                background: 'rgba(0, 230, 118, 0.08)',
+                border: '1px solid rgba(0, 230, 118, 0.4)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: '1.1rem' }}>🟢</span>
+                    <b style={{ color: '#00e676', fontSize: '0.90rem' }}>
+                      REAL BYBIT V5 LIVE POSITIONS ({bybitRealPositions.length} ACTIVE IN MARKET)
+                    </b>
+                    <span style={{ fontSize: '0.72rem', color: '#8592a6' }}>
+                      (Direct WebSocket &amp; REST sync from Bybit Demo Account)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={refreshBybitPositions}
+                      style={{
+                        padding: '4px 10px',
+                        background: 'rgba(255, 255, 255, 0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: '#fff',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '0.72rem',
+                        fontWeight: 700
+                      }}
+                    >
+                      🔄 Sync Live Positions
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCloseAllBybit}
+                      style={{
+                        padding: '4px 12px',
+                        background: 'rgba(255, 51, 102, 0.25)',
+                        border: '1px solid #ff3366',
+                        color: '#ff3366',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '0.72rem',
+                        fontWeight: 800
+                      }}
+                    >
+                      🚨 Close All Bybit Positions ({bybitRealPositions.length})
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.78rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#8592a6' }}>
+                        <th style={{ padding: '8px 10px' }}>Contract</th>
+                        <th style={{ padding: '8px 10px' }}>Qty (Size)</th>
+                        <th style={{ padding: '8px 10px' }}>Entry Price (Bybit)</th>
+                        <th style={{ padding: '8px 10px' }}>Mark Price</th>
+                        <th style={{ padding: '8px 10px' }}>Unrealized P&amp;L</th>
+                        <th style={{ padding: '8px 10px' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bybitRealPositions.map((p, pIdx) => (
+                        <tr key={pIdx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                          <td style={{ padding: '8px 10px', fontWeight: 800, color: '#fff' }}>
+                            🪙 {p.symbol} <span style={{ color: p.side === 'Buy' ? '#00e676' : '#ff3366', marginLeft: 6 }}>{p.side}</span>
+                          </td>
+                          <td style={{ padding: '8px 10px', fontFamily: 'monospace' }}>{p.size}</td>
+                          <td style={{ padding: '8px 10px', fontFamily: 'monospace' }}>${parseFloat(p.avgPrice).toLocaleString()}</td>
+                          <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: '#8592a6' }}>${parseFloat(p.markPrice).toLocaleString()}</td>
+                          <td style={{ padding: '8px 10px', fontWeight: 800, color: parseFloat(p.unrealisedPnl) >= 0 ? '#00e676' : '#ff3366' }}>
+                            {parseFloat(p.unrealisedPnl) >= 0 ? '+' : ''}{parseFloat(p.unrealisedPnl).toFixed(4)} USDT
+                          </td>
+                          <td style={{ padding: '8px 10px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleCloseSingleBybit(p)}
+                              style={{
+                                padding: '3px 8px',
+                                background: 'rgba(255, 51, 102, 0.25)',
+                                border: '1px solid #ff3366',
+                                color: '#ff3366',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '0.68rem',
+                                fontWeight: 800
+                              }}
+                            >
+                              ✕ Close on Bybit
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {demoAccount.trades && demoAccount.trades.length > 0 ? (
               <div style={{ overflowX: 'auto' }}>
