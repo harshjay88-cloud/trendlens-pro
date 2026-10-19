@@ -158,7 +158,7 @@ export const useDemoAccountStore = create((set, get) => ({
   openDemoTrade: (tradeData) => {
     set(state => {
       const currentAcc = state.account;
-      if (currentAcc.openPosition) return state; // Only 1 active trade at a time
+      if (currentAcc.openPosition && !tradeData.force) return state; // Only 1 active trade at a time unless forced
 
       const pos = {
         id: 'pos_' + Date.now(),
