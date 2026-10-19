@@ -280,10 +280,10 @@ export default function TrendLensBotPanel({
         <div style={{
           display: 'flex',
           gap: 4,
-          background: 'rgba(0, 0, 0, 0.4)',
+          background: '#131722',
           padding: 3,
           borderRadius: 6,
-          border: '1px solid rgba(255, 255, 255, 0.1)'
+          border: '1px solid #2a2e39'
         }}>
           <button
             type="button"
@@ -293,9 +293,9 @@ export default function TrendLensBotPanel({
               padding: '6px 4px',
               borderRadius: 4,
               border: 'none',
-              background: panelTab === 'risk' ? '#00e676' : 'transparent',
-              color: panelTab === 'risk' ? '#0a0d13' : '#8592a6',
-              fontWeight: 800,
+              background: panelTab === 'risk' ? '#2962ff' : 'transparent',
+              color: panelTab === 'risk' ? '#ffffff' : '#787b86',
+              fontWeight: 700,
               fontSize: '0.66rem',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
@@ -311,9 +311,9 @@ export default function TrendLensBotPanel({
               padding: '6px 4px',
               borderRadius: 4,
               border: 'none',
-              background: panelTab === 'winrate' ? '#00e676' : 'transparent',
-              color: panelTab === 'winrate' ? '#0a0d13' : '#8592a6',
-              fontWeight: 800,
+              background: panelTab === 'winrate' ? '#2962ff' : 'transparent',
+              color: panelTab === 'winrate' ? '#ffffff' : '#787b86',
+              fontWeight: 700,
               fontSize: '0.66rem',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
@@ -329,9 +329,9 @@ export default function TrendLensBotPanel({
               padding: '6px 4px',
               borderRadius: 4,
               border: 'none',
-              background: panelTab === 'coins' ? '#00e676' : 'transparent',
-              color: panelTab === 'coins' ? '#0a0d13' : '#8592a6',
-              fontWeight: 800,
+              background: panelTab === 'coins' ? '#2962ff' : 'transparent',
+              color: panelTab === 'coins' ? '#ffffff' : '#787b86',
+              fontWeight: 700,
               fontSize: '0.66rem',
               cursor: 'pointer',
               transition: 'all 0.15s ease'

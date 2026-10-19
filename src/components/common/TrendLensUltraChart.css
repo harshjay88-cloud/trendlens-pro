@@ -1,15 +1,15 @@
-/* TrendLens Pro / GoldVIP Ultra Interactive Engine Chart CSS */
+/* TrendLens Pro / TradingView-Grade Ultra Engine Chart CSS */
 
 .ultra-term {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: #0a0d13;
+  border: 1px solid #2a2e39;
+  border-radius: 6px;
+  background: #131722;
   overflow: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .ultra-term::before {
@@ -17,7 +17,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(600px 300px at 60% 0%, rgba(233, 185, 73, 0.05), transparent 70%);
+  background: radial-gradient(500px 250px at 50% 0%, rgba(41, 98, 255, 0.03), transparent 70%);
   z-index: 1;
 }
 
@@ -26,11 +26,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(16, 20, 28, 0.85);
-  backdrop-filter: blur(8px);
-  gap: 10px;
+  padding: 6px 12px;
+  border-bottom: 1px solid #2a2e39;
+  background: #1e222d;
+  gap: 8px;
   flex-wrap: wrap;
   z-index: 2;
 }
@@ -38,30 +37,30 @@
 .ultra-chips-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
 .ultra-chip-label {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  color: var(--text-muted);
+  color: #787b86;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-right: 4px;
+  margin-right: 3px;
 }
 
 .ultra-tchip {
   font-family: var(--font-mono, monospace);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: rgba(22, 27, 37, 0.7);
-  color: #aab3c3;
+  padding: 3px 7px;
+  border-radius: 4px;
+  border: 1px solid #2a2e39;
+  background: #1e222d;
+  color: #d1d4dc;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: all 0.15s ease;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -69,24 +68,24 @@
 }
 
 .ultra-tchip:hover {
-  background: rgba(34, 42, 56, 0.9);
-  color: #e8ecf3;
-  border-color: #2e3849;
+  background: #2a2e39;
+  color: #ffffff;
+  border-color: #363a45;
 }
 
 .ultra-tchip.on {
-  border-color: #e9b949;
-  color: #e9b949;
-  background: rgba(233, 185, 73, 0.12);
-  box-shadow: 0 0 10px rgba(233, 185, 73, 0.15);
+  border-color: #2962ff;
+  color: #ffffff;
+  background: rgba(41, 98, 255, 0.22);
+  box-shadow: 0 0 8px rgba(41, 98, 255, 0.2);
 }
 
 .ultra-tchip.on::before {
   content: "";
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: #e9b949;
+  background: #2962ff;
 }
 
 .ultra-tquote {
@@ -127,13 +126,11 @@
 }
 
 .ultra-px.up {
-  color: #2fd39a;
-  text-shadow: 0 0 8px rgba(47, 211, 154, 0.4);
+  color: #089981;
 }
 
 .ultra-px.dn {
-  color: #f0566b;
-  text-shadow: 0 0 8px rgba(240, 86, 107, 0.4);
+  color: #f23645;
 }
 
 /* Canvas & DOM container */
@@ -142,7 +139,7 @@
   flex-direction: row;
   height: 640px;
   position: relative;
-  background: #0a0d13;
+  background: #131722;
   transition: height 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
   overflow: hidden;
 }
@@ -165,6 +162,7 @@
   position: relative;
   height: 100%;
   overflow: hidden;
+  background: #131722;
 }
 
 /* DOCKED RIGHT SIDE PANEL BOT */
@@ -174,9 +172,9 @@
   flex-shrink: 0;
   height: 100%;
   overflow-y: auto;
-  background: #0d121c;
-  border-left: 1px solid rgba(233, 185, 73, 0.35);
-  box-shadow: -4px 0 25px rgba(0, 0, 0, 0.65);
+  background: #1e222d;
+  border-left: 1px solid #2a2e39;
+  box-shadow: -4px 0 25px rgba(0, 0, 0, 0.5);
   z-index: 20;
   display: flex;
   flex-direction: column;

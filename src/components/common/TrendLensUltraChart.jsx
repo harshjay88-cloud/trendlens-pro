@@ -1400,35 +1400,29 @@ export default function TrendLensUltraChart({
         });
       }
 
-      // 6. Candlesticks (Razor-sharp High-Definition Candles)
+      // 6. Candlesticks (TradingView Signature Teal & Coral Red)
       s.bars.forEach((b, i) => {
         const x = getBarX(i);
         if (x < -bw || x > chartW + bw) return; // Viewport culling
         const isUp = b.c >= b.o;
-        const colBody = isUp ? '#2fd39a' : '#f0566b';
-        const colWick = isUp ? '#34d399' : '#f87171';
+        const col = isUp ? '#089981' : '#f23645';
 
-        // Upper & Lower Wick
-        ctx.strokeStyle = colWick;
-        ctx.lineWidth = 1.4;
+        // Upper & Lower Wick (Crisp 1px aligned)
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(x + 0.5, y(b.h));
-        ctx.lineTo(x + 0.5, y(b.l));
+        ctx.moveTo(Math.floor(x) + 0.5, Math.round(y(b.h)));
+        ctx.lineTo(Math.floor(x) + 0.5, Math.round(y(b.l)));
         ctx.stroke();
 
         // Candle Body
-        const top = y(Math.max(b.o, b.c));
-        const bottom = y(Math.min(b.o, b.c));
-        const bodyH = Math.max(2, bottom - top);
-        const candleWidth = Math.max(3, bw * 0.76);
+        const top = Math.round(y(Math.max(b.o, b.c)));
+        const bottom = Math.round(y(Math.min(b.o, b.c)));
+        const bodyH = Math.max(1, bottom - top);
+        const candleWidth = Math.max(2, Math.floor(bw * 0.74));
 
-        ctx.fillStyle = colBody;
-        ctx.fillRect(x - candleWidth / 2, top, candleWidth, bodyH);
-
-        // Crisp Border
-        ctx.strokeStyle = isUp ? 'rgba(52, 211, 153, 0.9)' : 'rgba(248, 113, 113, 0.9)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x - candleWidth / 2 + 0.5, top + 0.5, candleWidth - 1, bodyH - 1);
+        ctx.fillStyle = col;
+        ctx.fillRect(Math.floor(x - candleWidth / 2), top, candleWidth, bodyH);
       });
 
       // 7. [BP / AOF] Whale Big Prints Order Flow Bubbles
@@ -1749,27 +1743,28 @@ export default function TrendLensUltraChart({
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Right Price Axis Background & Border
-      ctx.fillStyle = '#0a0d13';
+      // Right Price Axis Background & Border (TradingView Charcoal Palette)
+      ctx.fillStyle = '#131722';
       ctx.fillRect(chartW, 0, rightGutter, chartH);
-      ctx.strokeStyle = '#1e2430';
+      ctx.strokeStyle = '#2a2e39';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(chartW + 0.5, 0);
       ctx.lineTo(chartW + 0.5, chartH);
       ctx.stroke();
 
-      // Live Price Tag on Right Axis
-      ctx.fillStyle = '#e9b949';
-      ctx.fillRect(chartW + 2, ly - 9, rightGutter - 4, 18);
-      ctx.fillStyle = '#1a1405';
-      ctx.font = '700 9.5px Azeret Mono, monospace';
+      // Live Price Tag on Right Axis (TradingView Style with Directional Badge)
+      const isUpTick = lastBar.c >= lastBar.o;
+      ctx.fillStyle = isUpTick ? '#089981' : '#f23645';
+      ctx.fillRect(chartW + 2, ly - 10, rightGutter - 4, 20);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 9.5px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(fmt(lastBar.c), chartW + rightGutter / 2, ly + 4);
+      ctx.fillText(fmt(lastBar.c), chartW + rightGutter / 2, ly + 3.5);
 
       // Price Axis labels
-      ctx.fillStyle = '#8592a6';
-      ctx.font = '500 8.5px Azeret Mono, monospace';
+      ctx.fillStyle = '#787b86';
+      ctx.font = '500 8.5px JetBrains Mono, monospace';
       ctx.textAlign = 'right';
       for (let k = 1; k < 6; k++) {
         const val = curHi - ((k * chartH) / 6 - 12) / (chartH - 24) * curRange;
@@ -1780,9 +1775,9 @@ export default function TrendLensUltraChart({
       }
 
       // Bottom Time Axis Background & Border
-      ctx.fillStyle = '#0a0d13';
+      ctx.fillStyle = '#131722';
       ctx.fillRect(0, chartH, w, bottomGutter);
-      ctx.strokeStyle = '#1e2430';
+      ctx.strokeStyle = '#2a2e39';
       ctx.beginPath();
       ctx.moveTo(0, chartH + 0.5);
       ctx.lineTo(w, chartH + 0.5);

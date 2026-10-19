@@ -4,43 +4,43 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* ── Tokens: Default (tl-dark) ── */
+/* ── Tokens: Default (TradingView Signature Dark) ── */
 :root, [data-theme="tl-dark"] {
-  --bg-primary:    #080C17;
-  --bg-secondary:  #0C1121;
-  --bg-card:       #101829;
-  --bg-elevated:   #162038;
-  --bg-hover:      #1E2D4A;
+  --bg-primary:    #131722;
+  --bg-secondary:  #0c0d10;
+  --bg-card:       #1e222d;
+  --bg-elevated:   #242835;
+  --bg-hover:      #2a2e39;
 
-  --brand:         #00D4FF;
-  --brand-dim:     #0099CC;
-  --brand-glow:    rgba(0, 212, 255, 0.18);
-  --brand-glow2:   rgba(0, 212, 255, 0.06);
+  --brand:         #2962ff;
+  --brand-dim:     #1e53e5;
+  --brand-glow:    rgba(41, 98, 255, 0.2);
+  --brand-glow2:   rgba(41, 98, 255, 0.08);
 
-  --signal-buy:    #00E676;
-  --signal-buy-bg: rgba(0, 230, 118, 0.12);
-  --signal-sell:   #FF1744;
-  --signal-sell-bg:rgba(255, 23, 68, 0.12);
-  --signal-neutral:#FFB300;
-  --signal-neutral-bg: rgba(255,179,0,0.12);
+  --signal-buy:    #089981;
+  --signal-buy-bg: rgba(8, 153, 129, 0.12);
+  --signal-sell:   #f23645;
+  --signal-sell-bg:rgba(242, 54, 69, 0.12);
+  --signal-neutral:#f0a800;
+  --signal-neutral-bg: rgba(240, 168, 0, 0.12);
 
-  --gold:          #FFD700;
-  --silver:        #C0C0C0;
-  --bronze:        #CD7F32;
+  --gold:          #f0a800;
+  --silver:        #c0c0c0;
+  --bronze:        #cd7f32;
 
-  --text-primary:  #E8EEFF;
-  --text-secondary:#8892A4;
-  --text-muted:    #4A5568;
-  --text-accent:   #00D4FF;
+  --text-primary:  #d1d4dc;
+  --text-secondary:#787b86;
+  --text-muted:    #5d606b;
+  --text-accent:   #2962ff;
 
-  --border:        rgba(255,255,255,0.06);
-  --border-glow:   rgba(0, 212, 255, 0.28);
-  --border-hover:  rgba(0, 212, 255, 0.5);
+  --border:        #2a2e39;
+  --border-glow:   rgba(41, 98, 255, 0.3);
+  --border-hover:  #363a45;
 
-  --shadow-card:   0 4px 24px rgba(0,0,0,0.4);
-  --shadow-glow:   0 0 30px rgba(0,212,255,0.15);
-  --shadow-buy:    0 0 20px rgba(0,230,118,0.2);
-  --shadow-sell:   0 0 20px rgba(255,23,68,0.2);
+  --shadow-card:   0 4px 18px rgba(0,0,0,0.45);
+  --shadow-glow:   0 0 24px rgba(41,98,255,0.18);
+  --shadow-buy:    0 0 16px rgba(8,153,129,0.22);
+  --shadow-sell:   0 0 16px rgba(242,54,69,0.22);
 
   --radius-sm:     6px;
   --radius-md:     10px;
