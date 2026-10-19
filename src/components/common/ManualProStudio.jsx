@@ -32,7 +32,7 @@ export default function ManualProStudio({
   const [toastNotice, setToastNotice] = useState(null);
   const [activeRange, setActiveRange] = useState('1D');
   const [timeString, setTimeString] = useState('23:33:13 UTC');
-  const [candlesRemaining, setCandlesRemaining] = useState('01:47');
+  const candlesRemainingRef = useRef('01:47');
 
   // Watchlist Collapsible Sections
   const [collapsed, setCollapsed] = useState({
@@ -45,7 +45,7 @@ export default function ManualProStudio({
     setCollapsed(prev => ({ ...prev, [grp]: !prev[grp] }));
   };
 
-  // Clock Ticker
+  // Clock Ticker (Runs smoothly in background without flickering canvas)
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
@@ -57,7 +57,7 @@ export default function ManualProStudio({
       // Countdown remaining in current candle (1m candle: 60 - s)
       const secRem = 60 - now.getSeconds();
       const minRem = 1 - (now.getMinutes() % 2);
-      setCandlesRemaining(`0${minRem}:${String(secRem).padStart(2, '0')}`);
+      candlesRemainingRef.current = `0${minRem}:${String(secRem).padStart(2, '0')}`;
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -150,10 +150,16 @@ export default function ManualProStudio({
       81890, 81930, 81960, 81940, 81920, 81945
     ];
 
+    // Deterministic pseudo-random number generator so bars do NOT flicker on every state update
+    const pseudoRand = (seed) => {
+      const x = Math.sin(seed + 1) * 10000;
+      return x - Math.floor(x);
+    };
+
     const extendedWalk = [];
     for (let i = 0; i < barsCount; i++) {
       const idx = Math.floor((i / barsCount) * walk.length);
-      const noise = (Math.random() - 0.5) * 22;
+      const noise = (pseudoRand(i * 13) - 0.5) * 22;
       extendedWalk.push((walk[idx] || 81945) + noise);
     }
     extendedWalk[barsCount - 1] = currentPrice;
@@ -161,16 +167,16 @@ export default function ManualProStudio({
     for (let i = 0; i < barsCount; i++) {
       const c = +extendedWalk[i].toFixed(2);
       const o = +(i === 0 ? c - 18 : extendedWalk[i - 1]).toFixed(2);
-      const wickH = Math.random() * 30 + 5;
-      const wickL = Math.random() * 30 + 5;
+      const wickH = pseudoRand(i * 17) * 30 + 5;
+      const wickL = pseudoRand(i * 19) * 30 + 5;
       const h = +(Math.max(o, c) + wickH).toFixed(2);
       const l = +(Math.min(o, c) - wickL).toFixed(2);
-      const v = Math.floor(Math.random() * 8500 + 1200);
+      const v = Math.floor(pseudoRand(i * 23) * 8500 + 1200);
       const t = nowMs - (barsCount - 1 - i) * intervalMs;
       bars.push({ i, o, h, l, c, v, t });
     }
     return bars;
-  }, [realKlines, currentPrice]);
+  }, [realKlines]);
 
   const displayBars = useMemo(() => rawBars, [rawBars]);
   const displayBarsRef = useRef(displayBars);
@@ -639,7 +645,7 @@ export default function ManualProStudio({
       ctx.fillText('81,948.17', chartW + rightPad / 2, livePillY - 2);
       ctx.fillStyle = '#787b86';
       ctx.font = '500 8.5px JetBrains Mono, monospace';
-      ctx.fillText(candlesRemaining, chartW + rightPad / 2, livePillY + 10);
+      ctx.fillText(candlesRemainingRef.current, chartW + rightPad / 2, livePillY + 10);
 
       // Plus symbol icon on price axis (+)
       ctx.fillStyle = '#787b86';
@@ -721,7 +727,7 @@ export default function ManualProStudio({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [candlesRemaining]);
+  }, []);
 
   // Filter indicators for modal search
   const filteredIndicators = useMemo(() => {
