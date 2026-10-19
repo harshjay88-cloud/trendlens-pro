@@ -12,6 +12,8 @@ import TrendLensUltraChart from '../components/common/TrendLensUltraChart.jsx';
 import AiCoachChat from '../components/common/AiCoachChat.jsx';
 import TradingViewLeftToolbar from '../components/common/TradingViewLeftToolbar.jsx';
 import TradingViewWatchlist from '../components/common/TradingViewWatchlist.jsx';
+import MarketSummaryOverview from '../components/common/MarketSummaryOverview.jsx';
+import BybitProTerminal from '../components/common/BybitProTerminal.jsx';
 import './Dashboard.css';
 
 function StatCard({ label, value, sub, icon: Icon, color }) {
@@ -167,6 +169,7 @@ export default function Dashboard() {
   const { theme, setTheme } = useThemeStore();
   const { prices, fetchLiveCrypto } = useMarketStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeView, setActiveView] = useState('overview'); // 'overview' (TradingView Market Summary / Screenshot 1), 'bybit' (Bybit Pro Terminal / Screenshot 4), 'ultra' (Institutional SMC Engine), 'tv_chart' (TradingView Pure Live Chart)
   const [symbol, setSymbol] = useState('BTCUSD');
   const [timeframe, setTimeframe] = useState('60');
   const [isMaximized, setIsMaximized] = useState(false);
@@ -287,6 +290,119 @@ export default function Dashboard() {
       <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
       <main className="app-main">
+        {/* Top View Selector Bar — TradingView & Bybit Pro Navigation */}
+        <div className="dash-view-selector-bar">
+          <div className="dash-view-tabs">
+            <button
+              type="button"
+              className={`dash-view-tab ${activeView === 'overview' ? 'active' : ''}`}
+              onClick={() => setActiveView('overview')}
+              title="TradingView Market Summary Overview (S&P 500, Indices, Watchlist)"
+            >
+              <LayoutGrid size={15} />
+              <span>TradingView Overview</span>
+            </button>
+            <button
+              type="button"
+              className={`dash-view-tab ${activeView === 'bybit' ? 'active' : ''}`}
+              onClick={() => setActiveView('bybit')}
+              title="Bybit Pro Live Trading Terminal (Depth Orderbook, Instant Orders)"
+            >
+              <Zap size={15} />
+              <span>Bybit Pro Terminal</span>
+              <span className="demo-badge">DEMO</span>
+            </button>
+            <button
+              type="button"
+              className={`dash-view-tab ${activeView === 'ultra' ? 'active' : ''}`}
+              onClick={() => setActiveView('ultra')}
+              title="Institutional SMC & Swing Ultra Engine"
+            >
+              <Cpu size={15} />
+              <span>SMC Ultra Engine</span>
+            </button>
+            <button
+              type="button"
+              className={`dash-view-tab ${activeView === 'tv_chart' ? 'active' : ''}`}
+              onClick={() => setActiveView('tv_chart')}
+              title="TradingView Live Pro Chart"
+            >
+              <LineChart size={15} />
+              <span>TradingView Chart</span>
+            </button>
+          </div>
+
+          <div className="dash-view-actions">
+            <div className="theme-quick-toggles">
+              <button
+                type="button"
+                className={`theme-pill ${theme === 'tl-dark' ? 'active' : ''}`}
+                onClick={() => setTheme('tl-dark')}
+                title="TradingView Charcoal Dark (#131722)"
+              >
+                🌑 Dark
+              </button>
+              <button
+                type="button"
+                className={`theme-pill ${theme === 'tl-black-red' ? 'active' : ''}`}
+                onClick={() => setTheme('tl-black-red')}
+                title="Black & Red Pro Theme (#060608 + #f23645)"
+              >
+                🔴 Black &amp; Red
+              </button>
+              <button
+                type="button"
+                className={`theme-pill ${theme === 'tl-light' ? 'active' : ''}`}
+                onClick={() => setTheme('tl-light')}
+                title="TradingView Clean Light Mode (#ffffff)"
+              >
+                ☀️ Light
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 1. Page View 1: TradingView Market Summary Overview (Screenshot 1) */}
+        {activeView === 'overview' && (
+          <div className="dashboard-content full-bleed">
+            <MarketSummaryOverview
+              prices={prices}
+              selectedSymbol={symbol}
+              onSelectSymbol={(newSym) => setSymbol(newSym)}
+              onGoToTerminal={() => setActiveView('bybit')}
+            />
+          </div>
+        )}
+
+        {/* 2. Page View 2: Bybit Pro Live Trading Terminal (Screenshot 4) */}
+        {activeView === 'bybit' && (
+          <div className="dashboard-content full-bleed">
+            <BybitProTerminal
+              symbol={symbol}
+              asset={currentAsset}
+              prices={prices}
+              onSelectSymbol={(newSym) => setSymbol(newSym)}
+              onSwitchPage={(pageKey) => setActiveView(pageKey)}
+            />
+          </div>
+        )}
+
+        {/* 3. Page View 4: Pure TradingView Pro Chart */}
+        {activeView === 'tv_chart' && (
+          <div className="dashboard-content full-bleed">
+            <div style={{ width: '100%', height: 'calc(100vh - 104px)', background: 'var(--bg-primary, #131722)' }}>
+              <iframe
+                key={`${symbol}-${timeframe}-tvfull`}
+                src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${symbol}&interval=${timeframe}&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=1&toolbarbg=131722&studies=[]&theme=${theme === 'tl-light' ? 'light' : 'dark'}&style=1&timezone=Etc%2FUTC&withdateranges=1&showpopupbutton=1`}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                title="TradingView Pro Chart Full"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 4. Page View 3: SMC Ultra Engine & AI Analytics */}
+        {activeView === 'ultra' && (
         <div className="dashboard-content">
           {/* Greeting */}
           <div className="dash-greeting">
@@ -713,6 +829,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+        )}
       </main>
     </div>
   );

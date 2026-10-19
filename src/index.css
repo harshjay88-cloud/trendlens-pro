@@ -114,15 +114,39 @@
   --brand-glow:   rgba(255,179,0,0.18);
 }
 [data-theme="tl-light"] {
-  --bg-primary:   #F0F4F8;
-  --bg-secondary: #E8EDF5;
-  --bg-card:      #FFFFFF;
-  --bg-elevated:  #FFFFFF;
-  --bg-hover:     #EDF2F7;
-  --text-primary: #1A202C;
-  --text-secondary:#4A5568;
-  --text-muted:   #A0AEC0;
-  --border:       rgba(0,0,0,0.08);
+  --bg-primary:    #f0f3fa;
+  --bg-secondary:  #e0e3eb;
+  --bg-card:       #ffffff;
+  --bg-elevated:   #ffffff;
+  --bg-hover:      #f0f3fa;
+
+  --brand:         #2962ff;
+  --brand-dim:     #1e53e5;
+  --brand-glow:    rgba(41, 98, 255, 0.15);
+  --brand-glow2:   rgba(41, 98, 255, 0.05);
+
+  --signal-buy:    #089981;
+  --signal-buy-bg: rgba(8, 153, 129, 0.1);
+  --signal-sell:   #f23645;
+  --signal-sell-bg:rgba(242, 54, 69, 0.1);
+  --signal-neutral:#f0a800;
+  --signal-neutral-bg: rgba(240, 168, 0, 0.1);
+
+  --gold:          #f0a800;
+  --silver:        #787b86;
+  --bronze:        #cd7f32;
+
+  --text-primary:  #131722;
+  --text-secondary:#787b86;
+  --text-muted:    #9da2b4;
+  --text-accent:   #2962ff;
+
+  --border:        #e0e3eb;
+  --border-glow:   rgba(41, 98, 255, 0.25);
+  --border-hover:  #c9ccd6;
+
+  --shadow-card:   0 2px 8px rgba(0,0,0,0.06);
+  --shadow-glow:   0 0 20px rgba(41,98,255,0.12);
 }
 
 /* ── Reset ── */

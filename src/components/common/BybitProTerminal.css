@@ -1,0 +1,479 @@
+/* Bybit Pro Live Trading Terminal (Replicating Bybit Screenshot 4 with Zero Wasted Space) */
+.bybit-terminal-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - 54px);
+  background: var(--bg-secondary, #0c0d10);
+  color: var(--text-primary, #d1d4dc);
+  font-family: var(--font-body, 'Inter', sans-serif);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* 1. Ultra-Compact Top Ticker Header */
+.bybit-topbar {
+  height: 48px;
+  min-height: 48px;
+  background: var(--bg-card, #12151e);
+  border-bottom: 1px solid var(--border, #1f2330);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  gap: 12px;
+  z-index: 10;
+}
+
+.bybit-top-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.bybit-logo-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: #ffffff;
+}
+
+.bybit-demo-pill {
+  background: #f7a600;
+  color: #000000;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bybit-pair-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.bybit-pair-badge b {
+  font-size: 0.95rem;
+  color: #ffffff;
+}
+
+.bybit-live-px {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.bybit-live-px.up { color: var(--signal-buy, #089981); }
+.bybit-live-px.dn { color: var(--signal-sell, #f23645); }
+
+.bybit-metrics-rail {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.68rem;
+  color: var(--text-secondary, #787b86);
+}
+
+.bybit-metrics-rail span {
+  display: block;
+  font-size: 0.58rem;
+  color: var(--text-muted, #565866);
+  text-transform: uppercase;
+}
+
+.bybit-metrics-rail b {
+  color: var(--text-primary, #d1d4dc);
+  font-weight: 600;
+}
+
+/* 2. Middle Row: Chart Area (Center) + Order Book & Trade Panel (Right) */
+.bybit-middle-row {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+  position: relative;
+}
+
+.bybit-chart-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  background: var(--bg-primary, #131722);
+}
+
+/* Sub-header on Chart (Standard / TradingView / Depth tabs & Timeframe buttons) */
+.bybit-chart-subheader {
+  height: 36px;
+  min-height: 36px;
+  background: var(--bg-card, #12151e);
+  border-bottom: 1px solid var(--border, #1f2330);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 0.70rem;
+  z-index: 5;
+}
+
+.bybit-chart-modes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bybit-mode-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #787b86);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+}
+
+.bybit-mode-tab.active {
+  color: #ffffff;
+  border-bottom-color: #f7a600;
+}
+
+.bybit-tf-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.bybit-tf-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #787b86);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.bybit-tf-btn:hover {
+  background: var(--bg-hover, #1e222d);
+  color: #ffffff;
+}
+
+.bybit-tf-btn.active {
+  color: #f7a600;
+  font-weight: 700;
+}
+
+/* Floating on-chart Market Long / Short Order Overlay (Bybit Screenshot 4) */
+.bybit-chart-floating-trade {
+  position: absolute;
+  top: 48px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(18, 21, 30, 0.92);
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 6px;
+  padding: 4px 6px;
+  backdrop-filter: blur(8px);
+  z-index: 15;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+}
+
+.bybit-float-long-btn {
+  background: #089981;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-weight: 800;
+  font-size: 0.72rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.bybit-float-short-btn {
+  background: #f23645;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-weight: 800;
+  font-size: 0.72rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+
+/* 3. Right Sidebar: Order Book & Trade Panel (Bybit Screenshot 4) */
+.bybit-right-panel {
+  width: 580px;
+  min-width: 580px;
+  display: flex;
+  flex-direction: row;
+  border-left: 1px solid var(--border, #1f2330);
+  background: var(--bg-card, #12151e);
+  height: 100%;
+}
+
+/* Order Book Column */
+.bybit-orderbook {
+  width: 250px;
+  min-width: 250px;
+  border-right: 1px solid var(--border, #1f2330);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+}
+
+.bybit-ob-header {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border, #1f2330);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.bybit-ob-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 4px 8px;
+  font-size: 0.60rem;
+  color: var(--text-muted, #565866);
+  border-bottom: 1px solid rgba(42, 46, 57, 0.4);
+}
+
+.bybit-ob-list {
+  flex: 1;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 4px 0;
+}
+
+.bybit-ob-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 2px 8px;
+  position: relative;
+  align-items: center;
+}
+
+.bybit-ob-row .bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  opacity: 0.14;
+  pointer-events: none;
+}
+
+.bybit-ob-row.ask { color: #f23645; }
+.bybit-ob-row.ask .bar { background: #f23645; }
+
+.bybit-ob-row.bid { color: #089981; }
+.bybit-ob-row.bid .bar { background: #089981; }
+
+.bybit-ob-mid {
+  padding: 6px 8px;
+  font-weight: 800;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid var(--border, #1f2330);
+  border-bottom: 1px solid var(--border, #1f2330);
+}
+
+/* Trade Order Execution Column */
+.bybit-trade-exec {
+  flex: 1;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  font-size: 0.72rem;
+}
+
+.bybit-leverage-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border, #2a2e39);
+}
+
+.bybit-order-type-tabs {
+  display: flex;
+  gap: 12px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border, #2a2e39);
+  padding-bottom: 6px;
+}
+
+.bybit-type-tab {
+  color: var(--text-secondary, #787b86);
+  cursor: pointer;
+}
+
+.bybit-type-tab.active {
+  color: #ffffff;
+  border-bottom: 2px solid #f7a600;
+}
+
+.bybit-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bybit-input-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: var(--font-mono, monospace);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.bybit-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.bybit-long-submit {
+  background: #089981;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px;
+  font-weight: 800;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.bybit-short-submit {
+  background: #f23645;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px;
+  font-weight: 800;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+/* 4. Bottom Positions & Orders Panel (Bybit Screenshot 4) */
+.bybit-bottom-panel {
+  height: 200px;
+  min-height: 200px;
+  background: var(--bg-card, #12151e);
+  border-top: 1px solid var(--border, #1f2330);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.bybit-bottom-tabs {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border, #1f2330);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.bybit-tab-group {
+  display: flex;
+  gap: 16px;
+}
+
+.bybit-btab {
+  color: var(--text-secondary, #787b86);
+  cursor: pointer;
+  padding: 8px 0;
+  border-bottom: 2px solid transparent;
+}
+
+.bybit-btab.active {
+  color: #ffffff;
+  border-bottom-color: #f7a600;
+}
+
+.bybit-positions-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.bybit-pos-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.70rem;
+  text-align: left;
+}
+
+.bybit-pos-table th {
+  padding: 8px 12px;
+  color: var(--text-muted, #565866);
+  font-weight: 600;
+  border-bottom: 1px solid rgba(42, 46, 57, 0.3);
+}
+
+.bybit-pos-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(42, 46, 57, 0.2);
+  color: var(--text-primary, #d1d4dc);
+}
+
+.bybit-close-all-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border, #2a2e39);
+  color: #d1d4dc;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 0.65rem;
+  cursor: pointer;
+}

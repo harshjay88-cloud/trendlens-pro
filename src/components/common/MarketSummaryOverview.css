@@ -1,0 +1,184 @@
+/* TradingView Market Summary Overview CSS */
+.tv-summary-page {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  min-height: calc(100vh - 56px);
+  background: var(--bg-primary, #131722);
+  color: var(--text-primary, #d1d4dc);
+  font-family: var(--font-body, 'Inter', sans-serif);
+  overflow-x: hidden;
+}
+
+.tv-summary-main {
+  flex: 1;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.tv-summary-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-primary, #ffffff);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  letter-spacing: -0.02em;
+}
+
+.tv-summary-hero-card {
+  background: var(--bg-card, #1e222d);
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 12px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+
+.tv-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tv-hero-asset {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tv-hero-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #ffffff;
+  background: #f23645;
+  box-shadow: 0 4px 14px rgba(242, 54, 69, 0.35);
+}
+
+.tv-hero-name {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary, #ffffff);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tv-hero-tag {
+  font-size: 0.68rem;
+  background: var(--bg-hover, #2a2e39);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-secondary, #787b86);
+}
+
+.tv-hero-px {
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-family: var(--font-mono, monospace);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.tv-hero-chg {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.tv-hero-chg.up { color: var(--signal-buy, #089981); }
+.tv-hero-chg.dn { color: var(--signal-sell, #f23645); }
+
+/* Canvas Area Chart */
+.tv-hero-canvas-wrap {
+  width: 100%;
+  height: 280px;
+  position: relative;
+}
+
+.tv-hero-canvas-wrap canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Bottom Grid Cards */
+.tv-summary-subgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.tv-sub-card {
+  background: var(--bg-card, #1e222d);
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+
+.tv-sub-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tv-sub-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(42, 46, 57, 0.4);
+}
+
+.tv-sub-item:last-child {
+  border-bottom: none;
+}
+
+.tv-sub-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tv-sub-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.tv-sub-right {
+  text-align: right;
+  font-family: var(--font-mono, monospace);
+}
+
+@media (max-width: 1080px) {
+  .tv-summary-page { flex-direction: column; }
+  .tv-summary-subgrid { grid-template-columns: 1fr; }
+}
