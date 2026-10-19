@@ -7,9 +7,9 @@
   flex-direction: column;
   width: 100%;
   height: calc(100vh - 104px);
-  background: var(--bg-primary, #131722);
-  color: var(--text-primary, #d1d4dc);
-  font-family: var(--font-body, 'Inter', sans-serif);
+  background: #131722;
+  color: #d1d4dc;
+  font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
   overflow: hidden;
   position: relative;
   user-select: none;
@@ -17,10 +17,10 @@
 
 /* 1. Pro Studio Top Action Rail */
 .mps-top-rail {
-  height: 44px;
-  min-height: 44px;
-  background: var(--bg-card, #1e222d);
-  border-bottom: 1px solid var(--border, #2a2e39);
+  height: 42px;
+  min-height: 42px;
+  background: #131722;
+  border-bottom: 1px solid #2a2e39;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -37,13 +37,13 @@
 }
 
 .mps-symbol-select {
-  background: var(--bg-elevated, #242835);
+  background: #1e222d;
   color: #ffffff;
-  border: 1px solid var(--border, #2a2e39);
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 0.80rem;
-  font-weight: 800;
+  border: 1px solid #2a2e39;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
   cursor: pointer;
   outline: none;
 }
@@ -51,7 +51,7 @@
 .mps-divider {
   width: 1px;
   height: 18px;
-  background: var(--border, #2a2e39);
+  background: #2a2e39;
   margin: 0 2px;
 }
 
@@ -64,10 +64,10 @@
 .mps-tf-btn {
   background: transparent;
   border: none;
-  color: var(--text-secondary, #787b86);
+  color: #787b86;
   font-size: 0.74rem;
   font-weight: 700;
-  padding: 4px 8px;
+  padding: 4px 7px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.12s ease;
@@ -79,15 +79,15 @@
 }
 
 .mps-tf-btn.active {
-  color: #ffffff;
-  background: var(--brand, #2962ff);
+  color: #2962ff;
+  background: rgba(41, 98, 255, 0.12);
 }
 
 .mps-style-select {
-  background: var(--bg-elevated, #242835);
+  background: #1e222d;
   color: #ffffff;
-  border: 1px solid var(--border, #2a2e39);
-  border-radius: 6px;
+  border: 1px solid #2a2e39;
+  border-radius: 4px;
   padding: 4px 8px;
   font-size: 0.74rem;
   font-weight: 700;
@@ -97,124 +97,137 @@
 
 .mps-action-btn {
   background: transparent;
-  border: 1px solid var(--border, #2a2e39);
-  color: #ffffff;
-  padding: 4px 10px;
-  border-radius: 6px;
+  border: 1px solid #2a2e39;
+  color: #787b86;
   font-size: 0.74rem;
-  font-weight: 700;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
-  cursor: pointer;
   transition: all 0.12s ease;
-  white-space: nowrap;
 }
 
 .mps-action-btn:hover {
-  background: var(--bg-hover, #2a2e39);
-  border-color: var(--brand, #2962ff);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
 }
 
 .mps-action-btn.active {
-  background: rgba(41, 98, 255, 0.18);
-  border-color: var(--brand, #2962ff);
-  color: var(--brand, #2962ff);
+  color: #2962ff;
+  border-color: #2962ff;
+  background: rgba(41, 98, 255, 0.1);
 }
 
-.mps-top-right {
+/* 2. Top Order Buttons & LuxAlgo Header */
+.mps-tv-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  padding: 4px 12px;
+  background: #131722;
+  border-bottom: 1px solid #1e222d;
+  font-size: 0.72rem;
+  z-index: 15;
 }
 
-/* 2. Active Indicators Tag Bar */
-.mps-indicators-bar {
+.mps-tv-order-block {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 16px;
-  background: rgba(0, 0, 0, 0.25);
-  border-bottom: 1px solid var(--border, #2a2e39);
-  font-size: 0.70rem;
-  overflow-x: auto;
-  min-height: 28px;
+  gap: 2px;
 }
 
-.mps-ind-chip {
-  display: inline-flex;
+.mps-tv-btn-sell {
+  display: flex;
   align-items: center;
+  background: #201418;
+  border: 1px solid #f23645;
+  color: #f23645;
+  border-radius: 4px 0 0 4px;
+  padding: 3px 8px;
   gap: 6px;
-  background: var(--bg-card, #1e222d);
-  border: 1px solid var(--border, #2a2e39);
-  padding: 2px 8px;
-  border-radius: 4px;
-  color: #ffffff;
-  font-weight: 600;
-}
-
-.mps-ind-del {
   cursor: pointer;
-  color: var(--text-muted, #787b86);
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
 }
 
-.mps-ind-del:hover {
-  color: var(--signal-sell, #f23645);
-}
-
-/* 3. Main Studio Workspace Layout */
-.mps-workspace {
+.mps-tv-btn-buy {
   display: flex;
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  height: calc(100% - 72px);
+  align-items: center;
+  background: #0f1c24;
+  border: 1px solid #2962ff;
+  color: #2962ff;
+  border-radius: 0 4px 4px 0;
+  padding: 3px 8px;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
 }
 
-/* Left Tools Column */
+.mps-tv-lux-title {
+  color: #787b86;
+  font-size: 0.70rem;
+  font-family: 'JetBrains Mono', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 3. Main Workspace */
+.mps-workspace {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Left Tools Bar */
 .mps-left-tools {
   width: 44px;
   min-width: 44px;
-  background: var(--bg-card, #1e222d);
-  border-right: 1px solid var(--border, #2a2e39);
+  background: #131722;
+  border-right: 1px solid #2a2e39;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 6px 0;
   gap: 4px;
   z-index: 10;
-  overflow-y: auto;
 }
 
 .mps-tool-btn {
   width: 32px;
   height: 32px;
-  border-radius: 4px;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary, #787b86);
   display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #787b86;
   cursor: pointer;
   transition: all 0.12s ease;
 }
 
 .mps-tool-btn:hover {
-  background: var(--bg-hover, #2a2e39);
+  background: #2a2e39;
   color: #ffffff;
 }
 
 .mps-tool-btn.active {
   background: rgba(41, 98, 255, 0.2);
-  color: var(--brand, #2962ff);
-  box-shadow: 0 0 8px rgba(41, 98, 255, 0.4);
+  color: #2962ff;
 }
 
 .mps-tool-sep {
   width: 22px;
   height: 1px;
-  background: var(--border, #2a2e39);
+  background: #2a2e39;
   margin: 4px 0;
 }
 
@@ -222,7 +235,7 @@
 .mps-canvas-center {
   flex: 1;
   position: relative;
-  background: var(--bg-primary, #131722);
+  background: #131722;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -234,80 +247,164 @@
   cursor: crosshair;
 }
 
-/* Floating Crosshair Cursor Overlay Readout */
-.mps-cursor-badge {
-  position: absolute;
-  top: 10px;
-  left: 14px;
-  background: rgba(19, 23, 34, 0.88);
-  border: 1px solid var(--border, #2a2e39);
-  border-radius: 6px;
-  padding: 6px 12px;
+/* Bottom Range Bar (TradingView style) */
+.mps-bottom-range-bar {
+  height: 30px;
+  min-height: 30px;
+  background: #131722;
+  border-top: 1px solid #2a2e39;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
   font-size: 0.72rem;
-  font-family: var(--font-mono, monospace);
-  display: flex;
-  gap: 12px;
-  z-index: 15;
-  pointer-events: none;
-}
-
-.mps-cursor-badge b { color: #ffffff; }
-
-/* Right Multi-Watchlist Drawer */
-.mps-right-watchlist {
-  width: 280px;
-  min-width: 280px;
-  background: var(--bg-card, #1e222d);
-  border-left: 1px solid var(--border, #2a2e39);
-  display: flex;
-  flex-direction: column;
+  color: #787b86;
   z-index: 10;
 }
 
-.mps-wl-header {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border, #2a2e39);
+.mps-range-group {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 2px;
 }
 
-.mps-wl-select {
-  background: var(--bg-elevated, #242835);
-  color: #ffffff;
-  border: 1px solid var(--border, #2a2e39);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 0.74rem;
+.mps-range-btn {
+  background: transparent;
+  border: none;
+  color: #787b86;
+  padding: 3px 6px;
+  font-size: 0.70rem;
   font-weight: 700;
-  outline: none;
   cursor: pointer;
+  border-radius: 3px;
 }
 
-.mps-wl-list {
-  flex: 1;
-  overflow-y: auto;
+.mps-range-btn:hover {
+  color: #ffffff;
+}
+
+.mps-range-btn.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mps-scale-toggles {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.70rem;
+}
+
+/* Right TradingView Style Watchlist & Detail Drawer */
+.mps-right-watchlist {
+  width: 310px;
+  min-width: 310px;
+  background: #131722;
+  border-left: 1px solid #2a2e39;
   display: flex;
   flex-direction: column;
+  z-index: 10;
+  overflow-y: auto;
 }
 
-.mps-wl-item {
+.mps-tv-wl-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid #2a2e39;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #787b86;
+}
+
+.mps-tv-group-title {
+  padding: 6px 12px;
+  background: #171b26;
+  color: #787b86;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #1e222d;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mps-tv-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
   cursor: pointer;
-  transition: all 0.12s ease;
+  font-size: 0.76rem;
+  font-family: 'JetBrains Mono', monospace;
+  transition: background 0.1s ease;
 }
 
-.mps-wl-item:hover {
-  background: var(--bg-hover, #2a2e39);
+.mps-tv-row:hover {
+  background: #1e222d;
 }
 
-.mps-wl-item.active {
-  background: rgba(41, 98, 255, 0.1);
-  border-left: 3px solid var(--brand, #2962ff);
+.mps-tv-row.active {
+  background: rgba(41, 98, 255, 0.15);
+  border-left: 3px solid #2962ff;
+}
+
+/* Detail Card at Bottom of Watchlist */
+.mps-tv-detail-card {
+  padding: 12px;
+  border-top: 1px solid #2a2e39;
+  background: #131722;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mps-tv-asset-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mps-tv-crypto-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f7931a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 0.70rem;
+}
+
+.mps-tv-big-price {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.mps-tv-price-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.mps-tv-facts-box {
+  background: rgba(41, 98, 255, 0.08);
+  border: 1px solid rgba(41, 98, 255, 0.25);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.68rem;
+  color: #aab3c3;
+  line-height: 1.45;
 }
 
 /* 4. Indicator Library Modal (50+ Indicators) */
@@ -328,8 +425,8 @@
   max-width: 760px;
   height: 600px;
   max-height: 85vh;
-  background: var(--bg-card, #1e222d);
-  border: 1px solid var(--border, #2a2e39);
+  background: #1e222d;
+  border: 1px solid #2a2e39;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -342,67 +439,60 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px;
-  border-bottom: 1px solid var(--border, #2a2e39);
+  border-bottom: 1px solid #2a2e39;
 }
 
 .mps-modal-search {
   padding: 10px 20px;
-  border-bottom: 1px solid var(--border, #2a2e39);
-  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid #2a2e39;
 }
 
 .mps-modal-search input {
   width: 100%;
-  background: var(--bg-elevated, #242835);
-  border: 1px solid var(--border, #2a2e39);
+  background: #131722;
+  border: 1px solid #2a2e39;
   border-radius: 6px;
   color: #ffffff;
-  padding: 8px 14px;
-  font-size: 0.84rem;
+  padding: 8px 12px;
+  font-size: 0.80rem;
   outline: none;
 }
 
-.mps-modal-search input:focus {
-  border-color: var(--brand, #2962ff);
-}
-
 .mps-modal-body {
-  display: flex;
   flex: 1;
+  display: flex;
   overflow: hidden;
 }
 
 .mps-cat-sidebar {
-  width: 180px;
-  min-width: 180px;
-  border-right: 1px solid var(--border, #2a2e39);
+  width: 150px;
+  border-right: 1px solid #2a2e39;
   padding: 10px 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
 .mps-cat-btn {
-  background: none;
+  background: transparent;
   border: none;
-  color: var(--text-secondary, #787b86);
-  padding: 8px 16px;
-  font-size: 0.78rem;
-  font-weight: 700;
+  color: #787b86;
   text-align: left;
+  padding: 8px 16px;
+  font-size: 0.76rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.12s ease;
 }
 
 .mps-cat-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
   color: #ffffff;
-  background: var(--bg-hover, #2a2e39);
 }
 
 .mps-cat-btn.active {
   color: #ffffff;
   background: rgba(41, 98, 255, 0.15);
-  border-left: 3px solid var(--brand, #2962ff);
+  border-left: 3px solid #2962ff;
 }
 
 .mps-ind-grid {
@@ -421,17 +511,17 @@
   padding: 8px 12px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border, #2a2e39);
+  border: 1px solid #2a2e39;
   transition: all 0.12s ease;
 }
 
 .mps-ind-row:hover {
-  background: var(--bg-hover, #2a2e39);
-  border-color: var(--brand, #2962ff);
+  background: #2a2e39;
+  border-color: #2962ff;
 }
 
 .mps-ind-add-btn {
-  background: var(--brand, #2962ff);
+  background: #2962ff;
   color: #ffffff;
   border: none;
   border-radius: 4px;
@@ -442,5 +532,5 @@
 }
 
 .mps-ind-add-btn.added {
-  background: var(--signal-buy, #089981);
+  background: #089981;
 }
