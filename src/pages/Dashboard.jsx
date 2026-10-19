@@ -241,14 +241,34 @@ export default function Dashboard() {
 
   const activeCount = signals.filter(s => s.status === 'active' || s.status.includes('tp')).length;
 
-  const timeframeLabels = [
-    { label: 'M1',  val: '1' },
-    { label: 'M5',  val: '5' },
-    { label: 'M15', val: '15' },
-    { label: 'H1',  val: '60' },
-    { label: 'H4',  val: '240' },
-    { label: 'D1',  val: 'D' },
+  const ALL_TIMEFRAMES = [
+    // Seconds (HFT / Micro-Scalp)
+    { label: '1s',  val: '1S',  cat: '⚡ Seconds (Micro-Scalp)' },
+    { label: '3s',  val: '3S',  cat: '⚡ Seconds (Micro-Scalp)' },
+    { label: '5s',  val: '5S',  cat: '⚡ Seconds (Micro-Scalp)' },
+    { label: '10s', val: '10S', cat: '⚡ Seconds (Micro-Scalp)' },
+    { label: '30s', val: '30S', cat: '⚡ Seconds (Micro-Scalp)' },
+    // Minutes (Intraday & Scalp)
+    { label: '1m',  val: '1',   cat: '⏱️ Minutes (Intraday)' },
+    { label: '3m',  val: '3',   cat: '⏱️ Minutes (Intraday)' },
+    { label: '5m',  val: '5',   cat: '⏱️ Minutes (Intraday)' },
+    { label: '15m', val: '15',  cat: '⏱️ Minutes (Intraday)' },
+    { label: '30m', val: '30',  cat: '⏱️ Minutes (Intraday)' },
+    { label: '45m', val: '45',  cat: '⏱️ Minutes (Intraday)' },
+    // Hours (Swing Structure)
+    { label: '1h',  val: '60',  cat: '📈 Hours (Swing Structure)' },
+    { label: '2h',  val: '120', cat: '📈 Hours (Swing Structure)' },
+    { label: '3h',  val: '180', cat: '📈 Hours (Swing Structure)' },
+    { label: '4h',  val: '240', cat: '📈 Hours (Swing Structure)' },
+    { label: '12h', val: '720', cat: '📈 Hours (Swing Structure)' },
+    // Days & Macro
+    { label: '1D',  val: 'D',   cat: '📅 Days & Macro' },
+    { label: '3D',  val: '3D',  cat: '📅 Days & Macro' },
+    { label: '1W',  val: 'W',   cat: '📅 Days & Macro' },
+    { label: '30D', val: 'M',   cat: '📅 Days & Macro' },
   ];
+
+  const QUICK_TIMEFRAMES = ['1s', '5s', '1m', '5m', '15m', '1h', '4h', '1D'];
 
   return (
     <div className="app-layout">
@@ -412,17 +432,67 @@ export default function Dashboard() {
 
                 {/* Right controls: Timeframe + Layout & Maximize */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ display: 'flex', gap: 5 }}>
-                    {timeframeLabels.map(tf => (
-                      <button
-                        key={tf.val}
-                        onClick={() => setTimeframe(tf.val)}
-                        className={`btn btn-sm ${timeframe === tf.val ? 'btn-primary' : 'btn-ghost'}`}
-                        style={{ padding: '5px 10px', fontSize: '0.74rem' }}
-                      >
-                        {tf.label}
-                      </button>
-                    ))}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                    {QUICK_TIMEFRAMES.map(lbl => {
+                      const tfObj = ALL_TIMEFRAMES.find(t => t.label === lbl);
+                      const isSelected = timeframe === tfObj?.val || timeframe === lbl;
+                      return (
+                        <button
+                          key={lbl}
+                          onClick={() => setTimeframe(tfObj ? tfObj.val : lbl)}
+                          className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`}
+                          style={{ padding: '4px 8px', fontSize: '0.74rem', minWidth: '32px' }}
+                        >
+                          {lbl}
+                        </button>
+                      );
+                    })}
+
+                    {/* TradingView-style Dropdown Selector for All 1s - 30D Timeframes */}
+                    <select
+                      value={timeframe}
+                      onChange={(e) => setTimeframe(e.target.value)}
+                      title="Select TradingView Timeframe (1s to 30D)"
+                      style={{
+                        background: 'var(--bg-card)',
+                        color: 'var(--brand)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <optgroup label="⚡ Seconds (Micro-Scalp)">
+                        <option value="1S">1s · 1 Second</option>
+                        <option value="3S">3s · 3 Seconds</option>
+                        <option value="5S">5s · 5 Seconds</option>
+                        <option value="10S">10s · 10 Seconds</option>
+                        <option value="30S">30s · 30 Seconds</option>
+                      </optgroup>
+                      <optgroup label="⏱️ Minutes (Intraday)">
+                        <option value="1">1m · 1 Minute</option>
+                        <option value="3">3m · 3 Minutes</option>
+                        <option value="5">5m · 5 Minutes</option>
+                        <option value="15">15m · 15 Minutes</option>
+                        <option value="30">30m · 30 Minutes</option>
+                        <option value="45">45m · 45 Minutes</option>
+                      </optgroup>
+                      <optgroup label="📈 Hours (Swing Structure)">
+                        <option value="60">1h · 1 Hour</option>
+                        <option value="120">2h · 2 Hours</option>
+                        <option value="180">3h · 3 Hours</option>
+                        <option value="240">4h · 4 Hours</option>
+                        <option value="720">12h · 12 Hours</option>
+                      </optgroup>
+                      <optgroup label="📅 Days & Macro (1D - 30D)">
+                        <option value="D">1D · 1 Day</option>
+                        <option value="3D">3D · 3 Days</option>
+                        <option value="W">1W · 1 Week</option>
+                        <option value="M">30D · 1 Month</option>
+                      </optgroup>
+                    </select>
                   </div>
 
                   <div className="chart-ctrl-divider"></div>
@@ -468,7 +538,7 @@ export default function Dashboard() {
                     asset={currentAsset}
                     initialPrice={currentPrice}
                     category={assetData?.category || 'Metals'}
-                    timeframe={timeframeLabels.find(t => t.val === timeframe)?.label || 'H1'}
+                    timeframe={ALL_TIMEFRAMES.find(t => t.val === timeframe)?.label || timeframe}
                     engineMode={chartEngine}
                     activePlan={activePlan}
                   />

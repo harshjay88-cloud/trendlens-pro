@@ -588,25 +588,85 @@ export default function TrendLensUltraChart({
 
   const fmt = (v) => (typeof v === 'number' ? v.toFixed(decimals) : v);
 
-  // Timeframe configurations (Dynamic bar density and speed)
+  // Normalizer for TradingView timeframes
+  const normalizeTf = (tf) => {
+    const t = String(tf || '1h').toLowerCase().trim();
+    if (t === '1s' || t === '1sec') return '1s';
+    if (t === '3s' || t === '3sec') return '3s';
+    if (t === '5s' || t === '5sec') return '5s';
+    if (t === '10s' || t === '10sec') return '10s';
+    if (t === '30s' || t === '30sec') return '30s';
+    if (t === '1m' || t === 'm1' || t === '1') return '1m';
+    if (t === '3m' || t === 'm3' || t === '3') return '3m';
+    if (t === '5m' || t === 'm5' || t === '5') return '5m';
+    if (t === '15m' || t === 'm15' || t === '15') return '15m';
+    if (t === '30m' || t === 'm30' || t === '30') return '30m';
+    if (t === '45m' || t === 'm45' || t === '45') return '45m';
+    if (t === '1h' || t === 'h1' || t === '60') return '1h';
+    if (t === '2h' || t === 'h2' || t === '120') return '2h';
+    if (t === '3h' || t === 'h3' || t === '180') return '3h';
+    if (t === '4h' || t === 'h4' || t === '240') return '4h';
+    if (t === '12h' || t === 'h12' || t === '720') return '12h';
+    if (t === '1d' || t === 'd1' || t === 'd') return '1D';
+    if (t === '3d' || t === 'd3') return '3D';
+    if (t === '1w' || t === 'w1' || t === 'w') return '1W';
+    if (t === '30d' || t === '1m(30d)' || t === 'm' || t === '1mo') return '30D';
+    return '1h';
+  };
+
+  // Comprehensive Timeframe configurations (from 1 second to 30 days)
   const tfConfig = useMemo(() => {
-    switch (timeframe) {
-      case 'M1':
-        return { barsCount: 74, tickInterval: 170, newBarInterval: 2600, volScale: 0.35, label: 'M1 Micro-Scalp' };
-      case 'M5':
-        return { barsCount: 66, tickInterval: 240, newBarInterval: 4200, volScale: 0.65, label: 'M5 Flow Scalp' };
-      case 'M15':
-        return { barsCount: 58, tickInterval: 380, newBarInterval: 6200, volScale: 1.0, label: 'M15 Intraday' };
-      case 'H1':
-        return { barsCount: 52, tickInterval: 550, newBarInterval: 8000, volScale: 1.6, label: 'H1 Swing Structure' };
-      case 'H4':
-        return { barsCount: 44, tickInterval: 750, newBarInterval: 11000, volScale: 2.5, label: 'H4 Macro Trend' };
-      case 'D1':
-        return { barsCount: 38, tickInterval: 950, newBarInterval: 14000, volScale: 3.8, label: 'D1 Daily Value' };
-      default:
-        return { barsCount: 54, tickInterval: 420, newBarInterval: 7000, volScale: 1.2, label: timeframe };
-    }
+    const key = normalizeTf(timeframe);
+    const configs = {
+      // Seconds (Ultra-Fast Micro-Scalping)
+      '1s':  { barsCount: 78, historyBars: 260, tickInterval: 45,  newBarInterval: 1000,  volScale: 0.12, pipScale: 0.08, label: '1s Ultra-HFT Micro Scalp', category: 'Seconds' },
+      '3s':  { barsCount: 74, historyBars: 250, tickInterval: 75,  newBarInterval: 3000,  volScale: 0.18, pipScale: 0.12, label: '3s High-Speed Scalp',     category: 'Seconds' },
+      '5s':  { barsCount: 70, historyBars: 240, tickInterval: 110, newBarInterval: 5000,  volScale: 0.25, pipScale: 0.18, label: '5s Momentum Scalp',       category: 'Seconds' },
+      '10s': { barsCount: 66, historyBars: 230, tickInterval: 160, newBarInterval: 10000, volScale: 0.32, pipScale: 0.25, label: '10s Micro-Order Flow',    category: 'Seconds' },
+      '30s': { barsCount: 62, historyBars: 220, tickInterval: 220, newBarInterval: 18000, volScale: 0.42, pipScale: 0.35, label: '30s Tick Volatility Scalp', category: 'Seconds' },
+
+      // Minutes (Intraday Structure & Scalp)
+      '1m':  { barsCount: 60, historyBars: 210, tickInterval: 260, newBarInterval: 22000, volScale: 0.55, pipScale: 0.50, label: '1m Micro-Structure Scalp', category: 'Minutes' },
+      '3m':  { barsCount: 56, historyBars: 200, tickInterval: 320, newBarInterval: 28000, volScale: 0.70, pipScale: 0.65, label: '3m Quick Imbalance Swing', category: 'Minutes' },
+      '5m':  { barsCount: 54, historyBars: 190, tickInterval: 380, newBarInterval: 34000, volScale: 0.85, pipScale: 0.80, label: '5m Flow Liquidity Sweep',  category: 'Minutes' },
+      '15m': { barsCount: 50, historyBars: 180, tickInterval: 450, newBarInterval: 42000, volScale: 1.10, pipScale: 1.00, label: '15m Intraday Structure',    category: 'Minutes' },
+      '30m': { barsCount: 46, historyBars: 170, tickInterval: 520, newBarInterval: 50000, volScale: 1.30, pipScale: 1.25, label: '30m Session Breakout',      category: 'Minutes' },
+      '45m': { barsCount: 44, historyBars: 160, tickInterval: 580, newBarInterval: 58000, volScale: 1.45, pipScale: 1.40, label: '45m Multi-Session Value',   category: 'Minutes' },
+
+      // Hours (Swing Framework)
+      '1h':  { barsCount: 42, historyBars: 160, tickInterval: 650, newBarInterval: 65000, volScale: 1.75, pipScale: 1.70, label: '1h Institutional Swing',    category: 'Hours' },
+      '2h':  { barsCount: 40, historyBars: 150, tickInterval: 750, newBarInterval: 75000, volScale: 2.10, pipScale: 2.10, label: '2h Primary Momentum Trend', category: 'Hours' },
+      '3h':  { barsCount: 38, historyBars: 140, tickInterval: 850, newBarInterval: 85000, volScale: 2.45, pipScale: 2.45, label: '3h Higher Wave Structure',  category: 'Hours' },
+      '4h':  { barsCount: 36, historyBars: 130, tickInterval: 950, newBarInterval: 95000, volScale: 2.85, pipScale: 2.85, label: '4h Macro Order Block Bias', category: 'Hours' },
+      '12h': { barsCount: 34, historyBars: 120, tickInterval: 1100,newBarInterval: 110000,volScale: 3.40, pipScale: 3.40, label: '12h Institutional Matrix',  category: 'Hours' },
+
+      // Days & Macro Regimes
+      '1D':  { barsCount: 32, historyBars: 120, tickInterval: 1300,newBarInterval: 130000,volScale: 4.00, pipScale: 4.20, label: '1D Daily Key Level Matrix', category: 'Days' },
+      '3D':  { barsCount: 30, historyBars: 110, tickInterval: 1500,newBarInterval: 150000,volScale: 5.00, pipScale: 5.50, label: '3D Multi-Day Sweep Wave',   category: 'Days' },
+      '1W':  { barsCount: 28, historyBars: 100, tickInterval: 1800,newBarInterval: 180000,volScale: 6.20, pipScale: 7.50, label: '1W Weekly Liquidity Cycle',  category: 'Days' },
+      '30D': { barsCount: 26, historyBars: 90,  tickInterval: 2200,newBarInterval: 220000,volScale: 8.00, pipScale: 10.0, label: '30D Monthly Macro Regimes',  category: 'Days' },
+    };
+    return configs[key] || configs['1h'];
   }, [timeframe]);
+
+  // Interactive Chart Viewport Transform (Pan, Drag, Zoom, Price Stretch)
+  const chartTransformRef = useRef({
+    panX: 0,              // Horizontal bar scroll offset
+    panY: 0,              // Vertical price pan offset
+    zoomLevel: 1.0,       // Horizontal zoom factor (0.35 to 3.5)
+    priceScaleY: 1.0,     // Vertical price scale factor (0.25 to 4.5)
+    isDragging: false,
+    dragMode: null,       // 'pan' | 'price-axis' | 'time-axis'
+    startX: 0,
+    startY: 0,
+    lastPanX: 0,
+    lastPanY: 0,
+    lastPriceScaleY: 1.0,
+    lastZoom: 1.0,
+    mousePos: { x: -1, y: -1 },
+    currentBw: 12,
+    currentPriceRange: 10
+  });
 
   // References to keep animation loop and state smooth
   const stateRef = useRef({
@@ -630,16 +690,17 @@ export default function TrendLensUltraChart({
     s.prints = [];
 
     let p = initialPrice;
-    const N = tfConfig.barsCount;
+    const historyN = tfConfig.historyBars || 200;
     const volBase = initialPrice * (category === 'Crypto' ? 0.002 : category === 'Forex' ? 0.0004 : 0.001);
     const volRange = volBase * tfConfig.volScale;
 
-    for (let i = 0; i < N; i++) {
+    for (let i = 0; i < historyN; i++) {
       const o = p;
-      const step = (Math.random() - 0.49) * volRange * 1.8 + Math.sin(i / 4.5) * volRange * 0.6;
+      const wave = Math.sin(i / (tfConfig.barsCount / 6.5)) * volRange * 0.9;
+      const step = (Math.random() - 0.49) * volRange * 1.5 + wave;
       const c = +(o + step).toFixed(decimals);
-      const h = +(Math.max(o, c) + Math.random() * volRange * 0.85).toFixed(decimals);
-      const l = +(Math.min(o, c) - Math.random() * volRange * 0.85).toFixed(decimals);
+      const h = +(Math.max(o, c) + Math.random() * volRange * 0.75).toFixed(decimals);
+      const l = +(Math.min(o, c) - Math.random() * volRange * 0.75).toFixed(decimals);
       s.bars.push({ o, h, l, c });
       p = c;
     }
@@ -664,8 +725,8 @@ export default function TrendLensUltraChart({
     s.activeTrade = null;
     const markLabel = engineMode === 'scalper' ? 'SCALP' : 'ULTRA';
 
-    // Dynamically calculate trend from recent 16 candles
-    const recentBars = s.bars.slice(-16);
+    // Dynamically calculate trend from recent 18 candles of this timeframe
+    const recentBars = s.bars.slice(-18);
     const recentFast = recentBars.slice(-6).reduce((acc, bar) => acc + bar.c, 0) / 6;
     const recentSlow = recentBars.reduce((acc, bar) => acc + bar.c, 0) / recentBars.length;
     const isBull = recentFast >= recentSlow;
@@ -673,8 +734,9 @@ export default function TrendLensUltraChart({
 
     const entryBarIdx = Math.max(1, s.bars.length - 2);
     const entry = s.bars[entryBarIdx].c;
-    // Institutional SL Buffer: Gold needs at least $2.80 - $3.50 (28-35 pips), Crypto needs 0.8% - 1.2%
-    const minSlBuffer = Math.max(tickSize * 28, entry * 0.0022);
+    // Institutional SL Buffer: Scaled strictly according to the timeframe!
+    const pipScale = tfConfig.pipScale || 1.0;
+    const minSlBuffer = Math.max(tickSize * 3, (entry * 0.0018) * pipScale);
 
     if (isBull) {
       const sl = +(entry - minSlBuffer).toFixed(decimals);
@@ -687,9 +749,9 @@ export default function TrendLensUltraChart({
       const defaultBullPillars = {
         mss: { name: 'Market Structure Shift (MSS/BOS)', ok: true, detail: 'Displacement Body breaks Swing High' },
         fvg: { name: 'ST01 Fair Value Gap (Imbalance)', ok: true, detail: 'Bullish Imbalance Mitigation Zone Retested' },
-        sweep: { name: 'SMC Liquidity Pool Sweep', ok: true, detail: 'Asian/Session Low Purged & Absorbed' },
+        sweep: { name: 'SMC Liquidity Pool Sweep', ok: true, detail: 'Session Liquidity Sweep Purged & Absorbed' },
         orderFlow: { name: 'Level-2 Bookmap Wall Defense', ok: true, detail: 'Institutional Bid Wall Defended' },
-        mtf: { name: 'Multi-Timeframe Trend Shield', ok: true, detail: 'Aligned with Institutional Momentum' },
+        mtf: { name: 'Multi-Timeframe Trend Shield', ok: true, detail: `Aligned with ${tfConfig.category} Momentum` },
         rsi: { name: 'RSI Momentum Curvature', ok: true, detail: 'RSI Curling Upwards into Flow' }
       };
 
@@ -702,11 +764,11 @@ export default function TrendLensUltraChart({
         tp2,
         riskPips,
         rewardPips,
-        score: 95,
+        score: Math.min(98, 91 + Math.round(Math.random() * 6)),
         status: 'ACTIVE',
         a: 1,
         label: `${markLabel} BUY 🎯`,
-        reason: 'Asian Liq Sweep + MSS Reversal (6/6 Confirmed)',
+        reason: `${tfConfig.label} Liq Sweep + MSS Reversal (6/6 Confirmed)`,
         pillars: defaultBullPillars,
         confirmedCount: 6
       };
@@ -740,7 +802,7 @@ export default function TrendLensUltraChart({
           targets: { tp1: trade.tp1, tp2: trade.tp2, tp3: trade.tp2 },
           status: 'active',
           accuracy: trade.score,
-          reason: 'Asian Liq Sweep + MSS Reversal (6/6 Confirmed)',
+          reason: `${tfConfig.label} Asian Liq Sweep + MSS Reversal (6/6 Confirmed)`,
           riskPips: trade.riskPips,
           rewardPips: trade.rewardPips,
           indicators: ['ULT', 'ST01', 'ICT', 'LIQ', 'DOM']
@@ -760,7 +822,7 @@ export default function TrendLensUltraChart({
         fvg: { name: 'ST01 Fair Value Gap (Imbalance)', ok: true, detail: 'Bearish Imbalance Mitigation Zone Retested' },
         sweep: { name: 'SMC Liquidity Pool Sweep', ok: true, detail: 'Session High Purged & Wick Rejected' },
         orderFlow: { name: 'Level-2 Bookmap Wall Defense', ok: true, detail: 'Institutional Ask Wall Defended' },
-        mtf: { name: 'Multi-Timeframe Trend Shield', ok: true, detail: 'Aligned with Bearish Flow' },
+        mtf: { name: 'Multi-Timeframe Trend Shield', ok: true, detail: `Aligned with ${tfConfig.category} Momentum` },
         rsi: { name: 'RSI Momentum Curvature', ok: true, detail: 'RSI Curling Downwards out of Overbought' }
       };
 
@@ -773,11 +835,11 @@ export default function TrendLensUltraChart({
         tp2,
         riskPips,
         rewardPips,
-        score: 93,
+        score: Math.min(98, 90 + Math.round(Math.random() * 7)),
         status: 'ACTIVE',
         a: 1,
         label: `${markLabel} SELL 🎯`,
-        reason: 'Session High Rejection + FVG Mitigation (6/6 Confirmed)',
+        reason: `${tfConfig.label} High Rejection + FVG Mitigation (6/6 Confirmed)`,
         pillars: defaultBearPillars,
         confirmedCount: 6
       };
@@ -811,7 +873,7 @@ export default function TrendLensUltraChart({
           targets: { tp1: trade.tp1, tp2: trade.tp2, tp3: trade.tp2 },
           status: 'active',
           accuracy: trade.score,
-          reason: 'Session High Rejection + FVG Mitigation (6/6 Confirmed)',
+          reason: `${tfConfig.label} High Rejection + FVG Mitigation (6/6 Confirmed)`,
           riskPips: trade.riskPips,
           rewardPips: trade.rewardPips,
           indicators: ['ULT', 'ST01', 'ICT', 'LIQ', 'DOM']
@@ -820,17 +882,19 @@ export default function TrendLensUltraChart({
       } catch {}
     }
 
-    // Big prints
+    // Big prints placed realistically at key swing highs & lows of this timeframe
+    const printIdx1 = Math.max(2, Math.floor(s.bars.length - tfConfig.barsCount * 0.65));
+    const printIdx2 = Math.max(2, Math.floor(s.bars.length - tfConfig.barsCount * 0.28));
     s.prints = [
-      { i: Math.floor(N * 0.4), p: s.bars[Math.floor(N * 0.4)].l + volRange * 0.3, q: 0.8, buy: true, a: 1, size: 2450 },
-      { i: Math.floor(N * 0.75), p: s.bars[Math.floor(N * 0.75)].h - volRange * 0.25, q: 0.6, buy: false, a: 1, size: 1820 }
+      { i: printIdx1, p: s.bars[printIdx1].l + volRange * 0.2, q: 0.8, buy: true, a: 1, size: 2450 },
+      { i: printIdx2, p: s.bars[printIdx2].h - volRange * 0.2, q: 0.6, buy: false, a: 1, size: 1820 }
     ];
 
     setCurrentPx(s.bars[s.bars.length - 1].c);
 
     // Show timeframe notification
-    setToastNotice(`⏱️ Timeframe: ${tfConfig.label} (Active: ${N} bars)`);
-    const timer = setTimeout(() => setToastNotice(null), 2000);
+    setToastNotice(`⏱️ Timeframe: ${tfConfig.label} (History: ${historyN} bars loaded)`);
+    const timer = setTimeout(() => setToastNotice(null), 2400);
     return () => clearTimeout(timer);
   }, [asset, initialPrice, category, decimals, timeframe, tfConfig, engineMode]);
 
@@ -853,6 +917,164 @@ export default function TrendLensUltraChart({
     const ro = new ResizeObserver(() => size());
     ro.observe(cv);
 
+    // Mouse and Touch Event Listeners for Interactive Pan, Drag, and Zoom
+    const handleWheel = (e) => {
+      e.preventDefault();
+      const transform = chartTransformRef.current;
+      const zoomDelta = e.deltaY < 0 ? 1.15 : 0.87;
+      transform.zoomLevel = Math.max(0.35, Math.min(3.5, transform.zoomLevel * zoomDelta));
+    };
+
+    const handleMouseDown = (e) => {
+      const rect = cv.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const transform = chartTransformRef.current;
+      const w = cv.clientWidth;
+      const h = cv.clientHeight;
+      const rightGutter = 85;
+      const bottomGutter = 24;
+
+      transform.isDragging = true;
+      transform.startX = x;
+      transform.startY = y;
+      transform.lastPanX = transform.panX;
+      transform.lastPanY = transform.panY;
+      transform.lastPriceScaleY = transform.priceScaleY;
+      transform.lastZoom = transform.zoomLevel;
+
+      if (x >= w - rightGutter) {
+        transform.dragMode = 'price-axis';
+        cv.style.cursor = 'ns-resize';
+      } else if (y >= h - bottomGutter) {
+        transform.dragMode = 'time-axis';
+        cv.style.cursor = 'ew-resize';
+      } else {
+        transform.dragMode = 'pan';
+        cv.style.cursor = 'grabbing';
+      }
+    };
+
+    const handleMouseMove = (e) => {
+      const rect = cv.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const transform = chartTransformRef.current;
+      const w = cv.clientWidth;
+      const h = cv.clientHeight;
+      const rightGutter = 85;
+      const bottomGutter = 24;
+      const chartH = h - bottomGutter;
+
+      transform.mousePos = { x, y };
+
+      if (!transform.isDragging) {
+        if (x >= w - rightGutter) {
+          cv.style.cursor = 'ns-resize';
+        } else if (y >= h - bottomGutter) {
+          cv.style.cursor = 'ew-resize';
+        } else {
+          cv.style.cursor = 'crosshair';
+        }
+        return;
+      }
+
+      const dx = x - transform.startX;
+      const dy = y - transform.startY;
+      const currentBw = transform.currentBw || 12;
+
+      if (transform.dragMode === 'price-axis') {
+        const factor = 1 - (dy / 150);
+        transform.priceScaleY = Math.max(0.25, Math.min(4.5, transform.lastPriceScaleY * factor));
+      } else if (transform.dragMode === 'time-axis') {
+        const factor = 1 + (dx / 220);
+        transform.zoomLevel = Math.max(0.35, Math.min(3.5, transform.lastZoom * factor));
+      } else if (transform.dragMode === 'pan') {
+        const barsDelta = -dx / currentBw;
+        transform.panX = transform.lastPanX + barsDelta;
+        const curRange = transform.currentPriceRange || 10;
+        const priceDelta = (dy / chartH) * curRange;
+        transform.panY = transform.lastPanY + priceDelta;
+      }
+    };
+
+    const handleMouseUp = () => {
+      const transform = chartTransformRef.current;
+      transform.isDragging = false;
+      transform.dragMode = null;
+      if (cv) cv.style.cursor = 'crosshair';
+    };
+
+    const handleDblClick = () => {
+      const transform = chartTransformRef.current;
+      transform.panX = 0;
+      transform.panY = 0;
+      transform.zoomLevel = 1.0;
+      transform.priceScaleY = 1.0;
+      setToastNotice('⟲ View Reset: Drag to Pan, Wheel to Zoom');
+      setTimeout(() => setToastNotice(null), 1800);
+    };
+
+    let touchStartDist = 0;
+    let touchStartZoom = 1.0;
+
+    const handleTouchStart = (e) => {
+      const transform = chartTransformRef.current;
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const rect = cv.getBoundingClientRect();
+        transform.isDragging = true;
+        transform.startX = touch.clientX - rect.left;
+        transform.startY = touch.clientY - rect.top;
+        transform.lastPanX = transform.panX;
+        transform.lastPanY = transform.panY;
+        transform.dragMode = 'pan';
+      } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        touchStartDist = Math.hypot(dx, dy);
+        touchStartZoom = transform.zoomLevel;
+      }
+    };
+
+    const handleTouchMove = (e) => {
+      const transform = chartTransformRef.current;
+      if (e.touches.length === 1 && transform.isDragging) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = cv.getBoundingClientRect();
+        const dx = (touch.clientX - rect.left) - transform.startX;
+        const dy = (touch.clientY - rect.top) - transform.startY;
+        const currentBw = transform.currentBw || 12;
+        transform.panX = transform.lastPanX - (dx / currentBw);
+        const curRange = transform.currentPriceRange || 10;
+        transform.panY = transform.lastPanY + (dy / (cv.clientHeight - 24)) * curRange;
+      } else if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        if (touchStartDist > 0) {
+          const factor = dist / touchStartDist;
+          transform.zoomLevel = Math.max(0.35, Math.min(3.5, touchStartZoom * factor));
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      chartTransformRef.current.isDragging = false;
+      touchStartDist = 0;
+    };
+
+    cv.addEventListener('wheel', handleWheel, { passive: false });
+    cv.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    cv.addEventListener('dblclick', handleDblClick);
+    cv.addEventListener('touchstart', handleTouchStart, { passive: false });
+    cv.addEventListener('touchmove', handleTouchMove, { passive: false });
+    cv.addEventListener('touchend', handleTouchEnd);
+
     const t0 = performance.now();
 
     const draw = (now) => {
@@ -860,9 +1082,33 @@ export default function TrendLensUltraChart({
       const h = cv.clientHeight;
       const t = (now - t0) / 1000;
       const s = stateRef.current;
-      const N = tfConfig.barsCount;
-      const vis = s.bars.slice(-N);
-      if (vis.length < 2) return;
+      const totalBars = s.bars.length;
+      if (totalBars < 2) return;
+
+      const transform = chartTransformRef.current;
+      const baseVisible = tfConfig.barsCount || 52;
+      const visibleCount = Math.max(14, Math.min(220, Math.round(baseVisible / transform.zoomLevel)));
+
+      const rightGutter = 85;
+      const bottomGutter = 24;
+      const chartW = w - rightGutter;
+      const chartH = h - bottomGutter;
+      const bw = (chartW - 20) / visibleCount;
+      transform.currentBw = bw;
+
+      const rightMargin = 8;
+      const maxPanLeft = -(totalBars - 10);
+      const maxPanRight = totalBars;
+      transform.panX = Math.max(maxPanLeft, Math.min(maxPanRight, transform.panX));
+
+      const endBarIdx = Math.round(totalBars - 1 + rightMargin + transform.panX);
+      const startBarIdx = endBarIdx - visibleCount;
+
+      const getBarX = (i) => 12 + (i - startBarIdx) * bw + bw / 2;
+
+      // Slice visible bars for dynamic high/low
+      const vis = s.bars.filter((_, idx) => idx >= Math.max(0, startBarIdx) && idx <= Math.min(totalBars - 1, endBarIdx));
+      if (!vis.length) return;
 
       let lo = Math.min(...vis.map(b => b.l));
       let hi = Math.max(...vis.map(b => b.h));
@@ -873,13 +1119,15 @@ export default function TrendLensUltraChart({
         hi = Math.max(hi, s.activeTrade.sl, s.activeTrade.entry, s.activeTrade.tp1);
       }
 
-      const padding = (hi - lo) * 0.14 || (tickSize * 6);
-      lo -= padding;
-      hi += padding;
-      const range = hi - lo || 1;
-      const y = (v) => h - 30 - ((v - lo) / range) * (h - 60);
-      const rightGutter = 85;
-      const bw = (w - rightGutter - 20) / N;
+      const centerP = (hi + lo) / 2 + transform.panY;
+      const rawHalf = (hi - lo) / 2 || tickSize * 5;
+      const halfRange = Math.max(tickSize * 3, rawHalf * (1.18 / transform.priceScaleY));
+      const curLo = centerP - halfRange;
+      const curHi = centerP + halfRange;
+      const curRange = curHi - curLo || 1;
+      transform.currentPriceRange = curRange;
+
+      const y = (v) => chartH - 12 - ((v - curLo) / curRange) * (chartH - 24);
 
       ctx.clearRect(0, 0, w, h);
 
@@ -887,10 +1135,19 @@ export default function TrendLensUltraChart({
       ctx.strokeStyle = '#161b25';
       ctx.lineWidth = 1;
       for (let k = 1; k < 6; k++) {
-        const yk = Math.round((k * h) / 6);
+        const yk = Math.round((k * chartH) / 6);
         ctx.beginPath();
         ctx.moveTo(0, yk + 0.5);
-        ctx.lineTo(w, yk + 0.5);
+        ctx.lineTo(chartW, yk + 0.5);
+        ctx.stroke();
+      }
+
+      // Vertical Bar Grid Lines
+      for (let i = Math.max(0, startBarIdx); i <= Math.min(totalBars - 1, endBarIdx); i += Math.max(5, Math.round(visibleCount / 8))) {
+        const gx = getBarX(i);
+        ctx.beginPath();
+        ctx.moveTo(gx + 0.5, 0);
+        ctx.lineTo(gx + 0.5, chartH);
         ctx.stroke();
       }
 
@@ -898,11 +1155,11 @@ export default function TrendLensUltraChart({
       if (chips.LIQ) {
         for (const wl of s.walls) {
           const yy = y(wl.p);
-          if (yy < 4 || yy > h - 4) continue;
+          if (yy < 4 || yy > chartH - 4) continue;
           const strength = Math.max(0, Math.min(1, wl.s + Math.sin(t * 0.9 + wl.ph) * 0.14));
           ctx.globalAlpha = 0.16 + strength * 0.45;
           ctx.fillStyle = inferno(0.25 + strength * 0.75);
-          ctx.fillRect(0, yy - 1 - strength * 2.5, w - rightGutter, 2 + strength * 5);
+          ctx.fillRect(0, yy - 1 - strength * 2.5, chartW, 2 + strength * 5);
         }
         ctx.globalAlpha = 1;
       }
@@ -910,21 +1167,20 @@ export default function TrendLensUltraChart({
       // 3. [ST01] Fair Value Gap (FVG) Shaded Box
       if (chips.ST01) {
         const lastBuy = [...s.marks].reverse().find(m => m.buy);
-        if (lastBuy && lastBuy.i >= s.bars.length - N) {
-          const idx = lastBuy.i - (s.bars.length - N);
-          const b = vis[idx];
+        if (lastBuy && lastBuy.i >= startBarIdx - 10) {
+          const b = s.bars[lastBuy.i];
           if (b) {
-            const x = 10 + idx * bw;
+            const x = getBarX(lastBuy.i);
             const topY = y(b.h);
             const botY = y(b.l);
             const boxH = Math.max(8, botY - topY);
 
             ctx.fillStyle = 'rgba(122, 167, 255, 0.12)';
-            ctx.fillRect(x, topY, w - rightGutter - x, boxH);
+            ctx.fillRect(x, topY, chartW - x, boxH);
 
             ctx.setLineDash([4, 4]);
             ctx.strokeStyle = 'rgba(122, 167, 255, 0.65)';
-            ctx.strokeRect(x + 0.5, topY + 0.5, w - rightGutter - x, boxH);
+            ctx.strokeRect(x + 0.5, topY + 0.5, chartW - x, boxH);
             ctx.setLineDash([]);
 
             ctx.font = '600 8.5px Azeret Mono, monospace';
@@ -937,18 +1193,18 @@ export default function TrendLensUltraChart({
 
       // 4. [ICT / SMC+] Institutional Order Blocks & Market Structure
       if (chips.ICT) {
-        const obIndex = Math.max(0, Math.floor(vis.length * 0.35));
-        const obBar = vis[obIndex];
+        const obIndex = Math.max(0, Math.floor(s.bars.length * 0.35));
+        const obBar = s.bars[obIndex];
         if (obBar) {
-          const x0 = 10 + obIndex * bw;
+          const x0 = getBarX(obIndex);
           const top = y(obBar.h);
           const height = Math.max(10, y(obBar.l) - top);
 
           ctx.fillStyle = 'rgba(233, 185, 73, 0.14)';
-          ctx.fillRect(x0, top, w - rightGutter - x0, height);
+          ctx.fillRect(x0, top, chartW - x0, height);
 
           ctx.strokeStyle = 'rgba(233, 185, 73, 0.7)';
-          ctx.strokeRect(x0 + 0.5, top + 0.5, w - rightGutter - x0, height);
+          ctx.strokeRect(x0 + 0.5, top + 0.5, chartW - x0, height);
 
           ctx.fillStyle = '#e9b949';
           ctx.font = '700 8.5px Azeret Mono, monospace';
@@ -969,13 +1225,13 @@ export default function TrendLensUltraChart({
 
         levels.forEach(lv => {
           const yLv = y(lv.p);
-          if (yLv > 10 && yLv < h - 10) {
+          if (yLv > 10 && yLv < chartH - 10) {
             ctx.setLineDash([3, 5]);
             ctx.strokeStyle = lv.col;
             ctx.globalAlpha = 0.7;
             ctx.beginPath();
             ctx.moveTo(0, yLv + 0.5);
-            ctx.lineTo(w - rightGutter, yLv + 0.5);
+            ctx.lineTo(chartW, yLv + 0.5);
             ctx.stroke();
             ctx.setLineDash([]);
             ctx.globalAlpha = 1;
@@ -983,14 +1239,15 @@ export default function TrendLensUltraChart({
             ctx.font = '600 8.5px Azeret Mono, monospace';
             ctx.fillStyle = lv.col;
             ctx.textAlign = 'right';
-            ctx.fillText(`${lv.label} [${fmt(lv.p)}]`, w - rightGutter - 6, yLv - 3);
+            ctx.fillText(`${lv.label} [${fmt(lv.p)}]`, chartW - 6, yLv - 3);
           }
         });
       }
 
       // 6. Candlesticks (Razor-sharp High-Definition Candles)
-      vis.forEach((b, i) => {
-        const x = 12 + i * bw + bw / 2;
+      s.bars.forEach((b, i) => {
+        const x = getBarX(i);
+        if (x < -bw || x > chartW + bw) return; // Viewport culling
         const isUp = b.c >= b.o;
         const colBody = isUp ? '#2fd39a' : '#f0566b';
         const colWick = isUp ? '#34d399' : '#f87171';
@@ -1021,16 +1278,17 @@ export default function TrendLensUltraChart({
       // 7. [BP / AOF] Whale Big Prints Order Flow Bubbles
       if (chips.BP) {
         for (const p of s.prints) {
-          const i = p.i - (s.bars.length - N);
-          if (i < 0) continue;
-          const x = 12 + i * bw + bw / 2;
+          const x = getBarX(p.i);
+          if (x < -20 || x > chartW + 20) continue;
+          const yP = y(p.p);
+          if (yP < -20 || yP > chartH + 20) continue;
           const r = (5 + p.q * 9) * Math.min(1, p.a);
           ctx.globalAlpha = 0.85 * Math.min(1, p.a);
           ctx.fillStyle = p.buy ? 'rgba(47, 211, 154, 0.32)' : 'rgba(240, 86, 107, 0.32)';
           ctx.strokeStyle = p.buy ? '#2fd39a' : '#f0566b';
           ctx.lineWidth = 1.6;
           ctx.beginPath();
-          ctx.arc(x, y(p.p), r, 0, Math.PI * 2);
+          ctx.arc(x, yP, r, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
           ctx.lineWidth = 1;
@@ -1038,7 +1296,7 @@ export default function TrendLensUltraChart({
           ctx.font = '600 7.5px Azeret Mono, monospace';
           ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'center';
-          ctx.fillText(`${p.size}L`, x, y(p.p) + 3);
+          ctx.fillText(`${p.size}L`, x, yP + 3);
         }
         ctx.globalAlpha = 1;
       }
@@ -1047,17 +1305,15 @@ export default function TrendLensUltraChart({
       if ((chips.ULT || chips.MAG) && s.activeTrade) {
         const tr = s.activeTrade;
         const isClosed = tr.status !== 'ACTIVE';
-        const i = tr.i - (s.bars.length - N);
-        const x = Math.max(12, Math.min(w - rightGutter - 30, 12 + i * bw + bw / 2));
+        const x = Math.max(12, Math.min(chartW - 30, getBarX(tr.i)));
         
         // Terminate bracket at the candle where SL or TP was reached if closed!
         const exitIdx = tr.exitBarIdx !== undefined ? tr.exitBarIdx : (s.bars.length - 1);
-        const exitI = exitIdx - (s.bars.length - N);
-        const xExit = Math.max(x + 24, Math.min(w - rightGutter, 12 + exitI * bw + bw / 2));
-        const bracketRight = isClosed ? xExit : (w - rightGutter);
+        const xExit = Math.max(x + 24, Math.min(chartW, getBarX(exitIdx)));
+        const bracketRight = isClosed ? xExit : chartW;
 
-        const b = vis[Math.max(0, Math.min(vis.length - 1, i))] || vis[vis.length - 1];
-        const curClose = vis[vis.length - 1].c;
+        const b = s.bars[Math.max(0, Math.min(s.bars.length - 1, tr.i))] || s.bars[s.bars.length - 1];
+        const curClose = s.bars[s.bars.length - 1].c;
 
         const yEntry = y(tr.entry);
         const yTP = y(tr.tp1);
@@ -1201,7 +1457,7 @@ export default function TrendLensUltraChart({
         const badgeY = isBuy ? candleLowY + 22 : candleHighY - 44;
         const badgeW = 145;
         const badgeH = 24;
-        const badgeX = Math.max(12, Math.min(w - rightGutter - badgeW - 10, x - badgeW / 2));
+        const badgeX = Math.max(12, Math.min(chartW - badgeW - 10, x - badgeW / 2));
 
         // Connecting needle from candle to badge
         ctx.strokeStyle = primaryCol;
@@ -1264,19 +1520,19 @@ export default function TrendLensUltraChart({
         const tpTop = Math.min(yEntry, yTP);
         const tpH = Math.max(4, Math.abs(yTP - yEntry));
         ctx.fillStyle = 'rgba(47, 211, 154, 0.16)';
-        ctx.fillRect(w * 0.42, tpTop, (w - rightGutter) - (w * 0.42), tpH);
+        ctx.fillRect(w * 0.42, tpTop, chartW - (w * 0.42), tpH);
         ctx.strokeStyle = '#2fd39a';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([5, 4]);
-        ctx.strokeRect(w * 0.42 + 0.5, tpTop + 0.5, (w - rightGutter) - (w * 0.42), tpH);
+        ctx.strokeRect(w * 0.42 + 0.5, tpTop + 0.5, chartW - (w * 0.42), tpH);
 
         // Stop Loss Zone
         const slTop = Math.min(yEntry, ySL);
         const slH = Math.max(4, Math.abs(ySL - yEntry));
         ctx.fillStyle = 'rgba(240, 86, 107, 0.16)';
-        ctx.fillRect(w * 0.42, slTop, (w - rightGutter) - (w * 0.42), slH);
+        ctx.fillRect(w * 0.42, slTop, chartW - (w * 0.42), slH);
         ctx.strokeStyle = '#f0566b';
-        ctx.strokeRect(w * 0.42 + 0.5, slTop + 0.5, (w - rightGutter) - (w * 0.42), slH);
+        ctx.strokeRect(w * 0.42 + 0.5, slTop + 0.5, chartW - (w * 0.42), slH);
         ctx.setLineDash([]);
 
         // Entry Line
@@ -1284,7 +1540,7 @@ export default function TrendLensUltraChart({
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(w * 0.40, yEntry + 0.5);
-        ctx.lineTo(w - rightGutter, yEntry + 0.5);
+        ctx.lineTo(chartW, yEntry + 0.5);
         ctx.stroke();
 
         ctx.fillStyle = '#e9b949';
@@ -1300,7 +1556,7 @@ export default function TrendLensUltraChart({
       // 10. Live Paper Scalp Position Line
       if (openPosition) {
         const yPosEntry = y(openPosition.entry);
-        const curClose = vis[vis.length - 1].c;
+        const curClose = s.bars[s.bars.length - 1].c;
         const pipsDiff = openPosition.type === 'BUY'
           ? (curClose - openPosition.entry) * pipMultiplier
           : (openPosition.entry - curClose) * pipMultiplier;
@@ -1311,7 +1567,7 @@ export default function TrendLensUltraChart({
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(0, yPosEntry + 0.5);
-        ctx.lineTo(w - rightGutter, yPosEntry + 0.5);
+        ctx.lineTo(chartW, yPosEntry + 0.5);
         ctx.stroke();
         ctx.setLineDash([]);
 
@@ -1325,7 +1581,7 @@ export default function TrendLensUltraChart({
       }
 
       // 11. Live Price Tracker Line & Right Axis Tag
-      const lastBar = vis[vis.length - 1];
+      const lastBar = s.bars[s.bars.length - 1];
       const ly = y(lastBar.c);
 
       ctx.setLineDash([4, 4]);
@@ -1333,27 +1589,99 @@ export default function TrendLensUltraChart({
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, ly + 0.5);
-      ctx.lineTo(w - rightGutter, ly + 0.5);
+      ctx.lineTo(chartW, ly + 0.5);
       ctx.stroke();
       ctx.setLineDash([]);
 
+      // Right Price Axis Background & Border
+      ctx.fillStyle = '#0a0d13';
+      ctx.fillRect(chartW, 0, rightGutter, chartH);
+      ctx.strokeStyle = '#1e2430';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(chartW + 0.5, 0);
+      ctx.lineTo(chartW + 0.5, chartH);
+      ctx.stroke();
+
+      // Live Price Tag on Right Axis
       ctx.fillStyle = '#e9b949';
-      ctx.fillRect(w - rightGutter + 2, ly - 9, rightGutter - 4, 18);
+      ctx.fillRect(chartW + 2, ly - 9, rightGutter - 4, 18);
       ctx.fillStyle = '#1a1405';
       ctx.font = '700 9.5px Azeret Mono, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(fmt(lastBar.c), w - rightGutter / 2, ly + 4);
+      ctx.fillText(fmt(lastBar.c), chartW + rightGutter / 2, ly + 4);
 
       // Price Axis labels
       ctx.fillStyle = '#8592a6';
       ctx.font = '500 8.5px Azeret Mono, monospace';
       ctx.textAlign = 'right';
       for (let k = 1; k < 6; k++) {
-        const val = hi - ((k * h) / 6 - 22) / (h - 44) * range;
-        const axisY = (k * h) / 6;
+        const val = curHi - ((k * chartH) / 6 - 12) / (chartH - 24) * curRange;
+        const axisY = (k * chartH) / 6;
         if (Math.abs(axisY - ly) > 16) {
           ctx.fillText(fmt(val), w - 6, axisY + 3);
         }
+      }
+
+      // Bottom Time Axis Background & Border
+      ctx.fillStyle = '#0a0d13';
+      ctx.fillRect(0, chartH, w, bottomGutter);
+      ctx.strokeStyle = '#1e2430';
+      ctx.beginPath();
+      ctx.moveTo(0, chartH + 0.5);
+      ctx.lineTo(w, chartH + 0.5);
+      ctx.stroke();
+
+      // Bottom Time Axis Ticks
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 8px Azeret Mono, monospace';
+      ctx.textAlign = 'center';
+      for (let i = Math.max(0, startBarIdx); i <= Math.min(totalBars - 1, endBarIdx); i += Math.max(6, Math.round(visibleCount / 7))) {
+        const tx = getBarX(i);
+        if (tx >= 15 && tx <= chartW - 15) {
+          ctx.fillText(`T-${totalBars - 1 - i}`, tx, chartH + 15);
+        }
+      }
+
+      // 12. Interactive Crosshair & Cursor Badges
+      const m = transform.mousePos;
+      if (m && m.x >= 0 && m.x <= chartW && m.y >= 0 && m.y <= chartH) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+
+        // Horizontal crosshair line
+        ctx.beginPath();
+        ctx.moveTo(0, m.y + 0.5);
+        ctx.lineTo(chartW, m.y + 0.5);
+        ctx.stroke();
+
+        // Vertical crosshair line
+        ctx.beginPath();
+        ctx.moveTo(m.x + 0.5, 0);
+        ctx.lineTo(m.x + 0.5, chartH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Hover Price on right gutter
+        const hoverPrice = curLo + ((chartH - 12 - m.y) / (chartH - 24)) * curRange;
+        ctx.fillStyle = '#2fd39a';
+        ctx.fillRect(chartW + 2, m.y - 9, rightGutter - 4, 18);
+        ctx.fillStyle = '#0a0d13';
+        ctx.font = '800 9px Azeret Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(fmt(hoverPrice), chartW + rightGutter / 2, m.y + 3.5);
+
+        // Hover Time on bottom gutter
+        const hoverBarIdx = Math.round(startBarIdx + (m.x - 12 - bw / 2) / bw);
+        ctx.fillStyle = '#161b25';
+        ctx.fillRect(m.x - 30, chartH + 2, 60, 18);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.strokeRect(m.x - 29.5, chartH + 2.5, 59, 17);
+        ctx.fillStyle = '#e8ecf3';
+        ctx.font = '700 8.5px Azeret Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Bar #${hoverBarIdx}`, m.x, chartH + 14);
       }
     };
 
@@ -1610,6 +1938,16 @@ export default function TrendLensUltraChart({
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', size);
       ro.disconnect();
+      if (cv) {
+        cv.removeEventListener('wheel', handleWheel);
+        cv.removeEventListener('mousedown', handleMouseDown);
+        cv.removeEventListener('dblclick', handleDblClick);
+        cv.removeEventListener('touchstart', handleTouchStart);
+        cv.removeEventListener('touchmove', handleTouchMove);
+        cv.removeEventListener('touchend', handleTouchEnd);
+      }
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isLive, decimals, tickSize, chips, activePlan, tfConfig, engineMode, openPosition, soundEnabled, pipMultiplier]);
 
@@ -2485,6 +2823,60 @@ export default function TrendLensUltraChart({
           )}
 
           <canvas ref={canvasRef} />
+
+          {/* Interactive Chart Zoom & Reset Controls */}
+          <div className="ultra-chart-zoom-bar">
+            <button
+              type="button"
+              className="ultra-zoom-btn"
+              onClick={() => {
+                const transform = chartTransformRef.current;
+                transform.zoomLevel = Math.min(3.5, transform.zoomLevel * 1.25);
+              }}
+              title="Zoom In (or Mouse Wheel Up on Chart)"
+            >
+              ➕
+            </button>
+            <button
+              type="button"
+              className="ultra-zoom-btn"
+              onClick={() => {
+                const transform = chartTransformRef.current;
+                transform.zoomLevel = Math.max(0.35, transform.zoomLevel * 0.8);
+              }}
+              title="Zoom Out (or Mouse Wheel Down on Chart)"
+            >
+              ➖
+            </button>
+            <button
+              type="button"
+              className="ultra-zoom-btn"
+              onClick={() => {
+                const transform = chartTransformRef.current;
+                transform.panX = 0;
+                transform.panY = 0;
+                transform.zoomLevel = 1.0;
+                transform.priceScaleY = 1.0;
+                setToastNotice('⟲ View Reset (Drag to pan, Scroll to zoom)');
+                setTimeout(() => setToastNotice(null), 1800);
+              }}
+              title="Reset Zoom & Pan (or Double Click Chart)"
+            >
+              ⟲ Reset
+            </button>
+            <button
+              type="button"
+              className="ultra-zoom-btn"
+              onClick={() => {
+                const transform = chartTransformRef.current;
+                transform.priceScaleY = 1.0;
+                transform.panY = 0;
+              }}
+              title="Auto-Fit Vertical Price Axis (or Drag Right Gutter)"
+            >
+              ↕ Auto Price
+            </button>
+          </div>
 
           {/* Institutional 6-Strategy Confluence Matrix Audit Box */}
           {showConfluenceMatrix && (
