@@ -655,6 +655,22 @@ export default function TrendLensBotPanel({
               {exchangeApi.isAutoTradeEnabled ? 'Active (Connected)' : 'Connect Demo'}
             </button>
           </div>
+
+          {bybitTestStatus && (
+            <div style={{
+              marginTop: 6,
+              padding: '6px 8px',
+              borderRadius: '4px',
+              fontSize: '0.66rem',
+              fontWeight: 600,
+              lineHeight: 1.4,
+              background: bybitTestStatus.loading ? 'rgba(0, 212, 255, 0.12)' : (bybitTestStatus.success ? 'rgba(0, 230, 118, 0.14)' : 'rgba(255, 51, 102, 0.14)'),
+              border: bybitTestStatus.loading ? '1px solid #00D4FF' : (bybitTestStatus.success ? '1px solid #00e676' : '1px solid #ff3366'),
+              color: bybitTestStatus.loading ? '#00D4FF' : (bybitTestStatus.success ? '#00e676' : '#ff8099')
+            }}>
+              {bybitTestStatus.loading ? '⏳ Testing Bybit API connection...' : bybitTestStatus.message}
+            </div>
+          )}
         </div>
       </div>
     </div>

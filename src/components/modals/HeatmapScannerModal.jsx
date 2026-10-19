@@ -136,7 +136,7 @@ export default function HeatmapScannerModal({ isOpen, onClose, onSelectAsset, on
         side: isBuy ? 'Buy' : 'Sell',
         qty,
         category: 'linear',
-        endpoint: '/bybit-demo'
+        endpoint: 'https://api-demo.bybit.com'
       });
 
       if (res.success) {

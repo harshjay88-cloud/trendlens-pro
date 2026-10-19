@@ -426,17 +426,22 @@ export default function TrendLensUltraChart({
       const saved = localStorage.getItem('trendlens_exchange_api');
       if (saved) {
         const parsed = JSON.parse(saved);
-        parsed.apiKey = 'gO8fnvc9iPvzzsGU56';
-        parsed.apiSecret = 'skx40u5fImiXvhsGJ1EkLR77XI6u6cYcpZVA';
-        parsed.exchange = 'bybit';
-        parsed.isAutoTradeEnabled = true;
-        return parsed;
+        return {
+          exchange: 'bybit',
+          apiKey: parsed.apiKey || 'gO8fnvc9iPvzzsGU56',
+          apiSecret: parsed.apiSecret || 'skx40u5fImiXvhsGJ1EkLR77XI6u6cYcpZVA',
+          endpoint: parsed.endpoint || 'https://api-demo.bybit.com',
+          isAutoTradeEnabled: parsed.isAutoTradeEnabled ?? true,
+          orderSize: parsed.orderSize || 0.1,
+          connectedAccount: parsed.connectedAccount || { balance: 15000, currency: 'USDT', accountType: 'Unified Trading (Demo)' }
+        };
       }
     } catch (e) {}
     return {
       exchange: 'bybit',
       apiKey: 'gO8fnvc9iPvzzsGU56',
       apiSecret: 'skx40u5fImiXvhsGJ1EkLR77XI6u6cYcpZVA',
+      endpoint: 'https://api-demo.bybit.com',
       isAutoTradeEnabled: true,
       orderSize: 0.1,
       connectedAccount: { balance: 15000, currency: 'USDT', accountType: 'Unified Trading (Demo)' }
@@ -455,7 +460,7 @@ export default function TrendLensUltraChart({
       const res = await fetchBybitPositions({
         apiKey: exchangeApi.apiKey,
         apiSecret: exchangeApi.apiSecret,
-        endpoint: '/bybit-demo'
+        endpoint: exchangeApi.endpoint || 'https://api-demo.bybit.com'
       });
       if (res.success && res.positions) {
         setBybitRealPositions(res.positions);
@@ -484,17 +489,23 @@ export default function TrendLensUltraChart({
   const [bybitTestStatus, setBybitTestStatus] = useState(null);
 
   const handleTestBybitConnection = async () => {
-    setBybitTestStatus({ loading: true, message: 'Probing Bybit Testnet and Mainnet endpoints...' });
+    setBybitTestStatus({ loading: true, message: 'Probing Bybit Demo, Mainnet and Testnet endpoints...' });
     const res = await testBybitApiConnection({
       apiKey: exchangeApi.apiKey,
       apiSecret: exchangeApi.apiSecret
     });
-    if (res.success && typeof res.isTestnet === 'boolean') {
-      setExchangeApi(prev => ({ ...prev, isTestnet: res.isTestnet, isAutoTradeEnabled: true }));
+    if (res.success) {
+      setExchangeApi(prev => ({
+        ...prev,
+        endpoint: res.endpoint || prev.endpoint || 'https://api-demo.bybit.com',
+        envType: res.envType,
+        isAutoTradeEnabled: true,
+        readOnly: res.readOnly
+      }));
     }
     setBybitTestStatus({ loading: false, success: res.success, message: res.message });
     setToastNotice(res.message);
-    setTimeout(() => setToastNotice(null), 5000);
+    setTimeout(() => setToastNotice(null), 6000);
   };
 
   const handleCloseAllBybit = async () => {
@@ -503,7 +514,7 @@ export default function TrendLensUltraChart({
     const res = await closeAllBybitPositions({
       apiKey: exchangeApi.apiKey,
       apiSecret: exchangeApi.apiSecret,
-      endpoint: '/bybit-demo'
+      endpoint: exchangeApi.endpoint || 'https://api-demo.bybit.com'
     });
     setToastNotice(`✅ ${res.message}`);
     refreshBybitPositions();
@@ -515,7 +526,7 @@ export default function TrendLensUltraChart({
     await closeBybitPosition({
       apiKey: exchangeApi.apiKey,
       apiSecret: exchangeApi.apiSecret,
-      endpoint: '/bybit-demo',
+      endpoint: exchangeApi.endpoint || 'https://api-demo.bybit.com',
       symbol: pos.symbol,
       side: pos.side,
       qty: pos.size
@@ -2224,7 +2235,7 @@ export default function TrendLensUltraChart({
             placeBybitLiveOrder({
               apiKey: exchangeApi.apiKey,
               apiSecret: exchangeApi.apiSecret,
-              endpoint: '/bybit-demo',
+              endpoint: exchangeApi.endpoint || 'https://api-demo.bybit.com',
               symbol: tradeCoin,
               side: sim.type,
               qty: orderQty

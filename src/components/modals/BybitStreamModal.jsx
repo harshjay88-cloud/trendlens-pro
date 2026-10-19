@@ -5,7 +5,7 @@ import './BybitStreamModal.css';
 
 export default function BybitStreamModal({ isOpen, onClose, onNotify }) {
   const [latency, setLatency] = useState(24);
-  const [endpoint, setEndpoint] = useState('/bybit-demo');
+  const [endpoint, setEndpoint] = useState('https://api-demo.bybit.com');
   const [isPinging, setIsPinging] = useState(false);
   const [logFeed, setLogFeed] = useState([
     { time: '17:58:02', text: 'WebSocket v5 linear topic subscribed: orderbook.50.BTCUSDT', type: 'info' },
@@ -123,9 +123,9 @@ export default function BybitStreamModal({ isOpen, onClose, onNotify }) {
                   fontFamily: 'monospace'
                 }}
               >
-                <option value="/bybit-demo">Bybit Demo Trading (api-demo.bybit.com)</option>
-                <option value="/bybit-testnet">Bybit Testnet (api-testnet.bybit.com)</option>
-                <option value="/bybit-main">Bybit Mainnet (api.bybit.com)</option>
+                <option value="https://api-demo.bybit.com">Bybit Demo Trading (api-demo.bybit.com)</option>
+                <option value="https://api-testnet.bybit.com">Bybit Testnet (api-testnet.bybit.com)</option>
+                <option value="https://api.bybit.com">Bybit Mainnet (api.bybit.com)</option>
               </select>
             </div>
           </div>
