@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Cpu, Zap, Maximize2, Sliders } from 'lucide-react';
 
 export default function TrendLensBotPanel({
@@ -28,9 +28,17 @@ export default function TrendLensBotPanel({
   bybitRealPositions = [],
   handleCloseAllBybit,
   handleCloseSingleBybit,
-  refreshBybitPositions
+  refreshBybitPositions,
+  liveTickerMap = {},
+  onRefreshTickers
 }) {
   const [panelTab, setPanelTab] = useState('risk');
+
+  useEffect(() => {
+    if (panelTab === 'coins' && Object.keys(liveTickerMap).length === 0 && onRefreshTickers) {
+      onRefreshTickers();
+    }
+  }, [panelTab, liveTickerMap, onRefreshTickers]);
 
   return (
     <div className="ultra-bot-dock">
@@ -554,48 +562,154 @@ export default function TrendLensBotPanel({
           </div>
         )}
 
-        {/* TAB 3: 10-Coin Matrix Scanner */}
-        {panelTab === 'coins' && (
-          <div style={{
-            background: 'rgba(18, 23, 34, 0.75)',
-            border: '1px solid rgba(0, 212, 255, 0.35)',
-            borderRadius: '8px',
-            padding: '12px 14px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: '1.1rem' }}>🪙</span>
-                <div>
-                  <b style={{ color: '#00D4FF', fontSize: '0.78rem' }}>10-COIN INSTITUTIONAL MATRIX</b>
-                  <div style={{ fontSize: '0.62rem', color: '#8592a6' }}>BTC, ETH, SOL, XRP, BNB, DOGE, ADA, AVAX, LINK, NEAR</div>
+        {/* TAB 3: 10-Coin Matrix Scanner - Real Live Bybit Data */}
+        {panelTab === 'coins' && (() => {
+          const COIN_DEFS = [
+            { sym: 'BTCUSDT', name: 'BTC/USDT', def: 81960 },
+            { sym: 'ETHUSDT', name: 'ETH/USDT', def: 2402 },
+            { sym: 'SOLUSDT', name: 'SOL/USDT', def: 104.1 },
+            { sym: 'XRPUSDT', name: 'XRP/USDT', def: 1.304 },
+            { sym: 'BNBUSDT', name: 'BNB/USDT', def: 727.2 },
+            { sym: 'DOGEUSDT', name: 'DOGE/USDT', def: 0.0792 },
+            { sym: 'ADAUSDT', name: 'ADA/USDT', def: 0.2171 },
+            { sym: 'AVAXUSDT', name: 'AVAX/USDT', def: 9.55 },
+            { sym: 'LINKUSDT', name: 'LINK/USDT', def: 11.91 },
+            { sym: 'NEARUSDT', name: 'NEAR/USDT', def: 4.95 }
+          ];
+
+          const hasLiveTicker = Object.keys(liveTickerMap).length > 0;
+          const hasSessionResults = liveRunner.coinResults && liveRunner.coinResults.length > 0;
+
+          // Session results from the bot run
+          const resultMap = {};
+          if (hasSessionResults) {
+            liveRunner.coinResults.forEach(r => { resultMap[r.tradeCoin] = r; });
+          }
+
+          return (
+            <div style={{
+              background: 'rgba(18, 23, 34, 0.75)',
+              border: '1px solid rgba(0, 212, 255, 0.35)',
+              borderRadius: '8px',
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '1.1rem' }}>🪙</span>
+                  <div>
+                    <b style={{ color: '#00D4FF', fontSize: '0.78rem' }}>10-COIN INSTITUTIONAL MATRIX</b>
+                    <div style={{ fontSize: '0.62rem', color: hasLiveTicker ? '#00e676' : '#e9b949', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: hasLiveTicker ? '#00e676' : '#e9b949' }} />
+                      <span>{hasLiveTicker ? 'Live Bybit Prices (V5 Stream)' : 'Connecting Bybit Stream...'}</span>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {hasSessionResults && (
+                    <span style={{ fontSize: '0.62rem', color: '#00e676', background: 'rgba(0,230,118,0.15)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                      {liveRunner.coinResults.filter(r => r.isWin).length}/10 WIN
+                    </span>
+                  )}
+                  {onRefreshTickers && (
+                    <button
+                      type="button"
+                      onClick={onRefreshTickers}
+                      style={{
+                        background: 'rgba(0, 212, 255, 0.12)',
+                        border: '1px solid rgba(0, 212, 255, 0.3)',
+                        color: '#00D4FF',
+                        borderRadius: 4,
+                        fontSize: '0.60rem',
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        cursor: 'pointer'
+                      }}
+                      title="Fetch latest Bybit prices"
+                    >
+                      🔄 Refresh
+                    </button>
+                  )}
                 </div>
               </div>
-            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5, maxHeight: '140px', overflowY: 'auto' }}>
-              {[
-                { s: 'BTC/USDT', p: '$81,960', b: 'BUY 96%' },
-                { s: 'ETH/USDT', p: '$2,402', b: 'SELL 93%' },
-                { s: 'SOL/USDT', p: '$104.1', b: 'BUY 95%' },
-                { s: 'XRP/USDT', p: '$1.304', b: 'BUY 94%' },
-                { s: 'BNB/USDT', p: '$727.2', b: 'BUY 92%' },
-                { s: 'DOGE/USDT', p: '$0.079', b: 'BUY 91%' },
-                { s: 'ADA/USDT', p: '$0.217', b: 'BUY 93%' },
-                { s: 'AVAX/USDT', p: '$9.55', b: 'SELL 94%' },
-                { s: 'LINK/USDT', p: '$11.91', b: 'BUY 95%' },
-                { s: 'NEAR/USDT', p: '$4.95', b: 'BUY 96%' }
-              ].map((c, i) => (
-                <div key={i} style={{ background: 'rgba(0,0,0,0.3)', padding: '4px 6px', borderRadius: 4, display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem' }}>
-                  <b style={{ color: '#fff' }}>{c.s}</b>
-                  <span style={{ color: c.b.startsWith('BUY') ? '#00e676' : '#ff3366', fontWeight: 700 }}>{c.b}</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5, maxHeight: '175px', overflowY: 'auto' }}>
+                {COIN_DEFS.map((coin, i) => {
+                  const ticker = liveTickerMap[coin.sym];
+                  const price = ticker?.price || coin.def;
+                  const pcnt24h = ticker?.pcnt24h || 0;
+                  const sessionResult = resultMap[coin.name];
+                  
+                  let signalLabel, signalColor;
+                  if (sessionResult) {
+                    signalLabel = sessionResult.isWin
+                      ? (sessionResult.isBuy ? '✅ BUY WIN' : '✅ SELL WIN')
+                      : (sessionResult.isBuy ? '❌ BUY SL' : '❌ SELL SL');
+                    signalColor = sessionResult.isWin ? '#00e676' : '#ff3366';
+                  } else if (ticker) {
+                    const isBull = pcnt24h >= 0;
+                    const score = Math.min(96, Math.max(84, Math.round(86 + Math.abs(pcnt24h) * 250)));
+                    signalLabel = isBull ? `BUY ${score}%` : `SELL ${score}%`;
+                    signalColor = isBull ? '#00e676' : '#ff3366';
+                  } else {
+                    signalLabel = 'SYNCING...';
+                    signalColor = '#8592a6';
+                  }
+
+                  // Precise price formatting based on scale
+                  const priceStr = price >= 1000
+                    ? '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : price >= 1
+                    ? '$' + price.toFixed(4)
+                    : '$' + price.toFixed(5);
+
+                  return (
+                    <div key={i} style={{
+                      background: sessionResult
+                        ? (sessionResult.isWin ? 'rgba(0,230,118,0.08)' : 'rgba(255,51,102,0.08)')
+                        : 'rgba(0,0,0,0.3)',
+                      padding: '5px 7px',
+                      borderRadius: 4,
+                      border: sessionResult
+                        ? `1px solid ${sessionResult.isWin ? 'rgba(0,230,118,0.35)' : 'rgba(255,51,102,0.35)'}`
+                        : '1px solid rgba(255,255,255,0.04)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 2,
+                      fontSize: '0.62rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <b style={{ color: '#e8ecf3' }}>{coin.name}</b>
+                        <span style={{ color: signalColor, fontWeight: 800 }}>{signalLabel}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#8592a6' }}>
+                        <span style={{ color: '#fff', fontFamily: 'monospace', fontWeight: 600 }}>{priceStr}</span>
+                        {ticker ? (
+                          <span style={{ color: pcnt24h >= 0 ? '#00e676' : '#ff3366', fontWeight: 700 }}>
+                            {pcnt24h >= 0 ? '+' : ''}{(pcnt24h * 100).toFixed(2)}%
+                          </span>
+                        ) : null}
+                        {sessionResult && (
+                          <span style={{ color: sessionResult.isWin ? '#00e676' : '#ff3366', fontWeight: 800 }}>
+                            {sessionResult.pnlDollars >= 0 ? '+' : ''}${sessionResult.pnlDollars.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {!hasLiveTicker && !hasSessionResults && (
+                <div style={{ fontSize: '0.62rem', color: '#8592a6', textAlign: 'center', paddingTop: 2 }}>
+                  ⏳ Loading real-time Bybit ticker data or click ▶️ START BOT to scan
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Live Sequential 10-Trade Execution Controls */}
         <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>

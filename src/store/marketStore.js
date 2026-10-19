@@ -16,14 +16,21 @@ export const useMarketStore = create((set, get) => ({
   },
 
   // Update a single asset price with calculated change
-  updatePrice: (asset, newPrice) => {
+  updatePrice: (asset, newPrice, customChangePct = null, customHigh = null, customLow = null) => {
     set(state => {
-      const current = state.prices[asset] || { price: newPrice, change: 0, changePct: 0, high: newPrice, low: newPrice, category: 'Forex' };
-      const change = +(newPrice - (current.price - current.change)).toFixed(2);
-      const prevBase = current.price - current.change || current.price;
-      const changePct = +((change / prevBase) * 100).toFixed(2);
-      const high = Math.max(current.high || newPrice, newPrice);
-      const low = Math.min(current.low || newPrice, newPrice);
+      const current = state.prices[asset] || { price: newPrice, change: 0, changePct: 0, high: newPrice, low: newPrice, category: 'Crypto' };
+      let change, changePct;
+      if (customChangePct !== null && typeof customChangePct === 'number') {
+        changePct = +customChangePct.toFixed(2);
+        change = +(newPrice * (changePct / 100)).toFixed(2);
+      } else {
+        change = +(newPrice - (current.price - current.change)).toFixed(2);
+        const prevBase = current.price - current.change || current.price;
+        changePct = +((change / prevBase) * 100).toFixed(2);
+      }
+
+      const high = customHigh !== null ? customHigh : Math.max(current.high || newPrice, newPrice);
+      const low = customLow !== null ? customLow : Math.min(current.low || newPrice, newPrice);
 
       return {
         prices: {
@@ -73,17 +80,14 @@ export const useMarketStore = create((set, get) => ({
     });
   },
 
-  // Fetch real crypto prices from Binance public API
+  // Fetch real crypto and commodity prices directly from Bybit V5 public endpoint
   fetchLiveCrypto: async () => {
     try {
-      const symbols = [
-        "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
-        "DOGEUSDT","ADAUSDT","AVAXUSDT","LINKUSDT","SUIUSDT",
-        "NEARUSDT","APTUSDT","DOTUSDT","LTCUSDT","UNIUSDT"
-      ];
-      const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${JSON.stringify(symbols)}`);
+      const res = await fetch('https://api.bybit.com/v5/market/tickers?category=linear');
       if (!res.ok) return;
       const data = await res.json();
+      if (data.retCode !== 0 || !Array.isArray(data.result?.list)) return;
+
       const symbolMap = {
         'BTCUSDT': 'BTC/USD',
         'ETHUSDT': 'ETH/USD',
@@ -100,17 +104,32 @@ export const useMarketStore = create((set, get) => ({
         'DOTUSDT': 'DOT/USD',
         'LTCUSDT': 'LTC/USD',
         'UNIUSDT': 'UNI/USD',
+        'TONUSDT': 'TON/USD',
+        'SHIB1000USDT': 'SHIB/USD',
+        'PEPEUSDT': 'PEPE/USD',
+        'RENDERUSDT': 'RENDER/USD',
+        'TAOUSDT': 'TAO/USD',
+        'EURUSDUSDT': 'EUR/USD',
+        'GBPUSDUSDT': 'GBP/USD',
+        'USDJPYUSDT': 'USD/JPY',
+        'XAUUSDT': 'XAU/USD'
       };
-      data.forEach(item => {
+
+      data.result.list.forEach(item => {
         const pair = symbolMap[item.symbol];
         if (pair) {
           const px = parseFloat(item.lastPrice);
-          const decimals = px > 100 ? 2 : px > 1 ? 4 : 6;
-          get().updatePrice(pair, +px.toFixed(decimals));
+          if (px > 0) {
+            const pcnt = parseFloat(item.price24hPcnt) * 100;
+            const high = parseFloat(item.highPrice24h) || px;
+            const low = parseFloat(item.lowPrice24h) || px;
+            const decimals = px > 100 ? 2 : px > 1 ? 4 : 6;
+            get().updatePrice(pair, +px.toFixed(decimals), pcnt, high, low);
+          }
         }
       });
     } catch {
-      // Fallback silently if offline or blocked by CORS
+      // Fallback silently if offline
     }
   },
 }));

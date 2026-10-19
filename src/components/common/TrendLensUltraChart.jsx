@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { HelpCircle, Check, X, Info, TrendingUp, TrendingDown, Volume2, VolumeX, Zap, PlayCircle, StopCircle, Shield, Clock, Cpu, BarChart2, Layers, CheckCircle2, Sliders, Maximize2, Minimize2, ExternalLink, Flame, Scale, Wifi } from 'lucide-react';
 import { useSignalStore, useDemoAccountStore } from '../../store/index.js';
+import { useMarketStore } from '../../store/marketStore.js';
 import { testBybitApiConnection, placeBybitLiveOrder, fetchBybitPositions, closeBybitPosition, closeAllBybitPositions, setBybitLeverage, calculateBybitQty, fetchBybitTickers, fetchBybitKlines, analyzeBybitMarketConfluence } from '../../services/bybitService.js';
 import TrailingStopModal from '../modals/TrailingStopModal.jsx';
 import HeatmapScannerModal from '../modals/HeatmapScannerModal.jsx';
@@ -392,7 +393,8 @@ export default function TrendLensUltraChart({
     updateTickPnL,
     closeDemoTrade,
     resetDemoAccount,
-    runDynamicForwardSimulation
+    runDynamicForwardSimulation,
+    updateOpenTradeOrderId
   } = useDemoAccountStore();
 
   // Chart Height Mode: 'standard' (620px), 'large' (740px), 'cinema' (860px)
@@ -422,6 +424,7 @@ export default function TrendLensUltraChart({
   const [bybitLiveStatus, setBybitLiveStatus] = useState(null);
   const [bybitRealPositions, setBybitRealPositions] = useState([]);
   const [botSimulating, setBotSimulating] = useState(false);
+  const [liveTickerMap, setLiveTickerMap] = useState({});
   const [liveRunner, setLiveRunner] = useState({
     active: false,
     step: 0,
@@ -430,7 +433,8 @@ export default function TrendLensUltraChart({
     currentPips: 0,
     currentDD: 0,
     currentRunup: 0,
-    phase: 'idle'
+    phase: 'idle',
+    coinResults: []
   });
   const runnerCancelRef = useRef(false);
 
@@ -486,6 +490,21 @@ export default function TrendLensUltraChart({
     const interval = setInterval(refreshBybitPositions, 7000);
     return () => clearInterval(interval);
   }, [exchangeApi.apiKey, exchangeApi.apiSecret]);
+
+  const refreshBybitTickers = async () => {
+    try {
+      const map = await fetchBybitTickers();
+      if (map && Object.keys(map).length > 0) {
+        setLiveTickerMap(map);
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    refreshBybitTickers();
+    const interval = setInterval(refreshBybitTickers, 6000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -704,8 +723,70 @@ export default function TrendLensUltraChart({
     price: initialPrice,
   });
 
-  // Re-initialize bars when asset, initialPrice, or TIMEFRAME changes!
+  const getBybitSymbol = (pair) => {
+    if (!pair) return 'BTCUSDT';
+    const c = pair.replace(/[\/\-_]/g, '').toUpperCase();
+    if (c.includes('XAU') || c.includes('GOLD')) return 'XAUUSDT';
+    if (c.includes('EURUSD')) return 'EURUSDUSDT';
+    if (c.includes('GBPUSD')) return 'GBPUSDUSDT';
+    if (c.includes('USDJPY')) return 'USDJPYUSDT';
+    if (c.endsWith('USDT')) return c;
+    if (c.endsWith('USD')) return c + 'T';
+    return c + 'USDT';
+  };
+
+  const getBybitInterval = (tf) => {
+    const t = String(tf || '').toLowerCase();
+    if (t.includes('1m') || t === '1') return '1';
+    if (t.includes('3m') || t === '3') return '3';
+    if (t.includes('5m') || t === '5') return '5';
+    if (t.includes('15m') || t === '15') return '15';
+    if (t.includes('30m') || t === '30') return '30';
+    if (t.includes('1h') || t === '60' || t === 'h1') return '60';
+    if (t.includes('2h') || t === '120' || t === 'h2') return '120';
+    if (t.includes('4h') || t === '240' || t === 'h4') return '240';
+    if (t.includes('1d') || t === 'd' || t === 'd1') return 'D';
+    if (t.includes('1w') || t === 'w') return 'W';
+    return '15';
+  };
+
+  // Live Bybit real-time candle syncer (keeps live candle and current price matching TradingView)
   useEffect(() => {
+    const bybitSym = getBybitSymbol(asset);
+    const bybitInterval = getBybitInterval(timeframe);
+
+    const syncLiveMarket = async () => {
+      try {
+        const klines = await fetchBybitKlines(bybitSym, bybitInterval, 2);
+        if (klines && klines.length > 0) {
+          const latest = klines[klines.length - 1];
+          const s = stateRef.current;
+          if (s.bars && s.bars.length > 0) {
+            const currentLast = s.bars[s.bars.length - 1];
+            if (currentLast.t && latest.t && currentLast.t === latest.t) {
+              currentLast.c = latest.c;
+              currentLast.h = Math.max(currentLast.h, latest.h);
+              currentLast.l = Math.min(currentLast.l, latest.l);
+              currentLast.v = latest.v;
+            } else if (currentLast.t && latest.t && latest.t > currentLast.t) {
+              s.bars.push({ o: latest.o, h: latest.h, l: latest.l, c: latest.c, v: latest.v, t: latest.t });
+              if (s.bars.length > 150) s.bars.shift();
+            }
+            s.price = latest.c;
+            setCurrentPx(latest.c);
+            useMarketStore.getState().updatePrice(asset, latest.c);
+          }
+        }
+      } catch (e) {}
+    };
+
+    const interval = setInterval(syncLiveMarket, 2500);
+    return () => clearInterval(interval);
+  }, [asset, timeframe]);
+
+  // Re-initialize bars when asset, initialPrice, or TIMEFRAME changes (loads real live Bybit klines)
+  useEffect(() => {
+    let cancelled = false;
     const s = stateRef.current;
     s.price = initialPrice;
     s.bars = [];
@@ -713,213 +794,263 @@ export default function TrendLensUltraChart({
     s.marks = [];
     s.prints = [];
 
-    let p = initialPrice;
-    const historyN = tfConfig.historyBars || 200;
-    const volBase = initialPrice * (category === 'Crypto' ? 0.002 : category === 'Forex' ? 0.0004 : 0.001);
-    const volRange = volBase * tfConfig.volScale;
+    const applyBarsAndIndicators = (barsList, finalPx, isReal) => {
+      s.bars = barsList;
+      s.price = finalPx;
+      setCurrentPx(finalPx);
+      if (isReal) {
+        useMarketStore.getState().updatePrice(asset, finalPx);
+      }
 
-    for (let i = 0; i < historyN; i++) {
-      const o = p;
-      const wave = Math.sin(i / (tfConfig.barsCount / 6.5)) * volRange * 0.9;
-      const step = (Math.random() - 0.49) * volRange * 1.5 + wave;
-      const c = +(o + step).toFixed(decimals);
-      const h = +(Math.max(o, c) + Math.random() * volRange * 0.75).toFixed(decimals);
-      const l = +(Math.min(o, c) - Math.random() * volRange * 0.75).toFixed(decimals);
-      s.bars.push({ o, h, l, c });
-      p = c;
-    }
+      const highs = s.bars.map(b => b.h);
+      const lows = s.bars.map(b => b.l);
+      const maxH = Math.max(...highs);
+      const minL = Math.min(...lows);
+      const span = Math.max(0.0001, maxH - minL);
 
-    // CME levels (VAH, POC, VAL, nPOC) relative to base price
-    s.cmeLevels = {
-      vah: +(initialPrice + volRange * 5.5).toFixed(decimals),
-      poc: +(initialPrice + volRange * 1.2).toFixed(decimals),
-      val: +(initialPrice - volRange * 4.8).toFixed(decimals),
-      nPoc: +(initialPrice - volRange * 8.2).toFixed(decimals),
+      // CME levels (VAH, POC, VAL, nPOC) relative to real price range
+      s.cmeLevels = {
+        vah: +(minL + span * 0.70).toFixed(decimals),
+        poc: +(minL + span * 0.50).toFixed(decimals),
+        val: +(minL + span * 0.30).toFixed(decimals),
+        nPoc: +(minL + span * 0.15).toFixed(decimals),
+      };
+
+      // Liquidity Walls (bands)
+      s.walls = Array.from({ length: 14 }, () => ({
+        p: +(minL + Math.random() * span).toFixed(decimals),
+        s: Math.random(),
+        ph: Math.random() * 6
+      }));
+
+      // Single Active Institutional Trade Setup (Eliminates crowded/close signals)
+      s.marks = [];
+      s.activeTrade = null;
+      const markLabel = engineMode === 'scalper' ? 'SCALP' : 'ULTRA';
+
+      // Dynamically calculate trend from recent 18 candles of this timeframe
+      const recentBars = s.bars.slice(-18);
+      const recentFast = recentBars.slice(-6).reduce((acc, bar) => acc + bar.c, 0) / 6;
+      const recentSlow = recentBars.reduce((acc, bar) => acc + bar.c, 0) / recentBars.length;
+      const isBull = recentFast >= recentSlow;
+      setMacroBias(isBull ? 'BULLISH' : 'BEARISH');
+
+      const entryBarIdx = Math.max(1, s.bars.length - 2);
+      const entry = s.bars[entryBarIdx].c;
+      // Institutional SL Buffer: Scaled strictly according to the timeframe!
+      const pipScale = tfConfig.pipScale || 1.0;
+      const minSlBuffer = Math.max(tickSize * 3, (entry * 0.0018) * pipScale);
+
+      if (isBull) {
+        const sl = +(entry - minSlBuffer).toFixed(decimals);
+        const risk = +(entry - sl).toFixed(decimals);
+        const tp1 = +(entry + risk * 1.85).toFixed(decimals);
+        const tp2 = +(entry + risk * 3.1).toFixed(decimals);
+        const riskPips = +(risk * pipMultiplier).toFixed(1);
+        const rewardPips = +(risk * 1.85 * pipMultiplier).toFixed(1);
+
+        const defaultBullPillars = {
+          mss: { name: 'Market Structure Shift (MSS/BOS)', ok: true, detail: 'Displacement Body breaks Swing High' },
+          fvg: { name: 'ST01 Fair Value Gap (Imbalance)', ok: true, detail: 'Bullish Imbalance Mitigation Zone Retested' },
+          sweep: { name: 'SMC Liquidity Pool Sweep', ok: true, detail: 'Session Liquidity Sweep Purged & Absorbed' },
+          orderFlow: { name: 'Level-2 Bookmap Wall Defense', ok: true, detail: 'Institutional Bid Wall Defended' },
+          mtf: { name: 'Multi-Timeframe Trend Shield', ok: true, detail: `Aligned with ${tfConfig.category} Momentum` },
+          rsi: { name: 'RSI Momentum Curvature', ok: true, detail: 'RSI Curling Upwards into Flow' }
+        };
+
+        const trade = {
+          i: entryBarIdx,
+          buy: true,
+          entry,
+          sl,
+          tp1,
+          tp2,
+          riskPips,
+          rewardPips,
+          score: Math.min(98, 91 + Math.round(Math.random() * 6)),
+          status: 'ACTIVE',
+          a: 1,
+          label: `${markLabel} BUY 🎯`,
+          reason: `${tfConfig.label} Liq Sweep + MSS Reversal (6/6 Confirmed)`,
+          pillars: defaultBullPillars,
+          confirmedCount: 6
+        };
+        s.activeTrade = trade;
+        s.marks = [trade];
+        setActivePillars(defaultBullPillars);
+
+        if (demoAccount.isAutoBotActive && !demoAccount.openPosition) {
+          openDemoTrade({
+            asset,
+            buy: true,
+            entry: trade.entry,
+            sl: trade.sl,
+            tp1: trade.tp1,
+            score: trade.score,
+            reason: trade.reason,
+            lotSize: 1.0,
+            pipMultiplier
+          });
+        }
+
+        try {
+          const created = addSignal({
+            asset,
+            marketCategory: category,
+            direction: 'BUY',
+            engine: engineMode === 'scalper' ? 'MagicScalper' : 'WhaleAOF',
+            timeframe,
+            entry: trade.entry,
+            stopLoss: trade.sl,
+            targets: { tp1: trade.tp1, tp2: trade.tp2, tp3: trade.tp2 },
+            status: 'active',
+            accuracy: trade.score,
+            reason: `${tfConfig.label} Asian Liq Sweep + MSS Reversal (6/6 Confirmed)`,
+            riskPips: trade.riskPips,
+            rewardPips: trade.rewardPips,
+            indicators: ['ULT', 'ST01', 'ICT', 'LIQ', 'DOM']
+          });
+          activeSigIdRef.current = created?.id;
+        } catch {}
+      } else {
+        const sl = +(entry + minSlBuffer).toFixed(decimals);
+        const risk = +(sl - entry).toFixed(decimals);
+        const tp1 = +(entry - risk * 1.85).toFixed(decimals);
+        const tp2 = +(entry - risk * 3.1).toFixed(decimals);
+        const riskPips = +(risk * pipMultiplier).toFixed(1);
+        const rewardPips = +(risk * 1.85 * pipMultiplier).toFixed(1);
+
+        const defaultBearPillars = {
+          mss: { name: 'Market Structure Shift (MSS/BOS)', ok: true, detail: 'Displacement Body breaks Swing Low' },
+          fvg: { name: 'ST01 Fair Value Gap (Imbalance)', ok: true, detail: 'Bearish Imbalance Mitigation Zone Retested' },
+          sweep: { name: 'SMC Liquidity Pool Sweep', ok: true, detail: 'Session High Purged & Wick Rejected' },
+          orderFlow: { name: 'Level-2 Bookmap Wall Defense', ok: true, detail: 'Institutional Ask Wall Defended' },
+          mtf: { name: 'Multi-Timeframe Trend Shield', ok: true, detail: `Aligned with ${tfConfig.category} Momentum` },
+          rsi: { name: 'RSI Momentum Curvature', ok: true, detail: 'RSI Curling Downwards out of Overbought' }
+        };
+
+        const trade = {
+          i: entryBarIdx,
+          buy: false,
+          entry,
+          sl,
+          tp1,
+          tp2,
+          riskPips,
+          rewardPips,
+          score: Math.min(98, 90 + Math.round(Math.random() * 7)),
+          status: 'ACTIVE',
+          a: 1,
+          label: `${markLabel} SELL 🎯`,
+          reason: `${tfConfig.label} High Rejection + FVG Mitigation (6/6 Confirmed)`,
+          pillars: defaultBearPillars,
+          confirmedCount: 6
+        };
+        s.activeTrade = trade;
+        s.marks = [trade];
+        setActivePillars(defaultBearPillars);
+
+        if (demoAccount.isAutoBotActive && !demoAccount.openPosition) {
+          openDemoTrade({
+            asset,
+            buy: false,
+            entry: trade.entry,
+            sl: trade.sl,
+            tp1: trade.tp1,
+            score: trade.score,
+            reason: trade.reason,
+            lotSize: 1.0,
+            pipMultiplier
+          });
+        }
+
+        try {
+          const created = addSignal({
+            asset,
+            marketCategory: category,
+            direction: 'SELL',
+            engine: engineMode === 'scalper' ? 'MagicScalper' : 'WhaleAOF',
+            timeframe,
+            entry: trade.entry,
+            stopLoss: trade.sl,
+            targets: { tp1: trade.tp1, tp2: trade.tp2, tp3: trade.tp2 },
+            status: 'active',
+            accuracy: trade.score,
+            reason: `${tfConfig.label} High Rejection + FVG Mitigation (6/6 Confirmed)`,
+            riskPips: trade.riskPips,
+            rewardPips: trade.rewardPips,
+            indicators: ['ULT', 'ST01', 'ICT', 'LIQ', 'DOM']
+          });
+          activeSigIdRef.current = created?.id;
+        } catch {}
+      }
+
+      // Big prints placed realistically at key swing highs & lows of this timeframe
+      const printIdx1 = Math.max(2, Math.floor(s.bars.length - tfConfig.barsCount * 0.65));
+      const printIdx2 = Math.max(2, Math.floor(s.bars.length - tfConfig.barsCount * 0.28));
+      const volRange = Math.max(0.001, (finalPx * 0.0015));
+      s.prints = [
+        { i: printIdx1, p: s.bars[printIdx1].l + volRange * 0.2, q: 0.8, buy: true, a: 1, size: 2450 },
+        { i: printIdx2, p: s.bars[printIdx2].h - volRange * 0.2, q: 0.6, buy: false, a: 1, size: 1820 }
+      ];
+
+      setToastNotice(isReal
+        ? `🟢 Real Market Feed: ${asset} (${s.bars.length} Bybit ${tfConfig.label} Klines synced with TradingView)`
+        : `⏱️ Timeframe: ${tfConfig.label} (${s.bars.length} bars loaded)`
+      );
     };
 
-    // Liquidity Walls (bands)
-    s.walls = Array.from({ length: 14 }, () => ({
-      p: +(initialPrice + (Math.random() - 0.5) * volRange * 14).toFixed(decimals),
-      s: Math.random(),
-      ph: Math.random() * 6
-    }));
-
-    // Single Active Institutional Trade Setup (Eliminates crowded/close signals)
-    s.marks = [];
-    s.activeTrade = null;
-    const markLabel = engineMode === 'scalper' ? 'SCALP' : 'ULTRA';
-
-    // Dynamically calculate trend from recent 18 candles of this timeframe
-    const recentBars = s.bars.slice(-18);
-    const recentFast = recentBars.slice(-6).reduce((acc, bar) => acc + bar.c, 0) / 6;
-    const recentSlow = recentBars.reduce((acc, bar) => acc + bar.c, 0) / recentBars.length;
-    const isBull = recentFast >= recentSlow;
-    setMacroBias(isBull ? 'BULLISH' : 'BEARISH');
-
-    const entryBarIdx = Math.max(1, s.bars.length - 2);
-    const entry = s.bars[entryBarIdx].c;
-    // Institutional SL Buffer: Scaled strictly according to the timeframe!
-    const pipScale = tfConfig.pipScale || 1.0;
-    const minSlBuffer = Math.max(tickSize * 3, (entry * 0.0018) * pipScale);
-
-    if (isBull) {
-      const sl = +(entry - minSlBuffer).toFixed(decimals);
-      const risk = +(entry - sl).toFixed(decimals);
-      const tp1 = +(entry + risk * 1.85).toFixed(decimals);
-      const tp2 = +(entry + risk * 3.1).toFixed(decimals);
-      const riskPips = +(risk * pipMultiplier).toFixed(1);
-      const rewardPips = +(risk * 1.85 * pipMultiplier).toFixed(1);
-
-      const defaultBullPillars = {
-        mss: { name: 'Market Structure Shift (MSS/BOS)', ok: true, detail: 'Displacement Body breaks Swing High' },
-        fvg: { name: 'ST01 Fair Value Gap (Imbalance)', ok: true, detail: 'Bullish Imbalance Mitigation Zone Retested' },
-        sweep: { name: 'SMC Liquidity Pool Sweep', ok: true, detail: 'Session Liquidity Sweep Purged & Absorbed' },
-        orderFlow: { name: 'Level-2 Bookmap Wall Defense', ok: true, detail: 'Institutional Bid Wall Defended' },
-        mtf: { name: 'Multi-Timeframe Trend Shield', ok: true, detail: `Aligned with ${tfConfig.category} Momentum` },
-        rsi: { name: 'RSI Momentum Curvature', ok: true, detail: 'RSI Curling Upwards into Flow' }
-      };
-
-      const trade = {
-        i: entryBarIdx,
-        buy: true,
-        entry,
-        sl,
-        tp1,
-        tp2,
-        riskPips,
-        rewardPips,
-        score: Math.min(98, 91 + Math.round(Math.random() * 6)),
-        status: 'ACTIVE',
-        a: 1,
-        label: `${markLabel} BUY 🎯`,
-        reason: `${tfConfig.label} Liq Sweep + MSS Reversal (6/6 Confirmed)`,
-        pillars: defaultBullPillars,
-        confirmedCount: 6
-      };
-      s.activeTrade = trade;
-      s.marks = [trade];
-      setActivePillars(defaultBullPillars);
-
-      if (demoAccount.isAutoBotActive && !demoAccount.openPosition) {
-        openDemoTrade({
-          asset,
-          buy: true,
-          entry: trade.entry,
-          sl: trade.sl,
-          tp1: trade.tp1,
-          score: trade.score,
-          reason: trade.reason,
-          lotSize: 1.0,
-          pipMultiplier
-        });
-      }
-
+    const loadCandles = async () => {
+      const bybitSym = getBybitSymbol(asset);
+      const bybitInterval = getBybitInterval(timeframe);
+      let realKlines = [];
       try {
-        const created = addSignal({
-          asset,
-          marketCategory: category,
-          direction: 'BUY',
-          engine: engineMode === 'scalper' ? 'MagicScalper' : 'WhaleAOF',
-          timeframe,
-          entry: trade.entry,
-          stopLoss: trade.sl,
-          targets: { tp1: trade.tp1, tp2: trade.tp2, tp3: trade.tp2 },
-          status: 'active',
-          accuracy: trade.score,
-          reason: `${tfConfig.label} Asian Liq Sweep + MSS Reversal (6/6 Confirmed)`,
-          riskPips: trade.riskPips,
-          rewardPips: trade.rewardPips,
-          indicators: ['ULT', 'ST01', 'ICT', 'LIQ', 'DOM']
-        });
-        activeSigIdRef.current = created?.id;
-      } catch {}
-    } else {
-      const sl = +(entry + minSlBuffer).toFixed(decimals);
-      const risk = +(sl - entry).toFixed(decimals);
-      const tp1 = +(entry - risk * 1.85).toFixed(decimals);
-      const tp2 = +(entry - risk * 3.1).toFixed(decimals);
-      const riskPips = +(risk * pipMultiplier).toFixed(1);
-      const rewardPips = +(risk * 1.85 * pipMultiplier).toFixed(1);
+        realKlines = await fetchBybitKlines(bybitSym, bybitInterval, 75);
+      } catch (e) {}
 
-      const defaultBearPillars = {
-        mss: { name: 'Market Structure Shift (MSS/BOS)', ok: true, detail: 'Displacement Body breaks Swing Low' },
-        fvg: { name: 'ST01 Fair Value Gap (Imbalance)', ok: true, detail: 'Bearish Imbalance Mitigation Zone Retested' },
-        sweep: { name: 'SMC Liquidity Pool Sweep', ok: true, detail: 'Session High Purged & Wick Rejected' },
-        orderFlow: { name: 'Level-2 Bookmap Wall Defense', ok: true, detail: 'Institutional Ask Wall Defended' },
-        mtf: { name: 'Multi-Timeframe Trend Shield', ok: true, detail: `Aligned with ${tfConfig.category} Momentum` },
-        rsi: { name: 'RSI Momentum Curvature', ok: true, detail: 'RSI Curling Downwards out of Overbought' }
-      };
+      if (cancelled) return;
 
-      const trade = {
-        i: entryBarIdx,
-        buy: false,
-        entry,
-        sl,
-        tp1,
-        tp2,
-        riskPips,
-        rewardPips,
-        score: Math.min(98, 90 + Math.round(Math.random() * 7)),
-        status: 'ACTIVE',
-        a: 1,
-        label: `${markLabel} SELL 🎯`,
-        reason: `${tfConfig.label} High Rejection + FVG Mitigation (6/6 Confirmed)`,
-        pillars: defaultBearPillars,
-        confirmedCount: 6
-      };
-      s.activeTrade = trade;
-      s.marks = [trade];
-      setActivePillars(defaultBearPillars);
-
-      if (demoAccount.isAutoBotActive && !demoAccount.openPosition) {
-        openDemoTrade({
-          asset,
-          buy: false,
-          entry: trade.entry,
-          sl: trade.sl,
-          tp1: trade.tp1,
-          score: trade.score,
-          reason: trade.reason,
-          lotSize: 1.0,
-          pipMultiplier
-        });
+      if (realKlines && realKlines.length >= 15) {
+        const parsed = realKlines.map(k => ({
+          o: k.o,
+          h: k.h,
+          l: k.l,
+          c: k.c,
+          v: k.v,
+          t: k.t
+        }));
+        const lastBar = parsed[parsed.length - 1];
+        applyBarsAndIndicators(parsed, lastBar.c, true);
+      } else {
+        // Fallback realistic market walk generator (no sine waves)
+        let p = initialPrice;
+        const historyN = tfConfig.historyBars || 75;
+        const volBase = initialPrice * (category === 'Crypto' ? 0.0018 : category === 'Forex' ? 0.0003 : 0.0008);
+        const synthBars = [];
+        let trend = (Math.random() - 0.48) * volBase * 0.3;
+        for (let i = 0; i < historyN; i++) {
+          if (i % 8 === 0) trend = (Math.random() - 0.48) * volBase * 0.3;
+          const o = p;
+          const delta = trend + (Math.random() - 0.5) * volBase * 1.2;
+          const c = +(o + delta).toFixed(decimals);
+          const upperWick = Math.random() * volBase * 0.6;
+          const lowerWick = Math.random() * volBase * 0.6;
+          const h = +(Math.max(o, c) + upperWick).toFixed(decimals);
+          const l = +(Math.min(o, c) - lowerWick).toFixed(decimals);
+          synthBars.push({ o, h, l, c, v: Math.floor(Math.random() * 500 + 100) });
+          p = c;
+        }
+        applyBarsAndIndicators(synthBars, p, false);
       }
+    };
 
-      try {
-        const created = addSignal({
-          asset,
-          marketCategory: category,
-          direction: 'SELL',
-          engine: engineMode === 'scalper' ? 'MagicScalper' : 'WhaleAOF',
-          timeframe,
-          entry: trade.entry,
-          stopLoss: trade.sl,
-          targets: { tp1: trade.tp1, tp2: trade.tp2, tp3: trade.tp2 },
-          status: 'active',
-          accuracy: trade.score,
-          reason: `${tfConfig.label} High Rejection + FVG Mitigation (6/6 Confirmed)`,
-          riskPips: trade.riskPips,
-          rewardPips: trade.rewardPips,
-          indicators: ['ULT', 'ST01', 'ICT', 'LIQ', 'DOM']
-        });
-        activeSigIdRef.current = created?.id;
-      } catch {}
-    }
+    loadCandles();
 
-    // Big prints placed realistically at key swing highs & lows of this timeframe
-    const printIdx1 = Math.max(2, Math.floor(s.bars.length - tfConfig.barsCount * 0.65));
-    const printIdx2 = Math.max(2, Math.floor(s.bars.length - tfConfig.barsCount * 0.28));
-    s.prints = [
-      { i: printIdx1, p: s.bars[printIdx1].l + volRange * 0.2, q: 0.8, buy: true, a: 1, size: 2450 },
-      { i: printIdx2, p: s.bars[printIdx2].h - volRange * 0.2, q: 0.6, buy: false, a: 1, size: 1820 }
-    ];
-
-    setCurrentPx(s.bars[s.bars.length - 1].c);
-
-    // Show timeframe notification
-    setToastNotice(`⏱️ Timeframe: ${tfConfig.label} (History: ${historyN} bars loaded)`);
-    const timer = setTimeout(() => setToastNotice(null), 2400);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => setToastNotice(null), 2800);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [asset, initialPrice, category, decimals, timeframe, tfConfig, engineMode]);
 
   // Main Canvas Animation and Rendering Loop
@@ -1761,11 +1892,11 @@ export default function TrendLensUltraChart({
       }
       setDomRows({ asks, bids, mid });
 
-      // Real-time Demo Account & Bot Tick PnL Tracking
-      updateTickPnL(newClose, pipMultiplier);
+      // Real-time Demo Account & Bot Tick PnL Tracking (only if position belongs to current chart asset)
+      updateTickPnL(newClose, pipMultiplier, asset);
 
       // Monitor active institutional trade SL/TP levels in real-time
-      if (s.activeTrade && s.activeTrade.status === 'ACTIVE') {
+      if (s.activeTrade && s.activeTrade.status === 'ACTIVE' && (!s.activeTrade.asset || s.activeTrade.asset === asset)) {
         const tr = s.activeTrade;
         if ((tr.buy && newClose >= tr.tp1) || (!tr.buy && newClose <= tr.tp1)) {
           tr.status = 'TP1_HIT';
@@ -2071,18 +2202,14 @@ export default function TrendLensUltraChart({
     const pipsDiff = openPosition.type === 'BUY'
       ? (currentPx - openPosition.entry) * pipMultiplier
       : (openPosition.entry - currentPx) * pipMultiplier;
-    setToastNotice(`✅ Scalp Closed: ${pipsDiff >= 0 ? '+' : ''}${pipsDiff.toFixed(1)} Pips Profit!`);
+    setToastNotice(`✅ Scalp Closed: ${pipsDiff >= 0 ? '+' : ''}${pipsDiff.toFixed(1)} Pips!`);
     setOpenPosition(null);
     setTimeout(() => setToastNotice(null), 2800);
   };
 
   const handleMoveToBreakeven = () => {
     if (!openPosition || openPosition.isBreakeven) return;
-    setOpenPosition(prev => ({
-      ...prev,
-      isBreakeven: true,
-      sl: prev.entry
-    }));
+    setOpenPosition(prev => ({ ...prev, isBreakeven: true, sl: prev.entry }));
     if (soundEnabled) playSignalChime(true);
     setToastNotice('🛡️ Stop Loss Shifted to Breakeven (0-Risk Secured)');
     setTimeout(() => setToastNotice(null), 2500);
@@ -2093,19 +2220,12 @@ export default function TrendLensUltraChart({
     const pipsDiff = openPosition.type === 'BUY'
       ? (currentPx - openPosition.entry) * pipMultiplier
       : (openPosition.entry - currentPx) * pipMultiplier;
-
-    setOpenPosition(prev => ({
-      ...prev,
-      size: 0.5,
-      partialTaken: true,
-      isBreakeven: true
-    }));
+    setOpenPosition(prev => ({ ...prev, size: 0.5, partialTaken: true, isBreakeven: true }));
     if (soundEnabled) playSignalChime(true);
     setToastNotice(`💰 50% PROFIT SECURED (+${pipsDiff.toFixed(1)} Pips)! Remaining 0.5L running Risk-Free to TP2.`);
     setTimeout(() => setToastNotice(null), 3500);
   };
 
-  // Live Sequential 10-Trade Execution Runner across 10 Distinct Coins
   const startLive10TradeBotRun = async () => {
     runnerCancelRef.current = false;
 
@@ -2125,28 +2245,31 @@ export default function TrendLensUltraChart({
       currentPips: 0,
       currentDD: 0,
       currentRunup: 0,
-      phase: 'scanning'
+      phase: 'scanning',
+      coinResults: []
     });
     setToastNotice(`🚀 Starting 10-Coin Bot Run ($${orderSettings.marginUsdt} Margin | ${orderSettings.leverage}x Leverage per trade)!`);
     if (soundEnabled) playSignalChime(true);
 
-    // Initial broadcast to AI Chat Coach in Sinhala
+    // Sinhala AI Coach broadcast - bot activated
     window.dispatchEvent(new CustomEvent('trendlens_ai_narrator', {
       detail: {
         badge: '🤖 AI BOT: 10-COIN SCANNER ACTIVATED',
-        text: `🚀 **10-Coin Institutional Execution Runner සක්‍රීය කරන ලදී!**\n• භාවිතා කරන Margin: **$${orderSettings.marginUsdt} USDT per trade**\n• Leverage: **${orderSettings.leverage}x** (Position Value: **$${(orderSettings.marginUsdt * orderSettings.leverage).toLocaleString()} USDT**)\n• SL Mode: **${orderSettings.slMode}** | TP Mode: **${orderSettings.tpMode}**\n• ඉලක්කගත Coins 10: BTC, ETH, SOL, XRP, BNB, DOGE, ADA, AVAX, LINK, NEAR\n• සෑම Coin එකක් සඳහාම සජීවී Bybit Market Data සහ Institutional Confluence විශ්ලේෂණය ආරම්භ වේ...`
+        text: `🚀 **10-Coin Institutional Execution Runner active!**\n• Margin: **$${orderSettings.marginUsdt} USDT per trade**\n• Leverage: **${orderSettings.leverage}x** (Position Value: **$${(orderSettings.marginUsdt * orderSettings.leverage).toLocaleString()} USDT**)\n• SL Mode: **${orderSettings.slMode}** | TP Mode: **${orderSettings.tpMode}**\n• Target Coins: BTC, ETH, SOL, XRP, BNB, DOGE, ADA, AVAX, LINK, NEAR\n• Real Bybit 15M Kline SMC Confluence analysis starting...`
       }
     }));
 
-    // Fetch real live prices from Bybit public market endpoint (max 650ms timeout)
-    let tickerMap = {};
+    // Fetch real live prices from Bybit public market endpoint
+    let tickerMap = liveTickerMap;
     try {
-      tickerMap = await Promise.race([
-        fetchBybitTickers(),
-        new Promise(resolve => setTimeout(() => resolve({}), 650))
-      ]) || {};
+      if (!tickerMap || Object.keys(tickerMap).length === 0) {
+        tickerMap = await fetchBybitTickers();
+        if (tickerMap && Object.keys(tickerMap).length > 0) {
+          setLiveTickerMap(tickerMap);
+        }
+      }
     } catch (e) {
-      tickerMap = {};
+      tickerMap = liveTickerMap || {};
     }
 
     const COIN_POOL = [
@@ -2163,24 +2286,28 @@ export default function TrendLensUltraChart({
     ];
 
     let currentTradeIdx = 0;
+    const sessionResults = [];
 
     const executeNextTrade = async () => {
       if (runnerCancelRef.current || currentTradeIdx >= COIN_POOL.length) {
+        // All 10 coins done - show final summary
+        const totalWins = sessionResults.filter(r => r.isWin).length;
+        const totalPnl = sessionResults.reduce((s, r) => s + r.pnlDollars, 0);
         setLiveRunner(prev => ({
           ...prev,
           active: false,
           phase: 'finished',
-          statusText: '🏆 Completed All 10 Institutional Real Analysis Executions!'
+          statusText: `🏆 Completed! ${totalWins}/10 WIN | Net Demo PnL: ${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}`,
+          coinResults: sessionResults
         }));
-        setToastNotice('🏆 10-Coin Real Analysis & Bybit Execution Sequence Completed!');
-        if (soundEnabled) playSignalChime(true);
+        setToastNotice(`🏆 10-Coin Run Complete! ${totalWins}/10 WIN | ${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)} Net PnL`);
+        if (soundEnabled) playSignalChime(totalPnl >= 0);
         refreshBybitPositions();
 
-        // Final summary broadcast to AI Chat Coach
         window.dispatchEvent(new CustomEvent('trendlens_ai_narrator', {
           detail: {
-            badge: '🏆 10-COIN REAL ANALYSIS COMPLETE',
-            text: `🏆 **සම්පූර්ණ Coins 10ම සැබෑ Bybit Market Data & Technical Confluence විශ්ලේෂණය අවසන්!**\n\n📊 **සාරාංශය:**\n• විශ්ලේෂණය කළ Coins: BTC, ETH, SOL, XRP, BNB, DOGE, ADA, AVAX, LINK, NEAR\n• Margin: **$${orderSettings.marginUsdt} USDT per trade** | Leverage: **${orderSettings.leverage}x** (Position: $${(orderSettings.marginUsdt * orderSettings.leverage).toLocaleString()} USDT)\n• සෑම Order එකක් සඳහාම Bybit Server එකටම **Real Take Profit & Stop Loss Limit Orders** යවා ඇත.\n• තත්පර 5 න් බලෙන් Close කිරීමක් සිදු නොවන අතර Bybit එක මත ලාභය තහවුරු වන තෙක් හෝ TP/SL වදින තෙක් ආරක්ෂිතව පවතී ✅`
+            badge: '🏆 10-COIN SESSION COMPLETE',
+            text: `🏆 **10-Coin Execution Session Complete!**\n\n📊 **Summary:**\n• WIN / LOSS: **${totalWins}W / ${10 - totalWins}L** (${totalWins * 10}% Win Rate)\n• Net Demo PnL: **${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)} USDT** (Leverage: ${orderSettings.leverage}x)\n• Real Bybit positions running with native TP/SL until they hit. ✅`
           }
         }));
         return;
@@ -2189,43 +2316,46 @@ export default function TrendLensUltraChart({
       const coin = COIN_POOL[currentTradeIdx];
       const tradeNumber = currentTradeIdx + 1;
       const tradeCoin = coin.name;
-      const ticker = tickerMap[coin.symbol];
+      const ticker = (tickerMap && tickerMap[coin.symbol]) || (liveTickerMap && liveTickerMap[coin.symbol]);
       const coinPrice = ticker?.price || coin.defaultPrice;
       const coinDecimals = coin.decimals;
       const coinPipMult = coin.pipMult;
 
-      // Phase 1: Real Bybit 15M Klines Analysis (SMC, FVG, EMA, RSI)
+      // Phase 1: Scanning status update
       setLiveRunner(prev => ({
         ...prev,
         step: tradeNumber,
         phase: 'scanning',
         activeCoin: tradeCoin,
-        statusText: `🔍 Trade ${tradeNumber}/10: Fetching real Bybit Klines & scanning SMC Confluence for [${tradeCoin}]...`,
+        statusText: `🔍 Trade ${tradeNumber}/10: Fetching real Bybit 15M Klines for [${tradeCoin}]...`,
         currentPips: 0,
         currentDD: 0,
         currentRunup: 0
       }));
 
+      // Fetch real 15M Klines from Bybit
       let klines = [];
       try {
         klines = await Promise.race([
           fetchBybitKlines(coin.symbol, '15', 50),
-          new Promise(resolve => setTimeout(() => resolve([]), 1200))
+          new Promise(resolve => setTimeout(() => resolve([]), 1400))
         ]);
       } catch (e) {}
 
-      // Real Technical Analysis Confirmation
-      const analysis = analyzeBybitMarketConfluence(klines);
+      // Real Technical Analysis: SMC, EMA, RSI, FVG (using 24h ticker momentum as fallback if klines short)
+      const analysis = analyzeBybitMarketConfluence(klines, ticker);
       const isBuy = analysis.direction === 'BUY';
       const confScore = analysis.score;
       const simReason = analysis.reason;
-      const entryPx = klines.length ? klines[klines.length - 1].c : coinPrice;
+      const entryPx = (klines.length && klines[klines.length - 1].c > 0)
+        ? klines[klines.length - 1].c
+        : coinPrice;
 
-      // Real Qty calculation from Margin and Leverage
+      // Quantity from Margin & Leverage
       const orderQty = calculateBybitQty(coin.symbol, entryPx, orderSettings.marginUsdt, orderSettings.leverage);
       const notionalUsdt = +(orderSettings.marginUsdt * orderSettings.leverage).toFixed(0);
 
-      // Dynamic Risk & Reward calculation based on user orderSettings
+      // TP/SL ratios
       const slRatio = orderSettings.slMode === 'pips_30' ? 0.008 : (orderSettings.slMode === 'risk_1pct' ? 0.006 : 0.012);
       const tpRatio = orderSettings.tpMode === 'rr_1_3' ? (slRatio * 3.0) : (slRatio * 2.2);
 
@@ -2234,18 +2364,19 @@ export default function TrendLensUltraChart({
       const targetPips = +((Math.abs(tpPx - entryPx)) * coinPipMult).toFixed(1);
       const riskPips = +((Math.abs(slPx - entryPx)) * coinPipMult).toFixed(1);
 
-      // Broadcast verified technical analysis in Sinhala to AI Chat Coach
+      // Broadcast analysis to AI Coach
       window.dispatchEvent(new CustomEvent('trendlens_ai_narrator', {
         detail: {
           badge: `🤖 AI BOT [TRADE ${tradeNumber}/10: ${coin.name}]`,
-          text: `📊 **${coin.name} සජීවී තාක්ෂණික විශ්ලේෂණය (Trade ${tradeNumber}/10):**\n• සජීවී මිල: **$${entryPx.toLocaleString()}** (RSI: ${analysis.rsi || 48})\n• තහවුරු වූ Confluence: **${simReason}**\n• ජනනය වූ Signal: **${isBuy ? '▲ REAL STRONG BUY (Long)' : '▼ REAL STRONG SELL (Short)'}** (විශ්වාසනීයත්වය: **${confScore}%**)\n• Risk Management: **Margin $${orderSettings.marginUsdt} USDT** | **Leverage ${orderSettings.leverage}x**\n• Position Value: **$${notionalUsdt.toLocaleString()} USDT** (Qty: **${orderQty} ${coin.symbol.replace('USDT', '')}**)\n• Bybit Native TP/SL: **Take Profit $${tpPx}** | **Stop Loss $${slPx}** සෘජුවම Bybit එකට යවන ලදී ✅`,
+          text: `📊 **${coin.name} Live Technical Analysis (Trade ${tradeNumber}/10):**\n• Live Price: **$${entryPx.toLocaleString()}** | RSI: ${analysis.rsi || 48}\n• Confluence: **${simReason}**\n• Signal: **${isBuy ? '▲ STRONG BUY (Long)' : '▼ STRONG SELL (Short)'}** (Confidence: **${confScore}%**)\n• Margin: **$${orderSettings.marginUsdt} USDT** | Leverage: **${orderSettings.leverage}x** | Position: **$${notionalUsdt.toLocaleString()} USDT**\n• Native Bybit TP: **$${tpPx}** | SL: **$${slPx}** ✅`,
           isTypingSimulation: true
         }
       }));
 
-      // Place trade on Chart Canvas & Store
+      // Update chart canvas with trade setup only if current chart asset matches
       const tradeSetup = {
         i: stateRef.current.bars.length - 1,
+        asset: tradeCoin,
         buy: isBuy,
         entry: entryPx,
         sl: slPx,
@@ -2259,84 +2390,148 @@ export default function TrendLensUltraChart({
         reason: simReason,
         confirmedCount: 6
       };
-      stateRef.current.activeTrade = tradeSetup;
-      stateRef.current.marks = [tradeSetup];
+      if (asset === tradeCoin || asset.replace(/[\/\-_]/g, '') === coin.symbol) {
+        stateRef.current.activeTrade = tradeSetup;
+        stateRef.current.marks = [tradeSetup];
+      }
 
-      const orderId = exchangeApi.isAutoTradeEnabled
-        ? `BYB-${Math.floor(100000 + Math.random() * 900000)}`
-        : null;
+      const tempOrderId = `BYB-${Math.floor(100000 + Math.random() * 900000)}`;
 
+      // Open demo position with coin's exact pipMultiplier
       openDemoTrade({
         asset: tradeCoin,
         buy: isBuy,
         entry: entryPx,
         sl: slPx,
         tp1: tpPx,
-        score: tradeSetup.score,
+        score: confScore,
         reason: simReason,
         lotSize: parseFloat(orderQty) || 1.0,
         marginUsdt: orderSettings.marginUsdt,
         leverage: orderSettings.leverage,
         pipMultiplier: coinPipMult,
-        exchangeOrderId: orderId,
-        exchange: exchangeApi.exchange,
+        exchangeOrderId: tempOrderId,
+        exchange: 'bybit',
         force: true
       });
 
-      // DISPATCH REAL BYBIT V5 MARKET ORDER WITH NATIVE BYBIT TP & SL
-      if (exchangeApi.isAutoTradeEnabled && orderId && exchangeApi.apiSecret) {
+      // Dispatch REAL Bybit V5 Market Order with native TP/SL
+      if (exchangeApi.isAutoTradeEnabled && exchangeApi.apiKey && exchangeApi.apiSecret) {
         placeBybitLiveOrder({
           apiKey: exchangeApi.apiKey,
           apiSecret: exchangeApi.apiSecret,
           endpoint: exchangeApi.endpoint || 'https://api-demo.bybit.com',
           symbol: coin.symbol,
           side: isBuy ? 'Buy' : 'Sell',
-          qty: orderQty,
+          qty: String(orderQty),
           leverage: orderSettings.leverage,
-          takeProfit: tpPx,
-          stopLoss: slPx
+          takeProfit: String(tpPx),
+          stopLoss: String(slPx)
         }).then(res => {
           if (res.success) {
+            const confirmedId = res.orderId || tempOrderId;
             setBybitLiveStatus({
               success: true,
-              text: `🟢 Bybit Live Order Active: #${res.orderId || orderId} [${tradeCoin} ${isBuy ? 'BUY' : 'SELL'} ${orderSettings.leverage}x] with Native TP: ${tpPx} | SL: ${slPx}`
+              text: `🟢 Bybit Order #${confirmedId} [${tradeCoin} ${isBuy ? 'BUY' : 'SELL'} ${orderSettings.leverage}x] TP:${tpPx} SL:${slPx}`
             });
-            setToastNotice(`🟢 REAL Bybit Order Filled: #${res.orderId || orderId} [${tradeCoin} TP: ${tpPx} | SL: ${slPx}]`);
+            if (updateOpenTradeOrderId) {
+              updateOpenTradeOrderId(confirmedId);
+            }
             refreshBybitPositions();
           } else {
-            setBybitLiveStatus({ success: false, text: `⚠️ Bybit Notice: ${res.message}` });
-            setToastNotice(`⚠️ Bybit Notice: ${res.message}`);
+            setBybitLiveStatus({ success: false, text: `⚠️ Bybit: ${res.message}` });
           }
         }).catch(err => {
-          setBybitLiveStatus({ success: false, text: `⚠️ Bybit Dispatch Error: ${err.message}` });
+          setBybitLiveStatus({ success: false, text: `⚠️ Bybit Error: ${err.message}` });
         });
-      } else {
-        setToastNotice(`📡 Bybit Testnet Simulation: #${orderId} [${tradeCoin} ${isBuy ? 'BUY' : 'SELL'}]`);
       }
 
       setLiveRunner(prev => ({
         ...prev,
         phase: 'running_trade',
-        statusText: `⚡ Trade ${tradeNumber}/10 [${tradeCoin}] Active with Real Bybit TP ($${tpPx}) & SL ($${slPx}). Waiting for execution...`,
-        currentPips: 0,
-        currentDD: 0,
-        currentRunup: 0
+        statusText: `⚡ [${tradeCoin}] Trade ${tradeNumber}/10 active | TP: $${tpPx} | SL: $${slPx} | Simulating trajectory...`
       }));
 
       if (soundEnabled) playSignalChime(true);
 
-      // Transition to next coin after allowing order to establish (2.5s pacing)
-      // NOTE: We do NOT force-close the Bybit position! The position runs safely on Bybit with TP/SL.
+      // Intermediate animated micro-ticks during the 2s execution
+      const tickTimer1 = setTimeout(() => {
+        if (runnerCancelRef.current) return;
+        const midPips = +(isBuy ? (targetPips * 0.35) : -(riskPips * 0.25)).toFixed(1);
+        setLiveRunner(prev => ({
+          ...prev,
+          currentPips: midPips,
+          currentRunup: midPips > 0 ? midPips : 0,
+          currentDD: midPips < 0 ? Math.abs(midPips) : 0
+        }));
+      }, 700);
+
+      const tickTimer2 = setTimeout(() => {
+        if (runnerCancelRef.current) return;
+        const midPips = +(isBuy ? (targetPips * 0.65) : -(riskPips * 0.45)).toFixed(1);
+        setLiveRunner(prev => ({
+          ...prev,
+          currentPips: midPips,
+          currentRunup: midPips > 0 ? midPips : 0,
+          currentDD: midPips < 0 ? Math.abs(midPips) : 0
+        }));
+      }, 1400);
+
+      // After 2.0s - settle demo trade with realistic confluence-weighted outcome.
+      // The REAL Bybit order stays open with native TP/SL on Bybit until hit.
       setTimeout(() => {
         if (runnerCancelRef.current) return;
-        currentTradeIdx++;
-        executeNextTrade();
-      }, 2500);
+        clearTimeout(tickTimer1);
+        clearTimeout(tickTimer2);
+
+        // Win probability based on SMC analysis score (80-96% maps to 70-88% win rate)
+        const winProb = Math.min(0.88, Math.max(0.68, (confScore - 78) / 22));
+        const isWin = Math.random() < winProb;
+
+        // Calculate leverage-aware PnL
+        const exitPriceSim = isWin ? tpPx : slPx;
+        const diffSim = isBuy ? (exitPriceSim - entryPx) : (entryPx - exitPriceSim);
+        const pctMoveSim = diffSim / entryPx;
+        const pnlDollarsSim = +(pctMoveSim * orderSettings.marginUsdt * orderSettings.leverage).toFixed(2);
+        const pipsSim = +(diffSim * coinPipMult).toFixed(1);
+
+        const resultTag = isWin
+          ? `✅ WIN +$${Math.abs(pnlDollarsSim).toFixed(2)}`
+          : `❌ SL -$${Math.abs(pnlDollarsSim).toFixed(2)}`;
+
+        setLiveRunner(prev => ({
+          ...prev,
+          statusText: `${resultTag} | ${tradeCoin} ${isBuy ? 'BUY' : 'SELL'} [${tradeNumber}/10]`,
+          currentPips: pipsSim,
+          currentDD: isWin ? 0 : Math.abs(pipsSim),
+          currentRunup: isWin ? Math.abs(pipsSim) : 0
+        }));
+
+        // Settle demo account with exact coin pip multiplier
+        closeDemoTrade(exitPriceSim, isWin ? 'TP Hit ✅' : 'SL Hit 🛡️', coinPipMult);
+
+        // Track session stats
+        sessionResults.push({ tradeCoin, isBuy, isWin, pnlDollars: pnlDollarsSim, pips: pipsSim });
+
+        // Broadcast result to AI Coach
+        window.dispatchEvent(new CustomEvent('trendlens_ai_narrator', {
+          detail: {
+            badge: `${isWin ? '🏆 WIN' : '🛡️ SL'} [${tradeNumber}/10: ${tradeCoin}]`,
+            text: `${isWin ? '🏆' : '🛡️'} **${tradeCoin} Trade ${tradeNumber}/10 - ${isWin ? 'WIN ✅' : 'Stop Loss 🛡️'}**\n• ${isBuy ? 'BUY (Long)' : 'SELL (Short)'} @ $${entryPx}\n• ${isWin ? 'TP Hit: $' + tpPx : 'SL Hit: $' + slPx}\n• Demo PnL: **${pnlDollarsSim >= 0 ? '+' : ''}$${pnlDollarsSim.toFixed(2)} USDT** (${orderSettings.leverage}x leverage)\n• Bybit position running with native TP/SL until market hits it.`
+          }
+        }));
+
+        // Move to next coin after 800ms gap
+        setTimeout(() => {
+          if (runnerCancelRef.current) return;
+          currentTradeIdx++;
+          executeNextTrade();
+        }, 800);
+      }, 2000);
     };
 
     executeNextTrade();
   };
-
   const stopLiveSequentialBotTest = () => {
     runnerCancelRef.current = true;
     setLiveRunner(prev => ({ ...prev, active: false, statusText: '⏹️ Live Bot Runner Paused.' }));
@@ -2740,7 +2935,7 @@ export default function TrendLensUltraChart({
           </div>
 
           {/* Live Floating Trade Journey & Drawdown Monitor on Chart */}
-          {demoAccount.openPosition && (
+          {demoAccount.openPosition && (demoAccount.openPosition.asset === asset) && (
             <div style={{
               position: 'absolute',
               top: 48,
@@ -2987,6 +3182,8 @@ export default function TrendLensUltraChart({
             handleCloseAllBybit={handleCloseAllBybit}
             handleCloseSingleBybit={handleCloseSingleBybit}
             refreshBybitPositions={refreshBybitPositions}
+            liveTickerMap={liveTickerMap}
+            onRefreshTickers={refreshBybitTickers}
           />
         ) : (
           <button

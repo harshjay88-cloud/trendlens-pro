@@ -8,7 +8,7 @@ export default function PriceTickerBar() {
   useEffect(() => {
     // Poll real prices from crypto API
     fetchLiveCrypto();
-    const cryptoIv = setInterval(fetchLiveCrypto, 30000);
+    const cryptoIv = setInterval(fetchLiveCrypto, 4000);
 
     // Live tick engine for micro fluctuations
     const tickIv = setInterval(() => {

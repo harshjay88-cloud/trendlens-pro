@@ -162,7 +162,7 @@ function SignalFeed({ signals, currentAsset }) {
 export default function Dashboard() {
   const { user } = useAuthStore();
   const { signals } = useSignalStore();
-  const { prices } = useMarketStore();
+  const { prices, fetchLiveCrypto } = useMarketStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [symbol, setSymbol] = useState('XAUUSD');
   const [timeframe, setTimeframe] = useState('60');
@@ -171,6 +171,13 @@ export default function Dashboard() {
   const [chartEngine, setChartEngine] = useState('ultra'); // 'ultra' (GoldVIP Ultra indicator canvas) or 'tradingview'
   const [sideColTab, setSideColTab] = useState('coach'); // 'coach' or 'signals'
   const [activePlan, setActivePlan] = useState(null);
+
+  // Poll live Bybit market ticker prices across dashboard
+  useEffect(() => {
+    fetchLiveCrypto();
+    const iv = setInterval(fetchLiveCrypto, 4000);
+    return () => clearInterval(iv);
+  }, [fetchLiveCrypto]);
 
   // Allow ESC key to exit maximized chart
   useEffect(() => {

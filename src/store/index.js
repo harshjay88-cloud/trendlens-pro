@@ -180,7 +180,8 @@ export const useDemoAccountStore = create((set, get) => ({
         exchangeOrderId: tradeData.exchangeOrderId || null,
         exchange: tradeData.exchange || null,
         marginUsdt: tradeData.marginUsdt || 200,
-        leverage: tradeData.leverage || 20
+        leverage: tradeData.leverage || 20,
+        pipMultiplier: tradeData.pipMultiplier || 10
       };
 
       const nextAcc = {
@@ -193,13 +194,17 @@ export const useDemoAccountStore = create((set, get) => ({
   },
 
   // Update unrealized PnL and live drawdown / runup based on live tick price
-  updateTickPnL: (currentPrice, pipMultiplier = 10) => {
+  updateTickPnL: (currentPrice, pipMultiplier = 10, forAsset = null) => {
     const { account } = get();
     if (!account.openPosition) return;
     const pos = account.openPosition;
+    // Guard against cross-asset price pollution (e.g. XAU/USD tick price hitting a BTC/DOGE bot trade)
+    if (forAsset && pos.asset && pos.asset !== forAsset) return;
+
+    const effPipMultiplier = pos.pipMultiplier || pipMultiplier || 10;
     const isBuy = pos.type === 'BUY';
     const diff = isBuy ? (currentPrice - pos.entryPrice) : (pos.entryPrice - currentPrice);
-    const pips = +(diff * pipMultiplier).toFixed(1);
+    const pips = +(diff * effPipMultiplier).toFixed(1);
     
     // Leverage-aware PnL calculation
     let pnlDollars;
@@ -234,15 +239,16 @@ export const useDemoAccountStore = create((set, get) => ({
   },
 
   // Close position (either manually, TP hit, or SL hit) with recorded duration & drawdown
-  closeDemoTrade: (exitPrice, reason = 'TP1_HIT', pipMultiplier = 10) => {
+  closeDemoTrade: (exitPrice, reason = 'TP1_HIT', pipMultiplier = null) => {
     set(state => {
       const currentAcc = state.account;
       if (!currentAcc.openPosition) return state;
 
       const pos = currentAcc.openPosition;
+      const effPipMultiplier = pipMultiplier || pos.pipMultiplier || 10;
       const isBuy = pos.type === 'BUY';
       const diff = isBuy ? (exitPrice - pos.entryPrice) : (pos.entryPrice - exitPrice);
-      const pips = +(diff * pipMultiplier).toFixed(1);
+      const pips = +(diff * effPipMultiplier).toFixed(1);
       let pnlDollars;
       if (pos.marginUsdt && pos.leverage && pos.entryPrice > 0) {
         const pctMove = diff / pos.entryPrice;
@@ -293,6 +299,32 @@ export const useDemoAccountStore = create((set, get) => ({
         openPosition: null
       };
 
+      try { localStorage.setItem('tl_demo_account', JSON.stringify(nextAcc)); } catch {}
+      return { account: nextAcc };
+    });
+  },
+
+  // Update orderId on open position and top closed trade when Bybit order response arrives
+  updateOpenTradeOrderId: (orderId) => {
+    set(state => {
+      const currentAcc = state.account;
+      let updated = false;
+      let nextOpenPos = currentAcc.openPosition;
+      if (nextOpenPos) {
+        nextOpenPos = { ...nextOpenPos, exchangeOrderId: orderId };
+        updated = true;
+      }
+      let nextTrades = currentAcc.trades;
+      if (nextTrades && nextTrades.length > 0) {
+        nextTrades = nextTrades.map((tr, idx) => idx === 0 ? { ...tr, exchangeOrderId: orderId } : tr);
+        updated = true;
+      }
+      if (!updated) return state;
+      const nextAcc = {
+        ...currentAcc,
+        openPosition: nextOpenPos,
+        trades: nextTrades
+      };
       try { localStorage.setItem('tl_demo_account', JSON.stringify(nextAcc)); } catch {}
       return { account: nextAcc };
     });
