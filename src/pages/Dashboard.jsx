@@ -6,7 +6,7 @@ import { useMarketStore } from '../store/marketStore.js';
 import { MOCK_DAILY_TARGET, MOCK_ORDER_FLOW } from '../utils/mockData.js';
 import {
   TrendingUp, TrendingDown, Zap, Target, Activity,
-  Maximize2, Minimize2, Columns, LayoutGrid, Cpu, LineChart, Sparkles, XCircle, List, Sliders, Bell, Download, PlayCircle
+  Maximize2, Minimize2, Columns, LayoutGrid, Cpu, LineChart, Sparkles, XCircle, List, Sliders, Bell, Download, PlayCircle, PenTool
 } from 'lucide-react';
 import TrendLensUltraChart from '../components/common/TrendLensUltraChart.jsx';
 import AiCoachChat from '../components/common/AiCoachChat.jsx';
@@ -18,6 +18,7 @@ import { MacroAlignmentWidget, SwingRiskRewardWidget, CotWhaleAccumulationWidget
 import MultiChartGrid from '../components/common/MultiChartGrid.jsx';
 import BarReplayToolbar from '../components/common/BarReplayToolbar.jsx';
 import AlertManagerModal from '../components/modals/AlertManagerModal.jsx';
+import ManualProStudio from '../components/common/ManualProStudio.jsx';
 import './Dashboard.css';
 
 function StatCard({ label, value, sub, icon: Icon, color }) {
@@ -187,6 +188,30 @@ export default function Dashboard() {
   const [gridLayout, setGridLayout] = useState('bot10'); // '2x1', '2x2', '3x2', '4x2', '4x4', 'bot10'
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [isBarReplayActive, setIsBarReplayActive] = useState(false);
+  const [selectedRange, setSelectedRange] = useState('1D');
+
+  const handleRangeSelect = (range) => {
+    setSelectedRange(range);
+    if (range === '1D') {
+      setTimeframe('15');
+    } else if (range === '5D') {
+      setTimeframe('60');
+    } else if (range === '1M') {
+      setTimeframe('120');
+    } else if (range === '3M') {
+      setTimeframe('240');
+    } else if (range === '6M') {
+      setTimeframe('D');
+    } else if (range === 'YTD') {
+      setTimeframe('D');
+    } else if (range === '1Y') {
+      setTimeframe('D');
+    } else if (range === '5Y') {
+      setTimeframe('W');
+    } else if (range === 'All') {
+      setTimeframe('M');
+    }
+  };
 
   const handleExportData = () => {
     const csvContent = "data:text/csv;charset=utf-8," +
@@ -218,6 +243,9 @@ export default function Dashboard() {
     } else if (eng === 'swing_4h') {
       setChartEngine('swing');
       setTimeframe('240');
+    } else if (eng === 'manual_studio') {
+      setChartEngine('manual');
+      setTimeframe('60');
     }
   };
 
@@ -247,7 +275,8 @@ export default function Dashboard() {
     'USOIL':  'WTI/OIL',
     'BRENTOIL': 'BRENT/OIL',
 
-    // Forex Majors & Crosses
+    // ─── FOREX MAJORS & CROSSES (Full 38+ Pairs) ───
+    // Majors
     'EURUSD': 'EUR/USD',
     'GBPUSD': 'GBP/USD',
     'USDJPY': 'USD/JPY',
@@ -255,32 +284,109 @@ export default function Dashboard() {
     'USDCAD': 'USD/CAD',
     'USDCHF': 'USD/CHF',
     'NZDUSD': 'NZD/USD',
-    'EURJPY': 'EUR/JPY',
-    'GBPJPY': 'GBP/JPY',
 
-    // Top 22 Cryptocurrencies
+    // Euro Crosses
+    'EURGBP': 'EUR/GBP',
+    'EURJPY': 'EUR/JPY',
+    'EURAUD': 'EUR/AUD',
+    'EURCAD': 'EUR/CAD',
+    'EURCHF': 'EUR/CHF',
+    'EURNZD': 'EUR/NZD',
+
+    // GBP Crosses
+    'GBPJPY': 'GBP/JPY',
+    'GBPAUD': 'GBP/AUD',
+    'GBPCAD': 'GBP/CAD',
+    'GBPCHF': 'GBP/CHF',
+    'GBPNZD': 'GBP/NZD',
+
+    // Yen Crosses
+    'AUDJPY': 'AUD/JPY',
+    'CADJPY': 'CAD/JPY',
+    'CHFJPY': 'CHF/JPY',
+    'NZDJPY': 'NZD/JPY',
+
+    // Other Crosses
+    'AUDCAD': 'AUD/CAD',
+    'AUDCHF': 'AUD/CHF',
+    'AUDNZD': 'AUD/NZD',
+    'CADCHF': 'CAD/CHF',
+    'NZDCAD': 'NZD/CAD',
+    'NZDCHF': 'NZD/CHF',
+
+    // Exotics & Emerging
+    'USDTRY': 'USD/TRY',
+    'USDZAR': 'USD/ZAR',
+    'USDMXN': 'USD/MXN',
+    'USDSGD': 'USD/SGD',
+    'USDHKD': 'USD/HKD',
+    'USDSEK': 'USD/SEK',
+    'USDNOK': 'USD/NOK',
+    'USDCNH': 'USD/CNH',
+    'EURTRY': 'EUR/TRY',
+    'USDINR': 'USD/INR',
+
+    // ─── CRYPTOCURRENCIES (Comprehensive Top 55+ Coins) ───
+    // Layer 1 & Major Bluechips
     'BTCUSD': 'BTC/USD',
     'ETHUSD': 'ETH/USD',
     'SOLUSD': 'SOL/USD',
     'BNBUSD': 'BNB/USD',
     'XRPUSD': 'XRP/USD',
-    'DOGEUSD': 'DOGE/USD',
     'ADAUSD': 'ADA/USD',
     'AVAXUSD': 'AVAX/USD',
-    'LINKUSD': 'LINK/USD',
     'SUIUSD': 'SUI/USD',
     'NEARUSD': 'NEAR/USD',
     'APTUSD': 'APT/USD',
-    'PEPEUSD': 'PEPE/USD',
-    'SHIBUSD': 'SHIB/USD',
     'TONUSD': 'TON/USD',
     'DOTUSD': 'DOT/USD',
     'LTCUSD': 'LTC/USD',
     'MATICUSD': 'MATIC/USD',
     'ATOMUSD': 'ATOM/USD',
+    'FTMUSD': 'FTM/USD',
+    'ALGOUSD': 'ALGO/USD',
+    'ICPUSD': 'ICP/USD',
+    'KASUSD': 'KAS/USD',
+    'SEIUSD': 'SEI/USD',
+
+    // Layer 2 & Scaling
+    'ARBUSD': 'ARB/USD',
+    'OPUSD': 'OP/USD',
+    'STRKUSD': 'STRK/USD',
+    'IMXUSD': 'IMX/USD',
+
+    // DeFi & Infrastructure
+    'LINKUSD': 'LINK/USD',
     'UNIUSD': 'UNI/USD',
+    'AAVEUSD': 'AAVE/USD',
+    'MKRUSD': 'MKR/USD',
+    'INJUSD': 'INJ/USD',
+    'TIAUSD': 'TIA/USD',
+    'RUNEUSD': 'RUNE/USD',
+    'PENDLEUSD': 'PENDLE/USD',
+    'JUPUSD': 'JUP/USD',
+    'ENAUSD': 'ENA/USD',
+    'PYTHUSD': 'PYTH/USD',
+    'ONDOUSD': 'ONDO/USD',
+
+    // AI & Data / DePIN
     'RENDERUSD': 'RENDER/USD',
     'TAOUSD': 'TAO/USD',
+    'FETUSD': 'FET/USD',
+    'FILUSD': 'FIL/USD',
+    'WLDUSD': 'WLD/USD',
+    'JASMYUSD': 'JASMY/USD',
+    'STXUSD': 'STX/USD',
+    'ORDIUSD': 'ORDI/USD',
+
+    // Meme & High-Beta
+    'DOGEUSD': 'DOGE/USD',
+    'SHIBUSD': 'SHIB/USD',
+    'PEPEUSD': 'PEPE/USD',
+    'WIFUSD': 'WIF/USD',
+    'BONKUSD': 'BONK/USD',
+    'FLOKIUSD': 'FLOKI/USD',
+    'NOTUSD': 'NOT/USD',
 
     // Major Indices
     'NAS100': 'NAS100',
@@ -376,6 +482,15 @@ export default function Dashboard() {
               <TrendingUp size={15} />
               <span>📈 4-Hours Swing Engine (H4/D1)</span>
             </button>
+            <button
+              type="button"
+              className={`dash-view-tab ${activeEngine === 'manual_studio' ? 'active' : ''}`}
+              onClick={() => handleEngineSwitch('manual_studio')}
+              title="TradingView Pro Manual Studio (50+ Indicators, VPVR, Renko, 18 Tools)"
+            >
+              <PenTool size={15} />
+              <span>🎨 Manual Pro Studio (Full Kit)</span>
+            </button>
           </div>
 
           <div className="dash-view-actions">
@@ -466,6 +581,7 @@ export default function Dashboard() {
               {activeEngine === 'scalp' && 'MICRO-ORDERFLOW FLOW SCALPER · M1/M5 FAST TICKS · TAPE MOMENTUM · BOOKMAP WALL DEFENSE'}
               {activeEngine === 'day_trading' && 'INTRADAY KILLZONE ENGINE · ASIAN/LONDON/NY SESSIONS · VWAP BANDS · EQUILIBRIUM RETRACEMENTS'}
               {activeEngine === 'swing_4h' && '4-HOURS MACRO SWING ENGINE · H4/D1 MULTI-DAY STRUCTURE · 1:3+ R:R ASYMMETRIC TARGETS'}
+              {activeEngine === 'manual_studio' && 'TRADINGVIEW PRO MANUAL STUDIO · 50+ TECHNICAL INDICATORS · VOLUME PROFILE VPVR / POC · HEIKIN ASHI / RENKO · 18 DRAWING TOOLS'}
             </span>
           </div>
           <div className="engine-status-right">
@@ -484,7 +600,7 @@ export default function Dashboard() {
           />
         )}
 
-        {/* Main View: Multi-Chart Grid OR Single Dedicated Engine */}
+        {/* Main View: Multi-Chart Grid OR Manual Pro Studio OR Dedicated Engine */}
         {showMultiGrid ? (
           <MultiChartGrid
             gridLayout={gridLayout}
@@ -494,6 +610,12 @@ export default function Dashboard() {
               setShowMultiGrid(false);
             }}
             onCloseGrid={() => setShowMultiGrid(false)}
+          />
+        ) : activeEngine === 'manual_studio' ? (
+          <ManualProStudio
+            currentAsset={currentAsset}
+            initialPrice={currentPrice}
+            theme={theme}
           />
         ) : (
         <div className="dashboard-content">
@@ -578,6 +700,7 @@ export default function Dashboard() {
                       fontWeight: 700,
                       cursor: 'pointer',
                       fontSize: '0.84rem',
+                      maxWidth: '260px'
                     }}
                   >
                     <optgroup label="Commodities & Metals">
@@ -587,7 +710,7 @@ export default function Dashboard() {
                       <option value="USOIL">USOIL · WTI Crude Oil</option>
                       <option value="BRENTOIL">BRENT · Brent Crude Oil</option>
                     </optgroup>
-                    <optgroup label="Forex Majors & Crosses">
+                    <optgroup label="Forex — Majors (7 Pairs)">
                       <option value="EURUSD">EUR/USD · Euro / US Dollar</option>
                       <option value="GBPUSD">GBP/USD · British Pound / USD</option>
                       <option value="USDJPY">USD/JPY · US Dollar / Yen</option>
@@ -595,34 +718,110 @@ export default function Dashboard() {
                       <option value="USDCAD">USD/CAD · US Dollar / CAD</option>
                       <option value="USDCHF">USD/CHF · US Dollar / Swiss Franc</option>
                       <option value="NZDUSD">NZD/USD · New Zealand Dollar</option>
-                      <option value="EURJPY">EUR/JPY · Euro / Japanese Yen</option>
-                      <option value="GBPJPY">GBP/JPY · British Pound / Yen</option>
                     </optgroup>
-                    <optgroup label="Cryptocurrency (Top 22 Assets)">
+                    <optgroup label="Forex — Euro Crosses">
+                      <option value="EURGBP">EUR/GBP · Euro / British Pound</option>
+                      <option value="EURJPY">EUR/JPY · Euro / Japanese Yen</option>
+                      <option value="EURAUD">EUR/AUD · Euro / Aussie</option>
+                      <option value="EURCAD">EUR/CAD · Euro / Canadian Dollar</option>
+                      <option value="EURCHF">EUR/CHF · Euro / Swiss Franc</option>
+                      <option value="EURNZD">EUR/NZD · Euro / New Zealand Dollar</option>
+                    </optgroup>
+                    <optgroup label="Forex — GBP Crosses">
+                      <option value="GBPJPY">GBP/JPY · British Pound / Yen</option>
+                      <option value="GBPAUD">GBP/AUD · Pound / Aussie</option>
+                      <option value="GBPCAD">GBP/CAD · Pound / Canadian Dollar</option>
+                      <option value="GBPCHF">GBP/CHF · Pound / Swiss Franc</option>
+                      <option value="GBPNZD">GBP/NZD · Pound / New Zealand Dollar</option>
+                    </optgroup>
+                    <optgroup label="Forex — Yen Crosses">
+                      <option value="AUDJPY">AUD/JPY · Aussie / Japanese Yen</option>
+                      <option value="CADJPY">CAD/JPY · Canadian Dollar / Yen</option>
+                      <option value="CHFJPY">CHF/JPY · Swiss Franc / Yen</option>
+                      <option value="NZDJPY">NZD/JPY · New Zealand Dollar / Yen</option>
+                    </optgroup>
+                    <optgroup label="Forex — Oceania & Other Crosses">
+                      <option value="AUDCAD">AUD/CAD · Aussie / Canadian Dollar</option>
+                      <option value="AUDCHF">AUD/CHF · Aussie / Swiss Franc</option>
+                      <option value="AUDNZD">AUD/NZD · Aussie / Kiwi Dollar</option>
+                      <option value="CADCHF">CAD/CHF · CAD / Swiss Franc</option>
+                      <option value="NZDCAD">NZD/CAD · Kiwi / Canadian Dollar</option>
+                      <option value="NZDCHF">NZD/CHF · Kiwi / Swiss Franc</option>
+                    </optgroup>
+                    <optgroup label="Forex — Emerging & Exotics">
+                      <option value="USDTRY">USD/TRY · US Dollar / Turkish Lira</option>
+                      <option value="USDZAR">USD/ZAR · US Dollar / South African Rand</option>
+                      <option value="USDMXN">USD/MXN · US Dollar / Mexican Peso</option>
+                      <option value="USDSGD">USD/SGD · US Dollar / Singapore Dollar</option>
+                      <option value="USDHKD">USD/HKD · US Dollar / Hong Kong Dollar</option>
+                      <option value="USDSEK">USD/SEK · US Dollar / Swedish Krona</option>
+                      <option value="USDNOK">USD/NOK · US Dollar / Norwegian Krone</option>
+                      <option value="USDCNH">USD/CNH · US Dollar / Chinese Yuan</option>
+                      <option value="EURTRY">EUR/TRY · Euro / Turkish Lira</option>
+                      <option value="USDINR">USD/INR · US Dollar / Indian Rupee</option>
+                    </optgroup>
+                    <optgroup label="Crypto — Layer 1 & Major Bluechips">
                       <option value="BTCUSD">BTC/USD · Bitcoin</option>
                       <option value="ETHUSD">ETH/USD · Ethereum</option>
                       <option value="SOLUSD">SOL/USD · Solana</option>
                       <option value="BNBUSD">BNB/USD · Binance Coin</option>
                       <option value="XRPUSD">XRP/USD · Ripple</option>
-                      <option value="DOGEUSD">DOGE/USD · Dogecoin</option>
                       <option value="ADAUSD">ADA/USD · Cardano</option>
                       <option value="AVAXUSD">AVAX/USD · Avalanche</option>
-                      <option value="LINKUSD">LINK/USD · Chainlink</option>
                       <option value="SUIUSD">SUI/USD · Sui Network</option>
                       <option value="NEARUSD">NEAR/USD · Near Protocol</option>
                       <option value="APTUSD">APT/USD · Aptos</option>
-                      <option value="PEPEUSD">PEPE/USD · Pepe Token</option>
-                      <option value="SHIBUSD">SHIB/USD · Shiba Inu</option>
                       <option value="TONUSD">TON/USD · Toncoin</option>
                       <option value="DOTUSD">DOT/USD · Polkadot</option>
                       <option value="LTCUSD">LTC/USD · Litecoin</option>
                       <option value="MATICUSD">MATIC/USD · Polygon</option>
                       <option value="ATOMUSD">ATOM/USD · Cosmos</option>
+                      <option value="FTMUSD">FTM/USD · Fantom / Sonic</option>
+                      <option value="ALGOUSD">ALGO/USD · Algorand</option>
+                      <option value="ICPUSD">ICP/USD · Internet Computer</option>
+                      <option value="KASUSD">KAS/USD · Kaspa</option>
+                      <option value="SEIUSD">SEI/USD · Sei Network</option>
+                    </optgroup>
+                    <optgroup label="Crypto — Layer 2 & Scaling">
+                      <option value="ARBUSD">ARB/USD · Arbitrum</option>
+                      <option value="OPUSD">OP/USD · Optimism</option>
+                      <option value="STRKUSD">STRK/USD · Starknet</option>
+                      <option value="IMXUSD">IMX/USD · ImmutableX</option>
+                    </optgroup>
+                    <optgroup label="Crypto — DeFi & Infrastructure">
+                      <option value="LINKUSD">LINK/USD · Chainlink</option>
                       <option value="UNIUSD">UNI/USD · Uniswap</option>
+                      <option value="AAVEUSD">AAVE/USD · Aave</option>
+                      <option value="MKRUSD">MKR/USD · Maker</option>
+                      <option value="INJUSD">INJ/USD · Injective</option>
+                      <option value="TIAUSD">TIA/USD · Celestia</option>
+                      <option value="RUNEUSD">RUNE/USD · THORChain</option>
+                      <option value="PENDLEUSD">PENDLE/USD · Pendle</option>
+                      <option value="JUPUSD">JUP/USD · Jupiter</option>
+                      <option value="ENAUSD">ENA/USD · Ethena</option>
+                      <option value="PYTHUSD">PYTH/USD · Pyth Network</option>
+                      <option value="ONDOUSD">ONDO/USD · Ondo Finance</option>
+                    </optgroup>
+                    <optgroup label="Crypto — AI & Data / DePIN">
                       <option value="RENDERUSD">RENDER/USD · Render Token</option>
                       <option value="TAOUSD">TAO/USD · Bittensor</option>
+                      <option value="FETUSD">FET/USD · Artificial Superintelligence</option>
+                      <option value="FILUSD">FIL/USD · Filecoin</option>
+                      <option value="WLDUSD">WLD/USD · Worldcoin</option>
+                      <option value="JASMYUSD">JASMY/USD · JasmyCoin</option>
+                      <option value="STXUSD">STX/USD · Stacks</option>
+                      <option value="ORDIUSD">ORDI/USD · Ordinals</option>
                     </optgroup>
-                    <optgroup label="Major Indices">
+                    <optgroup label="Crypto — Meme & High-Beta">
+                      <option value="DOGEUSD">DOGE/USD · Dogecoin</option>
+                      <option value="SHIBUSD">SHIB/USD · Shiba Inu</option>
+                      <option value="PEPEUSD">PEPE/USD · Pepe Token</option>
+                      <option value="WIFUSD">WIF/USD · dogwifhat</option>
+                      <option value="BONKUSD">BONK/USD · Bonk</option>
+                      <option value="FLOKIUSD">FLOKI/USD · Floki</option>
+                      <option value="NOTUSD">NOT/USD · Notcoin</option>
+                    </optgroup>
+                    <optgroup label="Major Global Indices">
                       <option value="NAS100">NAS100 · Nasdaq 100</option>
                       <option value="US30">US30 · Dow Jones 30</option>
                       <option value="SPX500">SPX500 · S&amp;P 500</option>
@@ -766,12 +965,9 @@ export default function Dashboard() {
                       {['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'All'].map(range => (
                         <button
                           key={range}
-                          className="tv-time-btn"
-                          onClick={() => {
-                            if (range === '1D') setTimeframe('60');
-                            else if (range === '5D') setTimeframe('240');
-                            else if (range === '1M' || range === 'All') setTimeframe('D');
-                          }}
+                          className={`tv-time-btn ${selectedRange === range ? 'active' : ''}`}
+                          onClick={() => handleRangeSelect(range)}
+                          title={`Switch Chart Range to ${range}`}
                         >
                           {range}
                         </button>

@@ -1,0 +1,446 @@
+/* =========================================================
+   Manual Pro Studio — TradingView-Grade Native Charting
+   ========================================================= */
+
+.mps-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - 104px);
+  background: var(--bg-primary, #131722);
+  color: var(--text-primary, #d1d4dc);
+  font-family: var(--font-body, 'Inter', sans-serif);
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+}
+
+/* 1. Pro Studio Top Action Rail */
+.mps-top-rail {
+  height: 44px;
+  min-height: 44px;
+  background: var(--bg-card, #1e222d);
+  border-bottom: 1px solid var(--border, #2a2e39);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  gap: 10px;
+  z-index: 20;
+}
+
+.mps-top-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.mps-symbol-select {
+  background: var(--bg-elevated, #242835);
+  color: #ffffff;
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.80rem;
+  font-weight: 800;
+  cursor: pointer;
+  outline: none;
+}
+
+.mps-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border, #2a2e39);
+  margin: 0 2px;
+}
+
+.mps-timeframe-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.mps-tf-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #787b86);
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.mps-tf-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mps-tf-btn.active {
+  color: #ffffff;
+  background: var(--brand, #2962ff);
+}
+
+.mps-style-select {
+  background: var(--bg-elevated, #242835);
+  color: #ffffff;
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+}
+
+.mps-action-btn {
+  background: transparent;
+  border: 1px solid var(--border, #2a2e39);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.mps-action-btn:hover {
+  background: var(--bg-hover, #2a2e39);
+  border-color: var(--brand, #2962ff);
+}
+
+.mps-action-btn.active {
+  background: rgba(41, 98, 255, 0.18);
+  border-color: var(--brand, #2962ff);
+  color: var(--brand, #2962ff);
+}
+
+.mps-top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 2. Active Indicators Tag Bar */
+.mps-indicators-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid var(--border, #2a2e39);
+  font-size: 0.70rem;
+  overflow-x: auto;
+  min-height: 28px;
+}
+
+.mps-ind-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card, #1e222d);
+  border: 1px solid var(--border, #2a2e39);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.mps-ind-del {
+  cursor: pointer;
+  color: var(--text-muted, #787b86);
+}
+
+.mps-ind-del:hover {
+  color: var(--signal-sell, #f23645);
+}
+
+/* 3. Main Studio Workspace Layout */
+.mps-workspace {
+  display: flex;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  height: calc(100% - 72px);
+}
+
+/* Left Tools Column */
+.mps-left-tools {
+  width: 44px;
+  min-width: 44px;
+  background: var(--bg-card, #1e222d);
+  border-right: 1px solid var(--border, #2a2e39);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0;
+  gap: 4px;
+  z-index: 10;
+  overflow-y: auto;
+}
+
+.mps-tool-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #787b86);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.mps-tool-btn:hover {
+  background: var(--bg-hover, #2a2e39);
+  color: #ffffff;
+}
+
+.mps-tool-btn.active {
+  background: rgba(41, 98, 255, 0.2);
+  color: var(--brand, #2962ff);
+  box-shadow: 0 0 8px rgba(41, 98, 255, 0.4);
+}
+
+.mps-tool-sep {
+  width: 22px;
+  height: 1px;
+  background: var(--border, #2a2e39);
+  margin: 4px 0;
+}
+
+/* Center Canvas Chart Area */
+.mps-canvas-center {
+  flex: 1;
+  position: relative;
+  background: var(--bg-primary, #131722);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mps-chart-canvas {
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+/* Floating Crosshair Cursor Overlay Readout */
+.mps-cursor-badge {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  background: rgba(19, 23, 34, 0.88);
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  font-family: var(--font-mono, monospace);
+  display: flex;
+  gap: 12px;
+  z-index: 15;
+  pointer-events: none;
+}
+
+.mps-cursor-badge b { color: #ffffff; }
+
+/* Right Multi-Watchlist Drawer */
+.mps-right-watchlist {
+  width: 280px;
+  min-width: 280px;
+  background: var(--bg-card, #1e222d);
+  border-left: 1px solid var(--border, #2a2e39);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.mps-wl-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border, #2a2e39);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mps-wl-select {
+  background: var(--bg-elevated, #242835);
+  color: #ffffff;
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+}
+
+.mps-wl-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.mps-wl-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.mps-wl-item:hover {
+  background: var(--bg-hover, #2a2e39);
+}
+
+.mps-wl-item.active {
+  background: rgba(41, 98, 255, 0.1);
+  border-left: 3px solid var(--brand, #2962ff);
+}
+
+/* 4. Indicator Library Modal (50+ Indicators) */
+.mps-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.mps-ind-modal {
+  width: 100%;
+  max-width: 760px;
+  height: 600px;
+  max-height: 85vh;
+  background: var(--bg-card, #1e222d);
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+.mps-modal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border, #2a2e39);
+}
+
+.mps-modal-search {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border, #2a2e39);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.mps-modal-search input {
+  width: 100%;
+  background: var(--bg-elevated, #242835);
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 8px 14px;
+  font-size: 0.84rem;
+  outline: none;
+}
+
+.mps-modal-search input:focus {
+  border-color: var(--brand, #2962ff);
+}
+
+.mps-modal-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.mps-cat-sidebar {
+  width: 180px;
+  min-width: 180px;
+  border-right: 1px solid var(--border, #2a2e39);
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mps-cat-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #787b86);
+  padding: 8px 16px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.mps-cat-btn:hover {
+  color: #ffffff;
+  background: var(--bg-hover, #2a2e39);
+}
+
+.mps-cat-btn.active {
+  color: #ffffff;
+  background: rgba(41, 98, 255, 0.15);
+  border-left: 3px solid var(--brand, #2962ff);
+}
+
+.mps-ind-grid {
+  flex: 1;
+  padding: 14px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mps-ind-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border, #2a2e39);
+  transition: all 0.12s ease;
+}
+
+.mps-ind-row:hover {
+  background: var(--bg-hover, #2a2e39);
+  border-color: var(--brand, #2962ff);
+}
+
+.mps-ind-add-btn {
+  background: var(--brand, #2962ff);
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mps-ind-add-btn.added {
+  background: var(--signal-buy, #089981);
+}

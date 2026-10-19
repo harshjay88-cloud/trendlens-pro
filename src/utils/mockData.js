@@ -8,40 +8,118 @@ export const MOCK_PRICES = {
   'WTI/OIL': { category: 'Energy', price: 71.20,   change: -0.65,  changePct: -0.91, high: 72.40,  low: 70.80,  spread: 0.03 },
   'BRENT/OIL': { category: 'Energy', price: 75.80, change: -0.72,  changePct: -0.94, high: 76.90,  low: 75.10,  spread: 0.04 },
 
-  // Forex Majors & Crosses
-  'EUR/USD': { category: 'Forex',  price: 1.0872,  change: +0.0023, changePct: +0.21, high: 1.0895, low: 1.0849, spread: 0.0001 },
-  'GBP/USD': { category: 'Forex',  price: 1.2634,  change: -0.0041, changePct: -0.32, high: 1.2685, low: 1.2601, spread: 0.0001 },
-  'USD/JPY': { category: 'Forex',  price: 152.40,  change: +0.75,   changePct: +0.49, high: 152.90, low: 151.60, spread: 0.01 },
-  'AUD/USD': { category: 'Forex',  price: 0.6580,  change: +0.0015, changePct: +0.23, high: 0.6610, low: 0.6555, spread: 0.0001 },
-  'USD/CAD': { category: 'Forex',  price: 1.3890,  change: -0.0018, changePct: -0.13, high: 1.3920, low: 1.3865, spread: 0.0001 },
-  'USD/CHF': { category: 'Forex',  price: 0.8650,  change: +0.0008, changePct: +0.09, high: 0.8675, low: 0.8632, spread: 0.0001 },
-  'NZD/USD': { category: 'Forex',  price: 0.5985,  change: -0.0012, changePct: -0.20, high: 0.6015, low: 0.5970, spread: 0.0001 },
-  'EUR/JPY': { category: 'Forex',  price: 165.68,  change: +0.92,   changePct: +0.56, high: 166.10, low: 164.80, spread: 0.015 },
-  'GBP/JPY': { category: 'Forex',  price: 192.55,  change: +0.65,   changePct: +0.34, high: 193.10, low: 191.80, spread: 0.02 },
+  // ─── FOREX MAJORS & CROSSES (Full 38+ Pair Suite) ───
+  // Majors
+  'EUR/USD': { category: 'Forex', price: 1.0872,  change: +0.0023, changePct: +0.21, high: 1.0895, low: 1.0849, spread: 0.0001 },
+  'GBP/USD': { category: 'Forex', price: 1.2634,  change: -0.0041, changePct: -0.32, high: 1.2685, low: 1.2601, spread: 0.0001 },
+  'USD/JPY': { category: 'Forex', price: 152.40,  change: +0.75,   changePct: +0.49, high: 152.90, low: 151.60, spread: 0.01 },
+  'AUD/USD': { category: 'Forex', price: 0.6580,  change: +0.0015, changePct: +0.23, high: 0.6610, low: 0.6555, spread: 0.0001 },
+  'USD/CAD': { category: 'Forex', price: 1.3890,  change: -0.0018, changePct: -0.13, high: 1.3920, low: 1.3865, spread: 0.0001 },
+  'USD/CHF': { category: 'Forex', price: 0.8650,  change: +0.0008, changePct: +0.09, high: 0.8675, low: 0.8632, spread: 0.0001 },
+  'NZD/USD': { category: 'Forex', price: 0.5985,  change: -0.0012, changePct: -0.20, high: 0.6015, low: 0.5970, spread: 0.0001 },
 
-  // Top 22 Cryptocurrencies
+  // Euro Crosses
+  'EUR/GBP': { category: 'Forex', price: 0.8605,  change: +0.0014, changePct: +0.16, high: 0.8630, low: 0.8585, spread: 0.00015 },
+  'EUR/JPY': { category: 'Forex', price: 165.68,  change: +0.92,   changePct: +0.56, high: 166.10, low: 164.80, spread: 0.015 },
+  'EUR/AUD': { category: 'Forex', price: 1.6522,  change: +0.0035, changePct: +0.21, high: 1.6560, low: 1.6480, spread: 0.0002 },
+  'EUR/CAD': { category: 'Forex', price: 1.5101,  change: +0.0028, changePct: +0.19, high: 1.5140, low: 1.5060, spread: 0.0002 },
+  'EUR/CHF': { category: 'Forex', price: 0.9405,  change: +0.0012, changePct: +0.13, high: 0.9430, low: 0.9380, spread: 0.00015 },
+  'EUR/NZD': { category: 'Forex', price: 1.8165,  change: +0.0045, changePct: +0.25, high: 1.8210, low: 1.8110, spread: 0.00025 },
+
+  // GBP Crosses
+  'GBP/JPY': { category: 'Forex', price: 192.55,  change: +0.65,   changePct: +0.34, high: 193.10, low: 191.80, spread: 0.02 },
+  'GBP/AUD': { category: 'Forex', price: 1.9200,  change: +0.0040, changePct: +0.21, high: 1.9250, low: 1.9140, spread: 0.0002 },
+  'GBP/CAD': { category: 'Forex', price: 1.7548,  change: +0.0032, changePct: +0.18, high: 1.7595, low: 1.7490, spread: 0.0002 },
+  'GBP/CHF': { category: 'Forex', price: 1.0928,  change: +0.0018, changePct: +0.16, high: 1.0960, low: 1.0890, spread: 0.0002 },
+  'GBP/NZD': { category: 'Forex', price: 2.1105,  change: +0.0055, changePct: +0.26, high: 2.1170, low: 2.1030, spread: 0.0003 },
+
+  // Yen Crosses
+  'AUD/JPY': { category: 'Forex', price: 100.28,  change: +0.45,   changePct: +0.45, high: 100.60, low: 99.80,  spread: 0.015 },
+  'CAD/JPY': { category: 'Forex', price: 109.72,  change: +0.52,   changePct: +0.48, high: 110.10, low: 109.20, spread: 0.018 },
+  'CHF/JPY': { category: 'Forex', price: 176.18,  change: +0.68,   changePct: +0.39, high: 176.70, low: 175.40, spread: 0.02 },
+  'NZD/JPY': { category: 'Forex', price: 91.20,   change: +0.38,   changePct: +0.42, high: 91.55,  low: 90.75,  spread: 0.016 },
+
+  // Other Crosses
+  'AUD/CAD': { category: 'Forex', price: 0.9140,  change: +0.0015, changePct: +0.16, high: 0.9165, low: 0.9110, spread: 0.00015 },
+  'AUD/CHF': { category: 'Forex', price: 0.5692,  change: +0.0009, changePct: +0.16, high: 0.5715, low: 0.5665, spread: 0.00015 },
+  'AUD/NZD': { category: 'Forex', price: 1.0994,  change: +0.0022, changePct: +0.20, high: 1.1020, low: 1.0965, spread: 0.0002 },
+  'CAD/CHF': { category: 'Forex', price: 0.6228,  change: +0.0008, changePct: +0.13, high: 0.6250, low: 0.6200, spread: 0.00015 },
+  'NZD/CAD': { category: 'Forex', price: 0.8315,  change: +0.0012, changePct: +0.14, high: 0.8340, low: 0.8285, spread: 0.00015 },
+  'NZD/CHF': { category: 'Forex', price: 0.5178,  change: +0.0007, changePct: +0.14, high: 0.5200, low: 0.5150, spread: 0.00015 },
+
+  // Emerging & Exotics
+  'USD/TRY': { category: 'Forex', price: 34.25,   change: +0.12,   changePct: +0.35, high: 34.40,  low: 34.10,  spread: 0.05 },
+  'USD/ZAR': { category: 'Forex', price: 17.65,   change: -0.08,   changePct: -0.45, high: 17.80,  low: 17.52,  spread: 0.02 },
+  'USD/MXN': { category: 'Forex', price: 19.88,   change: +0.09,   changePct: +0.46, high: 20.02,  low: 19.74,  spread: 0.02 },
+  'USD/SGD': { category: 'Forex', price: 1.3140,  change: +0.0015, changePct: +0.11, high: 1.3165, low: 1.3115, spread: 0.0003 },
+  'USD/HKD': { category: 'Forex', price: 7.7725,  change: +0.0010, changePct: +0.01, high: 7.7750, low: 7.7700, spread: 0.0002 },
+  'USD/SEK': { category: 'Forex', price: 10.58,   change: +0.04,   changePct: +0.38, high: 10.65,  low: 10.51,  spread: 0.01 },
+  'USD/NOK': { category: 'Forex', price: 10.92,   change: +0.05,   changePct: +0.46, high: 11.01,  low: 10.84,  spread: 0.01 },
+  'USD/CNH': { category: 'Forex', price: 7.1240,  change: +0.0085, changePct: +0.12, high: 7.1350, low: 7.1120, spread: 0.0005 },
+  'EUR/TRY': { category: 'Forex', price: 37.24,   change: +0.18,   changePct: +0.49, high: 37.45,  low: 37.02,  spread: 0.06 },
+  'USD/INR': { category: 'Forex', price: 84.06,   change: +0.05,   changePct: +0.06, high: 84.15,  low: 83.95,  spread: 0.02 },
+
+  // ─── CRYPTOCURRENCIES (Comprehensive Top 55+ Portfolio) ───
+  // Layer 1 & Major Bluechips
   'BTC/USD': { category: 'Crypto', price: 67842.50, change: -823.10, changePct: -1.20, high: 69100.00, low: 66500.00, spread: 1.50 },
   'ETH/USD': { category: 'Crypto', price: 3412.75,  change: +67.20,  changePct: +2.01, high: 3455.00,  low: 3330.00,  spread: 0.35 },
   'SOL/USD': { category: 'Crypto', price: 184.20,   change: +9.40,   changePct: +5.38, high: 188.00,   low: 173.50,  spread: 0.08 },
   'BNB/USD': { category: 'Crypto', price: 588.60,   change: +12.40,  changePct: +2.15, high: 595.00,   low: 574.00,  spread: 0.20 },
   'XRP/USD': { category: 'Crypto', price: 0.5480,   change: +0.0210, changePct: +3.98, high: 0.5590,   low: 0.5230,  spread: 0.0005 },
-  'DOGE/USD': { category: 'Crypto', price: 0.1425,  change: +0.0115, changePct: +8.78, high: 0.1480,   low: 0.1290,  spread: 0.0002 },
   'ADA/USD': { category: 'Crypto', price: 0.3580,   change: +0.0090, changePct: +2.58, high: 0.3660,   low: 0.3470,  spread: 0.0003 },
   'AVAX/USD': { category: 'Crypto', price: 28.45,   change: +1.65,   changePct: +6.16, high: 29.20,    low: 26.50,   spread: 0.03 },
-  'LINK/USD': { category: 'Crypto', price: 12.18,   change: +0.54,   changePct: +4.64, high: 12.45,    low: 11.55,   spread: 0.02 },
   'SUI/USD': { category: 'Crypto', price: 2.14,     change: +0.19,   changePct: +9.74, high: 2.22,     low: 1.92,    spread: 0.005 },
   'NEAR/USD': { category: 'Crypto', price: 5.12,    change: +0.28,   changePct: +5.79, high: 5.25,     low: 4.80,    spread: 0.01 },
   'APT/USD': { category: 'Crypto', price: 10.35,    change: +0.82,   changePct: +8.60, high: 10.60,    low: 9.45,    spread: 0.02 },
-  'PEPE/USD': { category: 'Crypto', price: 0.0000108, change: +0.0000008, changePct: +8.00, high: 0.0000114, low: 0.0000098, spread: 0.00000002 },
-  'SHIB/USD': { category: 'Crypto', price: 0.0000189, change: +0.0000007, changePct: +3.85, high: 0.0000196, low: 0.0000181, spread: 0.00000003 },
   'TON/USD': { category: 'Crypto', price: 5.34,     change: -0.08,   changePct: -1.48, high: 5.48,     low: 5.26,    spread: 0.01 },
   'DOT/USD': { category: 'Crypto', price: 4.48,     change: +0.11,   changePct: +2.52, high: 4.58,     low: 4.34,    spread: 0.01 },
   'LTC/USD': { category: 'Crypto', price: 73.80,    change: +1.45,   changePct: +2.00, high: 74.90,    low: 71.80,   spread: 0.05 },
   'MATIC/USD': { category: 'Crypto', price: 0.3890, change: +0.0140, changePct: +3.73, high: 0.3980,   low: 0.3720,  spread: 0.0004 },
   'ATOM/USD': { category: 'Crypto', price: 4.62,    change: +0.15,   changePct: +3.36, high: 4.75,     low: 4.42,    spread: 0.01 },
+  'FTM/USD': { category: 'Crypto', price: 0.725,    change: +0.048,  changePct: +7.09, high: 0.748,    low: 0.672,   spread: 0.001 },
+  'ALGO/USD': { category: 'Crypto', price: 0.132,   change: +0.005,  changePct: +3.94, high: 0.138,    low: 0.126,   spread: 0.0003 },
+  'ICP/USD': { category: 'Crypto', price: 8.65,     change: +0.38,   changePct: +4.60, high: 8.92,     low: 8.21,    spread: 0.02 },
+  'KAS/USD': { category: 'Crypto', price: 0.138,    change: +0.006,  changePct: +4.55, high: 0.144,    low: 0.130,   spread: 0.0005 },
+  'SEI/USD': { category: 'Crypto', price: 0.445,    change: +0.032,  changePct: +7.75, high: 0.462,    low: 0.408,   spread: 0.001 },
+
+  // Layer 2 & Scaling
+  'ARB/USD': { category: 'Crypto', price: 0.582,    change: +0.024,  changePct: +4.30, high: 0.598,    low: 0.551,   spread: 0.001 },
+  'OP/USD': { category: 'Crypto', price: 1.68,      change: +0.09,   changePct: +5.66, high: 1.74,     low: 1.57,    spread: 0.005 },
+  'STRK/USD': { category: 'Crypto', price: 0.428,   change: +0.026,  changePct: +6.47, high: 0.446,    low: 0.398,   spread: 0.001 },
+  'IMX/USD': { category: 'Crypto', price: 1.52,     change: +0.08,   changePct: +5.56, high: 1.58,     low: 1.43,    spread: 0.004 },
+
+  // DeFi & Infrastructure
+  'LINK/USD': { category: 'Crypto', price: 12.18,   change: +0.54,   changePct: +4.64, high: 12.45,    low: 11.55,   spread: 0.02 },
   'UNI/USD': { category: 'Crypto', price: 7.95,     change: +0.42,   changePct: +5.58, high: 8.15,     low: 7.48,    spread: 0.02 },
+  'AAVE/USD': { category: 'Crypto', price: 156.40,  change: +8.20,   changePct: +5.53, high: 161.00,   low: 147.50,  spread: 0.25 },
+  'MKR/USD': { category: 'Crypto', price: 1245.00,  change: +42.00,  changePct: +3.49, high: 1270.00,  low: 1195.00, spread: 1.50 },
+  'INJ/USD': { category: 'Crypto', price: 21.40,    change: +1.35,   changePct: +6.73, high: 22.10,    low: 19.80,   spread: 0.03 },
+  'TIA/USD': { category: 'Crypto', price: 6.25,     change: +0.42,   changePct: +7.20, high: 6.45,     low: 5.75,    spread: 0.01 },
+  'RUNE/USD': { category: 'Crypto', price: 5.42,    change: +0.31,   changePct: +6.07, high: 5.60,     low: 5.08,    spread: 0.01 },
+  'PENDLE/USD': { category: 'Crypto', price: 4.88,  change: +0.35,   changePct: +7.73, high: 5.06,     low: 4.49,    spread: 0.01 },
+  'JUP/USD': { category: 'Crypto', price: 1.05,     change: +0.07,   changePct: +7.14, high: 1.10,     low: 0.97,    spread: 0.003 },
+  'ENA/USD': { category: 'Crypto', price: 0.585,    change: +0.042,  changePct: +7.73, high: 0.608,    low: 0.538,   spread: 0.001 },
+  'PYTH/USD': { category: 'Crypto', price: 0.365,   change: +0.024,  changePct: +7.04, high: 0.378,    low: 0.339,   spread: 0.001 },
+  'ONDO/USD': { category: 'Crypto', price: 0.812,   change: +0.054,  changePct: +7.12, high: 0.842,    low: 0.752,   spread: 0.002 },
+
+  // AI & Data / DePIN
   'RENDER/USD': { category: 'Crypto', price: 5.82,  change: +0.48,   changePct: +8.99, high: 5.98,     low: 5.28,    spread: 0.015 },
   'TAO/USD': { category: 'Crypto', price: 582.40,   change: +38.50,  changePct: +7.08, high: 596.00,   low: 539.00,  spread: 0.80 },
+  'FET/USD': { category: 'Crypto', price: 1.45,     change: +0.11,   changePct: +8.21, high: 1.51,     low: 1.32,    spread: 0.004 },
+  'FIL/USD': { category: 'Crypto', price: 3.85,     change: +0.12,   changePct: +3.22, high: 3.98,     low: 3.69,    spread: 0.008 },
+  'WLD/USD': { category: 'Crypto', price: 2.28,     change: +0.16,   changePct: +7.55, high: 2.38,     low: 2.10,    spread: 0.005 },
+  'JASMY/USD': { category: 'Crypto', price: 0.0215, change: +0.0014, changePct: +6.97, high: 0.0224,   low: 0.0199,  spread: 0.00004 },
+  'STX/USD': { category: 'Crypto', price: 1.84,     change: +0.11,   changePct: +6.36, high: 1.91,     low: 1.71,    spread: 0.005 },
+  'ORDI/USD': { category: 'Crypto', price: 36.20,   change: +2.10,   changePct: +6.16, high: 37.50,    low: 33.80,   spread: 0.06 },
+
+  // Meme & High-Beta
+  'DOGE/USD': { category: 'Crypto', price: 0.1425,  change: +0.0115, changePct: +8.78, high: 0.1480,   low: 0.1290,  spread: 0.0002 },
+  'SHIB/USD': { category: 'Crypto', price: 0.0000189, change: +0.0000007, changePct: +3.85, high: 0.0000196, low: 0.0000181, spread: 0.00000003 },
+  'PEPE/USD': { category: 'Crypto', price: 0.0000108, change: +0.0000008, changePct: +8.00, high: 0.0000114, low: 0.0000098, spread: 0.00000002 },
+  'WIF/USD': { category: 'Crypto', price: 2.68,     change: +0.22,   changePct: +8.94, high: 2.79,     low: 2.42,    spread: 0.005 },
+  'BONK/USD': { category: 'Crypto', price: 0.0000224, change: +0.0000018, changePct: +8.74, high: 0.0000238, low: 0.0000204, spread: 0.00000004 },
+  'FLOKI/USD': { category: 'Crypto', price: 0.000158, change: +0.000012, changePct: +8.22, high: 0.000166, low: 0.000144, spread: 0.0000003 },
+  'NOT/USD': { category: 'Crypto', price: 0.0084,   change: +0.0006, changePct: +7.69, high: 0.0089,   low: 0.0077,  spread: 0.00002 },
 
   // Major Indices
   'NAS100':  { category: 'Indices', price: 19872.40, change: +145.30, changePct: +0.74, high: 19920.00, low: 19700.00, spread: 0.80 },

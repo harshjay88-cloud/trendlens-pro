@@ -236,52 +236,74 @@
 }
 
 .tv-bottom-timebar {
-  height: 30px;
-  min-height: 30px;
+  min-height: 35px;
   background: var(--bg-card, #1e222d);
   border-top: 1px solid var(--border, #2a2e39);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
-  font-size: 0.68rem;
+  padding: 2px 10px;
+  font-size: 0.72rem;
   color: var(--text-secondary, #787b86);
   font-family: var(--font-mono, monospace);
   z-index: 5;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+}
+
+.tv-bottom-timebar::-webkit-scrollbar {
+  height: 3px;
+}
+.tv-bottom-timebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
 }
 
 .tv-time-shortcuts {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  flex-shrink: 0;
 }
 
 .tv-time-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary, #787b86);
-  font-size: 0.66rem;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #9da3af);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  user-select: none;
 }
 
 .tv-time-btn:hover {
   background: var(--bg-hover, #2a2e39);
-  color: var(--text-primary, #d1d4dc);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
 }
 
 .tv-time-btn.active {
-  background: rgba(41, 98, 255, 0.18);
-  color: var(--brand, #2962ff);
+  background: var(--brand, #2962ff) !important;
+  color: #ffffff !important;
+  border-color: var(--brand, #2962ff) !important;
+  box-shadow: 0 0 10px rgba(41, 98, 255, 0.45);
+  font-weight: 800;
 }
 
 .tv-time-clock {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
+  font-size: 0.70rem;
 }
 
 .tv-side-drawer-container {
