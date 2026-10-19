@@ -1,0 +1,217 @@
+.heatmap-window {
+  width: 820px !important;
+}
+
+.tl-scan-refresh-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e8ecf3;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 0.70rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tl-scan-refresh-btn:hover {
+  background: rgba(0, 212, 255, 0.15);
+  border-color: #00D4FF;
+  color: #00D4FF;
+}
+
+.tl-scan-refresh-btn.spinning svg {
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.tl-top-pick-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(255, 107, 0, 0.12), rgba(0, 212, 255, 0.08));
+  border: 1px solid rgba(255, 107, 0, 0.35);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.tl-crown-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #FF6B00;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.tl-top-asset-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.tl-top-asset-score {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #00e676;
+  background: rgba(0, 230, 118, 0.15);
+  border: 1px solid rgba(0, 230, 118, 0.4);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.tl-top-asset-reason {
+  font-size: 0.72rem;
+  color: #aab3c3;
+  margin: 6px 0 0;
+}
+
+.tl-top-pick-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tl-filter-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tl-filter-tab {
+  background: none;
+  border: none;
+  color: #8592a6;
+  font-size: 0.70rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tl-filter-tab.active {
+  background: rgba(0, 212, 255, 0.15);
+  color: #00D4FF;
+  font-weight: 700;
+}
+
+.tl-scanner-table-wrap {
+  background: #090d14;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tl-scanner-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.74rem;
+  text-align: left;
+}
+
+.tl-scanner-table th {
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #8592a6;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tl-scanner-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tl-scanner-table tr.top-row {
+  background: rgba(255, 107, 0, 0.05);
+}
+
+.tl-scanner-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.tl-trend-pill {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.tl-trend-pill.bull {
+  background: rgba(0, 230, 118, 0.14);
+  color: #00e676;
+}
+
+.tl-trend-pill.bear {
+  background: rgba(255, 51, 102, 0.14);
+  color: #ff3366;
+}
+
+.tl-score-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tl-score-bar-bg {
+  width: 60px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.tl-score-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.tl-action-icon-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e8ecf3;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tl-action-icon-btn:hover {
+  background: rgba(0, 212, 255, 0.15);
+  border-color: #00D4FF;
+  color: #00D4FF;
+}
+
+.tl-action-icon-btn.buy-btn {
+  background: rgba(0, 230, 118, 0.15);
+  border-color: rgba(0, 230, 118, 0.4);
+  color: #00e676;
+  font-weight: 800;
+}
+
+.tl-action-icon-btn.buy-btn:hover {
+  background: #00e676;
+  color: #0a0d13;
+}

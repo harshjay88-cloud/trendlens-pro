@@ -1,0 +1,118 @@
+.tl-stream-status-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.tl-stream-status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tl-stream-label {
+  font-size: 0.65rem;
+  color: #8592a6;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.tl-stream-acc-card {
+  background: rgba(0, 212, 255, 0.04);
+  border: 1px solid rgba(0, 212, 255, 0.22);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.tl-stream-acc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.tl-stream-console {
+  background: #06090e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tl-console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #aab3c3;
+}
+
+.tl-console-ping-btn {
+  background: rgba(0, 212, 255, 0.12);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: #00D4FF;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.tl-console-ping-btn:hover {
+  background: #00D4FF;
+  color: #0a0d13;
+}
+
+.tl-console-logs {
+  height: 160px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tl-log-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.tl-log-time {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.tl-log-msg {
+  word-break: break-all;
+}
+
+.tl-log-line.info .tl-log-msg {
+  color: #aab3c3;
+}
+
+.tl-log-line.success .tl-log-msg {
+  color: #00e676;
+}
+
+.tl-log-line.error .tl-log-msg {
+  color: #ff3366;
+}
+
+.tl-log-line.system .tl-log-msg {
+  color: #00D4FF;
+}
