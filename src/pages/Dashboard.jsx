@@ -12,8 +12,9 @@ import TrendLensUltraChart from '../components/common/TrendLensUltraChart.jsx';
 import AiCoachChat from '../components/common/AiCoachChat.jsx';
 import TradingViewLeftToolbar from '../components/common/TradingViewLeftToolbar.jsx';
 import TradingViewWatchlist from '../components/common/TradingViewWatchlist.jsx';
-import MarketSummaryOverview from '../components/common/MarketSummaryOverview.jsx';
-import BybitProTerminal from '../components/common/BybitProTerminal.jsx';
+import { ScalpTapeReader, OrderImbalanceMeter, ScalpStatsWidget } from '../components/common/ScalpEngineWidgets.jsx';
+import { KillzoneScheduleWidget, DailyRangeVwapWidget, DayConfluenceWidget } from '../components/common/DayTradingWidgets.jsx';
+import { MacroAlignmentWidget, SwingRiskRewardWidget, CotWhaleAccumulationWidget } from '../components/common/SwingEngineWidgets.jsx';
 import './Dashboard.css';
 
 function StatCard({ label, value, sub, icon: Icon, color }) {
@@ -169,16 +170,33 @@ export default function Dashboard() {
   const { theme, setTheme } = useThemeStore();
   const { prices, fetchLiveCrypto } = useMarketStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeView, setActiveView] = useState('overview'); // 'overview' (TradingView Market Summary / Screenshot 1), 'bybit' (Bybit Pro Terminal / Screenshot 4), 'ultra' (Institutional SMC Engine), 'tv_chart' (TradingView Pure Live Chart)
+  const [activeEngine, setActiveEngine] = useState('smc_ultra'); // 'smc_ultra', 'scalp', 'day_trading', 'swing_4h'
   const [symbol, setSymbol] = useState('BTCUSD');
   const [timeframe, setTimeframe] = useState('60');
   const [isMaximized, setIsMaximized] = useState(false);
   const [chartFocusMode, setChartFocusMode] = useState(false);
-  const [chartEngine, setChartEngine] = useState('ultra'); // 'ultra' (GoldVIP Ultra indicator canvas) or 'tradingview'
+  const [chartEngine, setChartEngine] = useState('ultra'); // 'ultra', 'scalper', 'day', 'swing'
   const [sideColTab, setSideColTab] = useState('coach'); // 'coach' or 'signals'
   const [showRightDrawer, setShowRightDrawer] = useState('watchlist'); // 'watchlist', 'coach', or null
   const [activeDrawingTool, setActiveDrawingTool] = useState('crosshair');
   const [activePlan, setActivePlan] = useState(null);
+
+  const handleEngineSwitch = (eng) => {
+    setActiveEngine(eng);
+    if (eng === 'smc_ultra') {
+      setChartEngine('ultra');
+      setTimeframe('60');
+    } else if (eng === 'scalp') {
+      setChartEngine('scalper');
+      setTimeframe('1');
+    } else if (eng === 'day_trading') {
+      setChartEngine('day');
+      setTimeframe('15');
+    } else if (eng === 'swing_4h') {
+      setChartEngine('swing');
+      setTimeframe('240');
+    }
+  };
 
   // Poll live Bybit market ticker prices across dashboard
   useEffect(() => {
@@ -283,52 +301,57 @@ export default function Dashboard() {
     { label: '30D', val: 'M',   cat: '📅 Days & Macro' },
   ];
 
-  const QUICK_TIMEFRAMES = ['1s', '5s', '1m', '5m', '15m', '1h', '4h', '1D'];
+  const engineQuickTFs = activeEngine === 'scalp'
+    ? ['1s', '5s', '1m', '3m', '5m']
+    : activeEngine === 'day_trading'
+    ? ['5m', '15m', '30m', '1h']
+    : activeEngine === 'swing_4h'
+    ? ['1h', '2h', '4h', '1D', '1W']
+    : ['15m', '1h', '4h', '1D'];
 
   return (
     <div className="app-layout">
       <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
       <main className="app-main">
-        {/* Top View Selector Bar — TradingView & Bybit Pro Navigation */}
+        {/* Top 4 Dedicated Engine Selector Bar */}
         <div className="dash-view-selector-bar">
           <div className="dash-view-tabs">
             <button
               type="button"
-              className={`dash-view-tab ${activeView === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveView('overview')}
-              title="TradingView Market Summary Overview (S&P 500, Indices, Watchlist)"
-            >
-              <LayoutGrid size={15} />
-              <span>TradingView Overview</span>
-            </button>
-            <button
-              type="button"
-              className={`dash-view-tab ${activeView === 'bybit' ? 'active' : ''}`}
-              onClick={() => setActiveView('bybit')}
-              title="Bybit Pro Live Trading Terminal (Depth Orderbook, Instant Orders)"
-            >
-              <Zap size={15} />
-              <span>Bybit Pro Terminal</span>
-              <span className="demo-badge">DEMO</span>
-            </button>
-            <button
-              type="button"
-              className={`dash-view-tab ${activeView === 'ultra' ? 'active' : ''}`}
-              onClick={() => setActiveView('ultra')}
-              title="Institutional SMC & Swing Ultra Engine"
+              className={`dash-view-tab ${activeEngine === 'smc_ultra' ? 'active' : ''}`}
+              onClick={() => handleEngineSwitch('smc_ultra')}
+              title="Institutional SMC Ultra Engine (Order Blocks, FVG, Liquidity Sweeps)"
             >
               <Cpu size={15} />
-              <span>SMC Ultra Engine</span>
+              <span>🎯 SMC Ultra Engine</span>
             </button>
             <button
               type="button"
-              className={`dash-view-tab ${activeView === 'tv_chart' ? 'active' : ''}`}
-              onClick={() => setActiveView('tv_chart')}
-              title="TradingView Live Pro Chart"
+              className={`dash-view-tab ${activeEngine === 'scalp' ? 'active' : ''}`}
+              onClick={() => handleEngineSwitch('scalp')}
+              title="High-Frequency Flow Scalper (M1 / M5 Micro-Orderflow Imbalance)"
             >
-              <LineChart size={15} />
-              <span>TradingView Chart</span>
+              <Zap size={15} />
+              <span>⚡ Fast Scalp Engine (M1/M5)</span>
+            </button>
+            <button
+              type="button"
+              className={`dash-view-tab ${activeEngine === 'day_trading' ? 'active' : ''}`}
+              onClick={() => handleEngineSwitch('day_trading')}
+              title="Intraday Session Engine (Asian, London, NY Killzones & VWAP)"
+            >
+              <Activity size={15} />
+              <span>☀️ Day Trading Engine (M15/H1)</span>
+            </button>
+            <button
+              type="button"
+              className={`dash-view-tab ${activeEngine === 'swing_4h' ? 'active' : ''}`}
+              onClick={() => handleEngineSwitch('swing_4h')}
+              title="4-Hours Macro Swing Engine (H4 / D1 Multi-Day Structure)"
+            >
+              <TrendingUp size={15} />
+              <span>📈 4-Hours Swing Engine (H4/D1)</span>
             </button>
           </div>
 
@@ -338,7 +361,7 @@ export default function Dashboard() {
                 type="button"
                 className={`theme-pill ${theme === 'tl-dark' ? 'active' : ''}`}
                 onClick={() => setTheme('tl-dark')}
-                title="TradingView Charcoal Dark (#131722)"
+                title="TradingView Dark (#131722)"
               >
                 🌑 Dark
               </button>
@@ -354,7 +377,7 @@ export default function Dashboard() {
                 type="button"
                 className={`theme-pill ${theme === 'tl-light' ? 'active' : ''}`}
                 onClick={() => setTheme('tl-light')}
-                title="TradingView Clean Light Mode (#ffffff)"
+                title="Clean Light Mode (#ffffff)"
               >
                 ☀️ Light
               </button>
@@ -362,47 +385,23 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 1. Page View 1: TradingView Market Summary Overview (Screenshot 1) */}
-        {activeView === 'overview' && (
-          <div className="dashboard-content full-bleed">
-            <MarketSummaryOverview
-              prices={prices}
-              selectedSymbol={symbol}
-              onSelectSymbol={(newSym) => setSymbol(newSym)}
-              onGoToTerminal={() => setActiveView('bybit')}
-            />
+        {/* Engine Status Sub-Header */}
+        <div className="engine-status-bar">
+          <div className="engine-status-left">
+            <span className="engine-status-pulse"></span>
+            <span className="engine-status-title">
+              {activeEngine === 'smc_ultra' && 'INSTITUTIONAL SMC ULTRA · ORDER BLOCKS · FVG MITIGATION · LIQUIDITY SWEEPS · BOOKMAP INFERNO HEATMAP'}
+              {activeEngine === 'scalp' && 'MICRO-ORDERFLOW FLOW SCALPER · M1/M5 FAST TICKS · TAPE MOMENTUM · BOOKMAP WALL DEFENSE'}
+              {activeEngine === 'day_trading' && 'INTRADAY KILLZONE ENGINE · ASIAN/LONDON/NY SESSIONS · VWAP BANDS · EQUILIBRIUM RETRACEMENTS'}
+              {activeEngine === 'swing_4h' && '4-HOURS MACRO SWING ENGINE · H4/D1 MULTI-DAY STRUCTURE · 1:3+ R:R ASYMMETRIC TARGETS'}
+            </span>
           </div>
-        )}
-
-        {/* 2. Page View 2: Bybit Pro Live Trading Terminal (Screenshot 4) */}
-        {activeView === 'bybit' && (
-          <div className="dashboard-content full-bleed">
-            <BybitProTerminal
-              symbol={symbol}
-              asset={currentAsset}
-              prices={prices}
-              onSelectSymbol={(newSym) => setSymbol(newSym)}
-              onSwitchPage={(pageKey) => setActiveView(pageKey)}
-            />
+          <div className="engine-status-right">
+            <span className="engine-tag-pill">AI Confluence: 96%</span>
+            <span className="engine-tag-pill live">STREAMING LIVE</span>
           </div>
-        )}
+        </div>
 
-        {/* 3. Page View 4: Pure TradingView Pro Chart */}
-        {activeView === 'tv_chart' && (
-          <div className="dashboard-content full-bleed">
-            <div style={{ width: '100%', height: 'calc(100vh - 104px)', background: 'var(--bg-primary, #131722)' }}>
-              <iframe
-                key={`${symbol}-${timeframe}-tvfull`}
-                src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${symbol}&interval=${timeframe}&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=1&toolbarbg=131722&studies=[]&theme=${theme === 'tl-light' ? 'light' : 'dark'}&style=1&timezone=Etc%2FUTC&withdateranges=1&showpopupbutton=1`}
-                style={{ width: '100%', height: '100%', border: 'none' }}
-                title="TradingView Pro Chart Full"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* 4. Page View 3: SMC Ultra Engine & AI Analytics */}
-        {activeView === 'ultra' && (
         <div className="dashboard-content">
           {/* Greeting */}
           <div className="dash-greeting">
@@ -454,42 +453,23 @@ export default function Dashboard() {
             <div className={`dash-chart-wrap ${isMaximized ? 'maximized' : ''}`}>
               <div className="chart-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  {/* Engine Toggle Buttons: Ultra Swing vs Flow Scalper vs TradingView */}
-                  <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', padding: 2, borderRadius: 8, border: '1px solid var(--border)' }}>
-                    <button
-                      type="button"
-                      onClick={() => setChartEngine('ultra')}
-                      className={`btn btn-sm ${chartEngine === 'ultra' ? 'btn-primary' : 'btn-ghost'}`}
-                      style={{ padding: '5px 9px', fontSize: '0.73rem', gap: 5, borderRadius: 6 }}
-                      title="Institutional Swing & Structure Engine (H1 / H4 / D1)"
-                    >
-                      <Cpu size={13} />
-                      <span>Ultra Swing</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setChartEngine('scalper');
-                        if (timeframe === '60' || timeframe === '240' || timeframe === 'D') {
-                          setTimeframe('5');
-                        }
-                      }}
-                      className={`btn btn-sm ${chartEngine === 'scalper' ? 'btn-primary' : 'btn-ghost'}`}
-                      style={{ padding: '5px 9px', fontSize: '0.73rem', gap: 5, borderRadius: 6 }}
-                      title="Micro-Orderflow Scalper Engine (M1 / M5 Fast Ticks & Imbalances)"
-                    >
-                      <Zap size={13} />
-                      <span>Flow Scalper (M1/M5)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setChartEngine('tradingview')}
-                      className={`btn btn-sm ${chartEngine === 'tradingview' ? 'btn-primary' : 'btn-ghost'}`}
-                      style={{ padding: '5px 9px', fontSize: '0.73rem', gap: 5, borderRadius: 6 }}
-                    >
-                      <LineChart size={13} />
-                      <span>TradingView</span>
-                    </button>
+                  {/* Active Engine Badge */}
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--border)',
+                    padding: '5px 12px',
+                    borderRadius: 6,
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    color: '#ffffff'
+                  }}>
+                    {activeEngine === 'smc_ultra' && <><Cpu size={14} color="var(--brand)" /> <span>SMC Ultra (Institutional)</span></>}
+                    {activeEngine === 'scalp' && <><Zap size={14} color="var(--signal-buy)" /> <span>Flow Scalper (M1/M5)</span></>}
+                    {activeEngine === 'day_trading' && <><Activity size={14} color="var(--signal-neutral)" /> <span>Intraday Day Trader</span></>}
+                    {activeEngine === 'swing_4h' && <><TrendingUp size={14} color="var(--gold)" /> <span>4H Macro Swing</span></>}
                   </div>
 
                   <select
@@ -561,7 +541,7 @@ export default function Dashboard() {
                 {/* Right controls: Timeframe + Layout & Maximize */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                    {QUICK_TIMEFRAMES.map(lbl => {
+                    {engineQuickTFs.map(lbl => {
                       const tfObj = ALL_TIMEFRAMES.find(t => t.label === lbl);
                       const isSelected = timeframe === tfObj?.val || timeframe === lbl;
                       return (
@@ -674,25 +654,16 @@ export default function Dashboard() {
 
                 {/* 2. Center Chart Workspace */}
                 <div className="tv-center-workspace">
-                  {/* Chart Container: Ultra Engine (with live on-chart overlays) OR TradingView Pro */}
+                  {/* Chart Container: Dedicated Engine High-Resolution Canvas */}
                   <div className="chart-container" style={{ flex: 1, minHeight: '520px', height: '100%', background: 'var(--bg-primary, #131722)' }}>
-                    {chartEngine === 'ultra' || chartEngine === 'scalper' ? (
-                      <TrendLensUltraChart
-                        asset={currentAsset}
-                        initialPrice={currentPrice}
-                        category={assetData?.category || 'Metals'}
-                        timeframe={ALL_TIMEFRAMES.find(t => t.val === timeframe)?.label || timeframe}
-                        engineMode={chartEngine}
-                        activePlan={activePlan}
-                      />
-                    ) : (
-                      <iframe
-                        key={`${symbol}-${timeframe}`}
-                        src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${symbol}&interval=${timeframe}&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=1&toolbarbg=131722&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&showpopupbutton=1`}
-                        style={{ width: '100%', height: '100%', minHeight: '520px', border: 'none' }}
-                        title="TradingView Pro Chart"
-                      />
-                    )}
+                    <TrendLensUltraChart
+                      asset={currentAsset}
+                      initialPrice={currentPrice}
+                      category={assetData?.category || 'Metals'}
+                      timeframe={ALL_TIMEFRAMES.find(t => t.val === timeframe)?.label || timeframe}
+                      engineMode={chartEngine}
+                      activePlan={activePlan}
+                    />
                   </div>
 
                   {/* 3. Bottom Time Toolbar */}
@@ -806,30 +777,57 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Bottom Row */}
+          {/* Bottom Row — Engine-Specific Specialized Analytics */}
           <div className="dash-bottom-row">
-            <DailyTargetWidget asset={currentAsset} currentPrice={currentPrice} />
-            <OrderFlowPanel data={MOCK_ORDER_FLOW} />
-            <div className="whale-alerts card">
-              <div className="section-label" style={{ marginBottom: 12 }}>Institutional Whale Alerts ({currentAsset})</div>
-              {[
-                { time: '14:32', msg: `BUYING ABSORPTION @ ${currentPrice > 100 ? (currentPrice * 0.998).toFixed(2) : (currentPrice * 0.998).toFixed(4)} — 15,400 lots`, side: 'BUY' },
-                { time: '14:18', msg: `LARGE BUY ORDER DETECTED @ ${currentPrice > 100 ? (currentPrice * 0.997).toFixed(2) : (currentPrice * 0.997).toFixed(4)} — 22,000 lots`, side: 'BUY' },
-                { time: '13:55', msg: `Sell pressure detected at ${currentPrice > 100 ? (currentPrice * 1.002).toFixed(2) : (currentPrice * 1.002).toFixed(4)} — 8,700 lots`, side: 'SELL' },
-                { time: '13:41', msg: `Institutional iceberg buy filled — 31,200 lots`, side: 'BUY' },
-              ].map((a, i) => (
-                <div key={i} className="whale-alert-item">
-                  <div className="whale-alert-top">
-                    <span className={`badge ${a.side === 'BUY' ? 'badge-buy' : 'badge-sell'}`} style={{fontSize:'0.65rem'}}>🐋 {a.side}</span>
-                    <span className="whale-time">{a.time}</span>
-                  </div>
-                  <div className="whale-msg">{a.msg}</div>
+            {activeEngine === 'smc_ultra' && (
+              <>
+                <DailyTargetWidget asset={currentAsset} currentPrice={currentPrice} />
+                <OrderFlowPanel data={MOCK_ORDER_FLOW} />
+                <div className="whale-alerts card">
+                  <div className="section-label" style={{ marginBottom: 12 }}>Institutional Whale Alerts ({currentAsset})</div>
+                  {[
+                    { time: '14:32', msg: `BUYING ABSORPTION @ ${currentPrice > 100 ? (currentPrice * 0.998).toFixed(2) : (currentPrice * 0.998).toFixed(4)} — 15,400 lots`, side: 'BUY' },
+                    { time: '14:18', msg: `LARGE BUY ORDER DETECTED @ ${currentPrice > 100 ? (currentPrice * 0.997).toFixed(2) : (currentPrice * 0.997).toFixed(4)} — 22,000 lots`, side: 'BUY' },
+                    { time: '13:55', msg: `Sell pressure detected at ${currentPrice > 100 ? (currentPrice * 1.002).toFixed(2) : (currentPrice * 1.002).toFixed(4)} — 8,700 lots`, side: 'SELL' },
+                    { time: '13:41', msg: `Institutional iceberg buy filled — 31,200 lots`, side: 'BUY' },
+                  ].map((a, i) => (
+                    <div key={i} className="whale-alert-item">
+                      <div className="whale-alert-top">
+                        <span className={`badge ${a.side === 'BUY' ? 'badge-buy' : 'badge-sell'}`} style={{fontSize:'0.65rem'}}>🐋 {a.side}</span>
+                        <span className="whale-time">{a.time}</span>
+                      </div>
+                      <div className="whale-msg">{a.msg}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
+
+            {activeEngine === 'scalp' && (
+              <>
+                <ScalpTapeReader currentPrice={currentPrice} asset={currentAsset} />
+                <OrderImbalanceMeter />
+                <ScalpStatsWidget />
+              </>
+            )}
+
+            {activeEngine === 'day_trading' && (
+              <>
+                <KillzoneScheduleWidget />
+                <DailyRangeVwapWidget currentPrice={currentPrice} asset={currentAsset} />
+                <DayConfluenceWidget />
+              </>
+            )}
+
+            {activeEngine === 'swing_4h' && (
+              <>
+                <MacroAlignmentWidget />
+                <SwingRiskRewardWidget currentPrice={currentPrice} />
+                <CotWhaleAccumulationWidget />
+              </>
+            )}
           </div>
         </div>
-        )}
       </main>
     </div>
   );
