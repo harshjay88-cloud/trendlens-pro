@@ -737,6 +737,7 @@ export default function TrendLensUltraChart({
 
   const getBybitInterval = (tf) => {
     const t = String(tf || '').toLowerCase();
+    if (t.includes('1s') || t.includes('5s')) return '1';
     if (t.includes('1m') || t === '1') return '1';
     if (t.includes('3m') || t === '3') return '3';
     if (t.includes('5m') || t === '5') return '5';
