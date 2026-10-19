@@ -613,9 +613,14 @@ export default function Dashboard() {
           />
         ) : activeEngine === 'manual_studio' ? (
           <ManualProStudio
-            currentAsset={currentAsset}
+            asset={currentAsset}
+            symbol={symbol}
+            prices={prices}
             initialPrice={currentPrice}
             theme={theme}
+            onSelectSymbol={(newSym) => {
+              setSymbol(newSym);
+            }}
           />
         ) : (
         <div className="dashboard-content">
@@ -954,6 +959,10 @@ export default function Dashboard() {
                       initialPrice={currentPrice}
                       category={assetData?.category || 'Metals'}
                       timeframe={ALL_TIMEFRAMES.find(t => t.val === timeframe)?.label || timeframe}
+                      range={selectedRange}
+                      onRangeChange={handleRangeSelect}
+                      activeDrawingTool={activeDrawingTool}
+                      onSelectDrawingTool={setActiveDrawingTool}
                       engineMode={chartEngine}
                       activePlan={activePlan}
                     />
