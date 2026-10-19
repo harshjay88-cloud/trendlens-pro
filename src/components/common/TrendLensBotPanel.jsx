@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Cpu, Zap, Maximize2, Sliders } from 'lucide-react';
 
 export default function TrendLensBotPanel({
@@ -30,6 +30,8 @@ export default function TrendLensBotPanel({
   handleCloseSingleBybit,
   refreshBybitPositions
 }) {
+  const [panelTab, setPanelTab] = useState('risk');
+
   return (
     <div className="ultra-bot-dock">
       {/* Bot Header */}
