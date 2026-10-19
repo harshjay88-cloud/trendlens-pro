@@ -1,0 +1,203 @@
+/* Multi-Chart Parallel Grid CSS */
+.multi-chart-overlay {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: calc(100vh - 104px);
+  background: var(--bg-primary, #131722);
+  padding: 16px;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.multi-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--bg-card, #1e222d);
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 8px;
+}
+
+.multi-chart-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: #ffffff;
+}
+
+.multi-active-pill {
+  font-size: 0.65rem;
+  background: rgba(8, 153, 129, 0.15);
+  color: var(--signal-buy, #089981);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  border: 1px solid rgba(8, 153, 129, 0.3);
+}
+
+.multi-chart-grid {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+}
+
+.grid-bot10 {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.grid-2x1 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.grid-2x2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.grid-3x2 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4x2 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.grid-4x4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.mini-chart-card {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-card, #1e222d);
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mini-chart-card:hover {
+  border-color: var(--brand, #2962ff);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.mini-chart-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.mini-coin-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.mini-coin-symbol {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #ffffff;
+  font-family: var(--font-mono, monospace);
+}
+
+.mini-coin-name {
+  font-size: 0.68rem;
+  color: var(--text-muted, #787b86);
+}
+
+.mini-coin-px {
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-family: var(--font-mono, monospace);
+  color: #ffffff;
+}
+
+.mini-coin-chg {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+}
+
+.mini-coin-chg.positive { color: var(--signal-buy, #089981); }
+.mini-coin-chg.negative { color: var(--signal-sell, #f23645); }
+
+.mini-chart-canvas-wrap {
+  width: 100%;
+  height: 90px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.mini-sparkline {
+  width: 100%;
+  height: 100%;
+}
+
+.mini-chart-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.70rem;
+}
+
+.mini-strategy-tag {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.mini-bias-pill {
+  display: inline-block;
+  font-weight: 800;
+  font-size: 0.62rem;
+  padding: 1px 6px;
+  border-radius: 3px;
+  width: fit-content;
+}
+
+.mini-bias-pill.buy {
+  background: rgba(8, 153, 129, 0.15);
+  color: var(--signal-buy, #089981);
+}
+
+.mini-bias-pill.neutral {
+  background: rgba(240, 168, 0, 0.15);
+  color: var(--gold, #f0a800);
+}
+
+.mini-reason {
+  color: var(--text-secondary, #787b86);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.btn-open-engine {
+  background: var(--brand, #2962ff);
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.btn-open-engine:hover {
+  background: var(--brand-dim, #1e53e5);
+}

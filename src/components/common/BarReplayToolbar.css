@@ -1,0 +1,106 @@
+/* Bar Replay Toolbar Styling */
+.bar-replay-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card, #1e222d);
+  border-bottom: 2px solid var(--brand, #2962ff);
+  padding: 6px 16px;
+  height: 40px;
+  gap: 16px;
+  animation: fadeIn 0.2s ease;
+  z-index: 60;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.replay-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+}
+
+.replay-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.replay-btn {
+  background: var(--bg-elevated, #242835);
+  border: 1px solid var(--border, #2a2e39);
+  color: #ffffff;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.replay-btn:hover {
+  background: var(--bg-hover, #2a2e39);
+  border-color: var(--brand, #2962ff);
+}
+
+.replay-btn.play {
+  background: var(--brand, #2962ff);
+  border-color: var(--brand, #2962ff);
+}
+
+.replay-btn.play:hover {
+  background: var(--brand-dim, #1e53e5);
+}
+
+.replay-speed-selector {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 4px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.speed-pill {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #787b86);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.speed-pill.active {
+  background: var(--brand, #2962ff);
+  color: #ffffff;
+}
+
+.replay-progress {
+  font-size: 0.72rem;
+  color: var(--text-secondary, #787b86);
+  font-family: var(--font-mono, monospace);
+}
+
+.replay-progress b {
+  color: #ffffff;
+}
+
+.replay-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted, #787b86);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.replay-close-btn:hover {
+  color: #ffffff;
+}

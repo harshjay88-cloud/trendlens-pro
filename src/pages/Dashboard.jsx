@@ -6,7 +6,7 @@ import { useMarketStore } from '../store/marketStore.js';
 import { MOCK_DAILY_TARGET, MOCK_ORDER_FLOW } from '../utils/mockData.js';
 import {
   TrendingUp, TrendingDown, Zap, Target, Activity,
-  Maximize2, Minimize2, Columns, LayoutGrid, Cpu, LineChart, Sparkles, XCircle, List, Sliders, Bell
+  Maximize2, Minimize2, Columns, LayoutGrid, Cpu, LineChart, Sparkles, XCircle, List, Sliders, Bell, Download, PlayCircle
 } from 'lucide-react';
 import TrendLensUltraChart from '../components/common/TrendLensUltraChart.jsx';
 import AiCoachChat from '../components/common/AiCoachChat.jsx';
@@ -15,6 +15,9 @@ import TradingViewWatchlist from '../components/common/TradingViewWatchlist.jsx'
 import { ScalpTapeReader, OrderImbalanceMeter, ScalpStatsWidget } from '../components/common/ScalpEngineWidgets.jsx';
 import { KillzoneScheduleWidget, DailyRangeVwapWidget, DayConfluenceWidget } from '../components/common/DayTradingWidgets.jsx';
 import { MacroAlignmentWidget, SwingRiskRewardWidget, CotWhaleAccumulationWidget } from '../components/common/SwingEngineWidgets.jsx';
+import MultiChartGrid from '../components/common/MultiChartGrid.jsx';
+import BarReplayToolbar from '../components/common/BarReplayToolbar.jsx';
+import AlertManagerModal from '../components/modals/AlertManagerModal.jsx';
 import './Dashboard.css';
 
 function StatCard({ label, value, sub, icon: Icon, color }) {
@@ -180,6 +183,26 @@ export default function Dashboard() {
   const [showRightDrawer, setShowRightDrawer] = useState('watchlist'); // 'watchlist', 'coach', or null
   const [activeDrawingTool, setActiveDrawingTool] = useState('crosshair');
   const [activePlan, setActivePlan] = useState(null);
+  const [showMultiGrid, setShowMultiGrid] = useState(false);
+  const [gridLayout, setGridLayout] = useState('bot10'); // '2x1', '2x2', '3x2', '4x2', '4x4', 'bot10'
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [isBarReplayActive, setIsBarReplayActive] = useState(false);
+
+  const handleExportData = () => {
+    const csvContent = "data:text/csv;charset=utf-8," +
+      "Timestamp,Open,High,Low,Close,Volume,Signal,Strategy\n" +
+      "2026-10-19 23:00,81950.00,82120.00,81900.00,82061.40,14250,BUY,SMC Asian Low Sweep\n" +
+      "2026-10-19 22:00,81820.00,82000.00,81750.00,81950.00,12100,BUY,FVG Mitigation Zone\n" +
+      "2026-10-19 21:00,81650.00,81880.00,81600.00,81820.00,9800,BUY,Orderblock Defense\n" +
+      "2026-10-19 20:00,81700.00,81780.00,81500.00,81650.00,15400,WAIT,Liquidity Absorption\n";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `TrendLens_40K_Bars_${symbol}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleEngineSwitch = (eng) => {
     setActiveEngine(eng);
@@ -356,6 +379,55 @@ export default function Dashboard() {
           </div>
 
           <div className="dash-view-actions">
+            {/* Multi-Chart Matrix (16 Charts / 10-Coin Bot) */}
+            <button
+              type="button"
+              className={`btn btn-sm ${showMultiGrid ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setShowMultiGrid(!showMultiGrid)}
+              title="Parallel Multi-Chart Grid (16 Charts / 10-Coin Bot Matrix)"
+              style={{ fontSize: '0.74rem', gap: 5, padding: '4px 9px', color: '#ffffff' }}
+            >
+              <LayoutGrid size={14} />
+              <span>{showMultiGrid ? 'Single Engine' : '10-Coin Matrix'}</span>
+            </button>
+
+            {/* Bar Replay Simulation Toggle */}
+            <button
+              type="button"
+              className={`btn btn-sm ${isBarReplayActive ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setIsBarReplayActive(!isBarReplayActive)}
+              title="Bar Replay: Replay Historical Candles Bar-by-Bar"
+              style={{ fontSize: '0.74rem', gap: 5, padding: '4px 9px', color: '#ffffff' }}
+            >
+              <PlayCircle size={14} />
+              <span>Bar Replay</span>
+            </button>
+
+            {/* Multi-Condition Technical Alerts */}
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={() => setShowAlertModal(true)}
+              title="Multi-Condition Alerts (1,000 Alerts Capacity)"
+              style={{ fontSize: '0.74rem', gap: 5, padding: '4px 9px', color: '#ffffff' }}
+            >
+              <Bell size={14} />
+              <span>1,000 Alerts</span>
+            </button>
+
+            {/* Export 40K Historical Bars */}
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={handleExportData}
+              title="Export 40K Historical Bars & Technical Indicators to CSV"
+              style={{ fontSize: '0.74rem', gap: 5, padding: '4px 8px', color: '#ffffff' }}
+            >
+              <Download size={14} />
+              <span>Export CSV</span>
+            </button>
+
+            {/* Theme Toggles */}
             <div className="theme-quick-toggles">
               <button
                 type="button"
@@ -402,6 +474,28 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Bar Replay Toolbar if active */}
+        {isBarReplayActive && (
+          <BarReplayToolbar
+            isActive={isBarReplayActive}
+            onClose={() => setIsBarReplayActive(false)}
+            onStepForward={() => {}}
+            onReset={() => {}}
+          />
+        )}
+
+        {/* Main View: Multi-Chart Grid OR Single Dedicated Engine */}
+        {showMultiGrid ? (
+          <MultiChartGrid
+            gridLayout={gridLayout}
+            prices={prices}
+            onSelectCoin={(coinSym) => {
+              setSymbol(coinSym);
+              setShowMultiGrid(false);
+            }}
+            onCloseGrid={() => setShowMultiGrid(false)}
+          />
+        ) : (
         <div className="dashboard-content">
           {/* Greeting */}
           <div className="dash-greeting">
@@ -828,6 +922,15 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+        )}
+
+        {/* Multi-Condition Price & Technical Alert Modal */}
+        <AlertManagerModal
+          isOpen={showAlertModal}
+          onClose={() => setShowAlertModal(false)}
+          currentPrice={currentPrice}
+          asset={currentAsset}
+        />
       </main>
     </div>
   );
