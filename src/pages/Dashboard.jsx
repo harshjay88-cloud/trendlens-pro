@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/common/Navbar.jsx';
 import Sidebar from '../components/common/Sidebar.jsx';
-import { useAuthStore, useSignalStore } from '../store/index.js';
+import { useAuthStore, useSignalStore, useThemeStore } from '../store/index.js';
 import { useMarketStore } from '../store/marketStore.js';
 import { MOCK_DAILY_TARGET, MOCK_ORDER_FLOW } from '../utils/mockData.js';
 import {
   TrendingUp, TrendingDown, Zap, Target, Activity,
-  Maximize2, Minimize2, Columns, LayoutGrid, Cpu, LineChart, Sparkles, XCircle
+  Maximize2, Minimize2, Columns, LayoutGrid, Cpu, LineChart, Sparkles, XCircle, List, Sliders, Bell
 } from 'lucide-react';
 import TrendLensUltraChart from '../components/common/TrendLensUltraChart.jsx';
 import AiCoachChat from '../components/common/AiCoachChat.jsx';
+import TradingViewLeftToolbar from '../components/common/TradingViewLeftToolbar.jsx';
+import TradingViewWatchlist from '../components/common/TradingViewWatchlist.jsx';
 import './Dashboard.css';
 
 function StatCard({ label, value, sub, icon: Icon, color }) {
@@ -162,14 +164,17 @@ function SignalFeed({ signals, currentAsset }) {
 export default function Dashboard() {
   const { user } = useAuthStore();
   const { signals } = useSignalStore();
+  const { theme, setTheme } = useThemeStore();
   const { prices, fetchLiveCrypto } = useMarketStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [symbol, setSymbol] = useState('XAUUSD');
+  const [symbol, setSymbol] = useState('BTCUSD');
   const [timeframe, setTimeframe] = useState('60');
   const [isMaximized, setIsMaximized] = useState(false);
   const [chartFocusMode, setChartFocusMode] = useState(false);
   const [chartEngine, setChartEngine] = useState('ultra'); // 'ultra' (GoldVIP Ultra indicator canvas) or 'tradingview'
   const [sideColTab, setSideColTab] = useState('coach'); // 'coach' or 'signals'
+  const [showRightDrawer, setShowRightDrawer] = useState('watchlist'); // 'watchlist', 'coach', or null
+  const [activeDrawingTool, setActiveDrawingTool] = useState('crosshair');
   const [activePlan, setActivePlan] = useState(null);
 
   // Poll live Bybit market ticker prices across dashboard
@@ -538,67 +543,151 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Chart Container: Ultra Engine (with live on-chart overlays) OR TradingView Pro */}
-              <div className="chart-container" style={{ minHeight: '640px', height: 'auto', background: '#0a0d13' }}>
-                {chartEngine === 'ultra' || chartEngine === 'scalper' ? (
-                  <TrendLensUltraChart
-                    asset={currentAsset}
-                    initialPrice={currentPrice}
-                    category={assetData?.category || 'Metals'}
-                    timeframe={ALL_TIMEFRAMES.find(t => t.val === timeframe)?.label || timeframe}
-                    engineMode={chartEngine}
-                    activePlan={activePlan}
-                  />
-                ) : (
-                  <iframe
-                    key={`${symbol}-${timeframe}`}
-                    src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${symbol}&interval=${timeframe}&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=1&toolbarbg=0a0e1a&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&showpopupbutton=1`}
-                    style={{ width: '100%', height: '100%', minHeight: '520px', border: 'none' }}
-                    title="TradingView Pro Chart"
-                  />
-                )}
-              </div>
-            </div>
+              {/* Full TradingView Terminal Layout: Left Toolbar + Chart Center + Right Drawer + Icon Rail */}
+              <div className="tv-terminal-wrapper">
+                {/* 1. Left Vertical Drawing Toolbar */}
+                <TradingViewLeftToolbar
+                  activeTool={activeDrawingTool}
+                  onSelectTool={(toolId) => {
+                    setActiveDrawingTool(toolId);
+                  }}
+                  onClearDrawings={() => {
+                    window.dispatchEvent(new CustomEvent('trendlens_clear_drawings'));
+                  }}
+                />
 
-            {/* Side column: Hidden when in chartFocusMode */}
-            {!chartFocusMode && (
-              <div className="dash-side-col">
-                {/* Tabs switcher: AI Coach vs Signals */}
-                <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${sideColTab === 'coach' ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setSideColTab('coach')}
-                    style={{ flex: 1, fontSize: '0.75rem', padding: '6px 8px', gap: 5 }}
-                  >
-                    <Sparkles size={13} />
-                    <span>AI Coach (සිංහල)</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${sideColTab === 'signals' ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setSideColTab('signals')}
-                    style={{ flex: 1, fontSize: '0.75rem', padding: '6px 8px' }}
-                  >
-                    Signals ({currentAsset})
-                  </button>
+                {/* 2. Center Chart Workspace */}
+                <div className="tv-center-workspace">
+                  {/* Chart Container: Ultra Engine (with live on-chart overlays) OR TradingView Pro */}
+                  <div className="chart-container" style={{ flex: 1, minHeight: '520px', height: '100%', background: 'var(--bg-primary, #131722)' }}>
+                    {chartEngine === 'ultra' || chartEngine === 'scalper' ? (
+                      <TrendLensUltraChart
+                        asset={currentAsset}
+                        initialPrice={currentPrice}
+                        category={assetData?.category || 'Metals'}
+                        timeframe={ALL_TIMEFRAMES.find(t => t.val === timeframe)?.label || timeframe}
+                        engineMode={chartEngine}
+                        activePlan={activePlan}
+                      />
+                    ) : (
+                      <iframe
+                        key={`${symbol}-${timeframe}`}
+                        src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${symbol}&interval=${timeframe}&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=1&toolbarbg=131722&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&showpopupbutton=1`}
+                        style={{ width: '100%', height: '100%', minHeight: '520px', border: 'none' }}
+                        title="TradingView Pro Chart"
+                      />
+                    )}
+                  </div>
+
+                  {/* 3. Bottom Time Toolbar */}
+                  <div className="tv-bottom-timebar">
+                    <div className="tv-time-shortcuts">
+                      {['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'All'].map(range => (
+                        <button
+                          key={range}
+                          className="tv-time-btn"
+                          onClick={() => {
+                            if (range === '1D') setTimeframe('60');
+                            else if (range === '5D') setTimeframe('240');
+                            else if (range === '1M' || range === 'All') setTimeframe('D');
+                          }}
+                        >
+                          {range}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="tv-time-clock">
+                      <span style={{ color: 'var(--signal-buy, #089981)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--signal-buy, #089981)' }} />
+                        Market Open
+                      </span>
+                      <span>23:54:11 (UTC)</span>
+                    </div>
+                  </div>
                 </div>
 
-                {sideColTab === 'coach' ? (
-                  <AiCoachChat
-                    currentAsset={currentAsset}
-                    currentPrice={currentPrice}
-                    category={assetData?.category || 'Metals'}
-                    onDrawPlan={(plan) => {
-                      setActivePlan(plan);
-                      setChartEngine('ultra');
-                    }}
+                {/* 4. Right Collapsible Watchlist & Detail Drawer */}
+                {showRightDrawer === 'watchlist' && (
+                  <TradingViewWatchlist
+                    prices={prices}
+                    selectedSymbol={symbol}
+                    onSelectSymbol={(newSym) => setSymbol(newSym)}
+                    onOpenBot={() => window.dispatchEvent(new CustomEvent('trendlens_toggle_bot_panel'))}
                   />
-                ) : (
-                  <SignalFeed signals={signals} currentAsset={currentAsset} />
                 )}
+
+                {showRightDrawer === 'coach' && (
+                  <div className="tv-side-drawer-container">
+                    <AiCoachChat
+                      currentAsset={currentAsset}
+                      currentPrice={currentPrice}
+                      category={assetData?.category || 'Metals'}
+                      onDrawPlan={(plan) => {
+                        setActivePlan(plan);
+                        setChartEngine('ultra');
+                      }}
+                    />
+                  </div>
+                )}
+
+                {showRightDrawer === 'signals' && (
+                  <div className="tv-side-drawer-container" style={{ padding: '12px' }}>
+                    <SignalFeed signals={signals} currentAsset={currentAsset} />
+                  </div>
+                )}
+
+                {/* 5. Rightmost 44px Icon Rail */}
+                <div className="tv-right-icon-rail">
+                  <button
+                    className={`tv-rail-btn ${showRightDrawer === 'watchlist' ? 'active' : ''}`}
+                    onClick={() => setShowRightDrawer(showRightDrawer === 'watchlist' ? null : 'watchlist')}
+                    title="Watchlist, Details & News"
+                  >
+                    <List size={16} />
+                  </button>
+                  <button
+                    className={`tv-rail-btn ${showRightDrawer === 'coach' ? 'active' : ''}`}
+                    onClick={() => setShowRightDrawer(showRightDrawer === 'coach' ? null : 'coach')}
+                    title="AI Trading Coach (Sinhala Narration)"
+                  >
+                    <Sparkles size={16} />
+                  </button>
+                  <button
+                    className={`tv-rail-btn ${showRightDrawer === 'signals' ? 'active' : ''}`}
+                    onClick={() => setShowRightDrawer(showRightDrawer === 'signals' ? null : 'signals')}
+                    title="Live Signal Feed"
+                  >
+                    <Zap size={16} />
+                  </button>
+                  <button
+                    className="tv-rail-btn"
+                    onClick={() => window.dispatchEvent(new CustomEvent('trendlens_toggle_bot_panel'))}
+                    title="10-Coin Institutional AI Bot"
+                  >
+                    <Cpu size={16} />
+                  </button>
+                  <div style={{ width: 20, height: 1, background: 'var(--border, #2a2e39)', margin: '4px 0' }} />
+                  <button
+                    className="tv-rail-btn"
+                    onClick={() => {
+                      const nextTheme = theme === 'tl-black-red' ? 'tl-dark' : 'tl-black-red';
+                      setTheme(nextTheme);
+                    }}
+                    title={`Toggle Theme: ${theme === 'tl-black-red' ? 'TradingView Dark' : 'Black & Red Pro'}`}
+                    style={{ fontSize: '0.90rem' }}
+                  >
+                    {theme === 'tl-black-red' ? '🔴' : '🌑'}
+                  </button>
+                  <button
+                    className={`tv-rail-btn ${isMaximized ? 'active' : ''}`}
+                    onClick={() => setIsMaximized(!isMaximized)}
+                    title={isMaximized ? "Exit Fullscreen (ESC)" : "Maximize Terminal"}
+                  >
+                    {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                  </button>
+                </div>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Bottom Row */}

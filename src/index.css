@@ -56,6 +56,36 @@
   --font-mono:     'JetBrains Mono', monospace;
 }
 
+[data-theme="tl-black-red"] {
+  --bg-primary:    #060608;
+  --bg-secondary:  #000000;
+  --bg-card:       #0e0e13;
+  --bg-elevated:   #15151d;
+  --bg-hover:      #1c1c27;
+
+  --brand:         #f23645;
+  --brand-dim:     #c52838;
+  --brand-glow:    rgba(242, 54, 69, 0.28);
+  --brand-glow2:   rgba(242, 54, 69, 0.09);
+
+  --signal-buy:    #089981;
+  --signal-buy-bg: rgba(8, 153, 129, 0.12);
+  --signal-sell:   #f23645;
+  --signal-sell-bg:rgba(242, 54, 69, 0.16);
+
+  --text-primary:  #f0f2f5;
+  --text-secondary:#8b8e9b;
+  --text-muted:    #565866;
+  --text-accent:   #f23645;
+
+  --border:        #1f1f2a;
+  --border-glow:   rgba(242, 54, 69, 0.35);
+  --border-hover:  #2f2f40;
+
+  --shadow-card:   0 4px 22px rgba(0,0,0,0.65);
+  --shadow-glow:   0 0 28px rgba(242,54,69,0.22);
+}
+
 [data-theme="tl-navy"] {
   --bg-primary:   #06091A;
   --bg-secondary: #090D24;

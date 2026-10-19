@@ -1,0 +1,209 @@
+/* TradingView Right Watchlist & Detail Drawer CSS */
+.tv-watchlist-drawer {
+  width: 310px;
+  min-width: 310px;
+  background: var(--bg-card, #1e222d);
+  border-left: 1px solid var(--border, #2a2e39);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  z-index: 10;
+}
+
+.tv-wl-header {
+  padding: 10px 12px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border, #2a2e39);
+  background: var(--bg-card, #1e222d);
+}
+
+.tv-wl-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary, #d1d4dc);
+}
+
+.tv-wl-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tv-wl-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #787b86);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+}
+
+.tv-wl-btn:hover {
+  background: var(--bg-hover, #2a2e39);
+  color: var(--text-primary, #d1d4dc);
+}
+
+.tv-wl-cols {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  padding: 6px 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted, #5d606b);
+  border-bottom: 1px solid var(--border, #2a2e39);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tv-wl-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.tv-wl-section {
+  border-bottom: 1px solid rgba(42, 46, 57, 0.4);
+}
+
+.tv-wl-section-header {
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-secondary, #787b86);
+  background: rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+
+.tv-wl-section-header:hover {
+  color: var(--text-primary, #d1d4dc);
+}
+
+.tv-wl-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  padding: 6px 12px;
+  font-size: 0.74rem;
+  font-family: var(--font-mono, monospace);
+  align-items: center;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background 0.12s ease;
+}
+
+.tv-wl-row:hover {
+  background: var(--bg-hover, #2a2e39);
+}
+
+.tv-wl-row.active {
+  background: rgba(41, 98, 255, 0.12);
+  border-left-color: var(--brand, #2962ff);
+}
+
+.tv-wl-sym-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--text-primary, #d1d4dc);
+}
+
+.tv-wl-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tv-wl-px-cell {
+  text-align: right;
+  color: var(--text-primary, #d1d4dc);
+  font-weight: 600;
+}
+
+.tv-wl-chg-cell {
+  text-align: right;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.tv-wl-chg-cell.up {
+  color: var(--signal-buy, #089981);
+}
+
+.tv-wl-chg-cell.dn {
+  color: var(--signal-sell, #f23645);
+}
+
+/* Bottom Selected Asset Card */
+.tv-wl-card {
+  border-top: 1px solid var(--border, #2a2e39);
+  padding: 10px 12px;
+  background: var(--bg-card, #1e222d);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tv-wl-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tv-wl-card-sym {
+  font-size: 0.90rem;
+  font-weight: 800;
+  color: var(--text-primary, #d1d4dc);
+}
+
+.tv-wl-card-px {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-primary, #d1d4dc);
+}
+
+.tv-wl-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  font-size: 0.68rem;
+  color: var(--text-secondary, #787b86);
+  font-family: var(--font-mono, monospace);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+/* Rightmost 42px Vertical Icon Rail */
+.tv-right-icon-rail {
+  width: 44px;
+  min-width: 44px;
+  background: var(--bg-card, #1e222d);
+  border-left: 1px solid var(--border, #2a2e39);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  gap: 4px;
+  z-index: 10;
+}

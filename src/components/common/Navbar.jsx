@@ -8,11 +8,12 @@ import { TrendingUp, Bell, ChevronDown, Sun, Zap, Settings, LogOut, User, Calcul
 import './Navbar.css';
 
 const THEMES = [
-  { key: 'tl-dark',   label: 'TL Dark',    icon: '🌑' },
-  { key: 'tl-navy',   label: 'Midnight',   icon: '🌊' },
-  { key: 'tl-matrix', label: 'Matrix',     icon: '🟩' },
-  { key: 'tl-amber',  label: 'Amber',      icon: '🔥' },
-  { key: 'tl-light',  label: 'Light',      icon: '☀️' },
+  { key: 'tl-dark',      label: 'TradingView Dark', icon: '🌑' },
+  { key: 'tl-black-red', label: 'Black & Red Pro',  icon: '🔴' },
+  { key: 'tl-navy',      label: 'Midnight Navy',    icon: '🌊' },
+  { key: 'tl-matrix',    label: 'Matrix Terminal',  icon: '🟩' },
+  { key: 'tl-amber',     label: 'Amber Gold',       icon: '🔥' },
+  { key: 'tl-light',     label: 'Light Clean',      icon: '☀️' },
 ];
 
 export default function Navbar({ sidebarOpen, setSidebarOpen }) {

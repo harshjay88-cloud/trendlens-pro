@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { MOCK_SIGNALS } from '../utils/mockData.js';
 
 // ── Theme Store ──────────────────────────────────────────
-const THEMES = ['tl-dark','tl-navy','tl-matrix','tl-amber','tl-light'];
+const THEMES = ['tl-dark', 'tl-black-red', 'tl-navy', 'tl-matrix', 'tl-amber', 'tl-light'];
 const getStoredTheme = () => {
   try { return localStorage.getItem('tl_theme') || 'tl-dark'; } catch { return 'tl-dark'; }
 };

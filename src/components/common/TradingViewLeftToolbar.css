@@ -1,0 +1,120 @@
+/* TradingView Iconic Left Drawing Toolbar CSS */
+.tv-left-toolbar {
+  width: 44px;
+  min-width: 44px;
+  background: var(--bg-card, #1e222d);
+  border-right: 1px solid var(--border, #2a2e39);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0;
+  gap: 2px;
+  user-select: none;
+  z-index: 10;
+  position: relative;
+  height: 100%;
+}
+
+.tv-tool-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #787b86);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.12s ease;
+  padding: 0;
+}
+
+.tv-tool-btn:hover {
+  background: var(--bg-hover, #2a2e39);
+  color: var(--text-primary, #d1d4dc);
+}
+
+.tv-tool-btn.active {
+  background: rgba(41, 98, 255, 0.18);
+  color: var(--brand, #2962ff);
+}
+
+.tv-tool-btn.active-red {
+  background: rgba(242, 54, 69, 0.18);
+  color: #f23645;
+}
+
+.tv-tool-arrow {
+  position: absolute;
+  right: 1px;
+  bottom: 2px;
+  font-size: 6px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.tv-tool-divider {
+  width: 24px;
+  height: 1px;
+  background: var(--border, #2a2e39);
+  margin: 4px 0;
+}
+
+.tv-tool-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Tool Flyout Menu */
+.tv-flyout-menu {
+  position: absolute;
+  left: 48px;
+  top: 0;
+  background: var(--bg-card, #1e222d);
+  border: 1px solid var(--border, #2a2e39);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  min-width: 190px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 100;
+  animation: tvFadeIn 0.15s ease-out;
+}
+
+@keyframes tvFadeIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.tv-flyout-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  font-size: 0.74rem;
+  color: var(--text-primary, #d1d4dc);
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.tv-flyout-item:hover {
+  background: var(--bg-hover, #2a2e39);
+  color: #ffffff;
+}
+
+.tv-flyout-item.active {
+  color: var(--brand, #2962ff);
+  background: rgba(41, 98, 255, 0.12);
+}
