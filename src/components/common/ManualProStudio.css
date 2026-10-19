@@ -15,6 +15,68 @@
   user-select: none;
 }
 
+/* ☀️ White / Light Background Mode Styling */
+.mps-container.mps-light-mode {
+  background: #ffffff;
+  color: #131722;
+}
+
+.mps-container.mps-light-mode .mps-top-rail,
+.mps-container.mps-light-mode .mps-tv-header,
+.mps-container.mps-light-mode .mps-left-tools,
+.mps-container.mps-light-mode .mps-canvas-center,
+.mps-container.mps-light-mode .mps-bottom-range-bar,
+.mps-container.mps-light-mode .mps-right-watchlist,
+.mps-container.mps-light-mode .mps-tv-detail-card {
+  background: #ffffff;
+  border-color: #e0e3eb;
+  color: #131722;
+}
+
+.mps-container.mps-light-mode .mps-symbol-select,
+.mps-container.mps-light-mode .mps-style-select {
+  background: #f0f3fa;
+  color: #131722;
+  border-color: #d1d4dc;
+}
+
+.mps-container.mps-light-mode .mps-tool-btn,
+.mps-container.mps-light-mode .mps-action-btn {
+  color: #5d606b;
+  border-color: #e0e3eb;
+}
+
+.mps-container.mps-light-mode .mps-tool-btn:hover,
+.mps-container.mps-light-mode .mps-action-btn:hover {
+  background: #f0f3fa;
+  color: #131722;
+}
+
+.mps-container.mps-light-mode .mps-tv-group-title {
+  background: #f8f9fd;
+  color: #5d606b;
+  border-color: #e0e3eb;
+}
+
+.mps-container.mps-light-mode .mps-tv-row {
+  border-color: #f0f3fa;
+}
+
+.mps-container.mps-light-mode .mps-tv-row:hover {
+  background: #f0f3fa;
+}
+
+.mps-container.mps-light-mode .mps-tv-big-price,
+.mps-container.mps-light-mode .mps-tv-asset-badge div {
+  color: #131722 !important;
+}
+
+.mps-container.mps-light-mode .mps-tv-facts-box {
+  background: rgba(41, 98, 255, 0.05);
+  border-color: rgba(41, 98, 255, 0.2);
+  color: #434651;
+}
+
 /* 1. Pro Studio Top Action Rail */
 .mps-top-rail {
   height: 42px;

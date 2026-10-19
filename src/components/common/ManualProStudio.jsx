@@ -25,7 +25,10 @@ export default function ManualProStudio({
   const [activeTool, setActiveTool] = useState('crosshair');
   const [showIndicatorsModal, setShowIndicatorsModal] = useState(false);
   const [showVpvr, setShowVpvr] = useState(false);
-  const [activeIndicators, setActiveIndicators] = useState(['lux_smc']);
+  const [activeIndicators, setActiveIndicators] = useState([
+    'lux_smc', 'fvg', 'liquidity_sweep', 'supertrend', 'ema_ribbon', 'volume_profile'
+  ]);
+  const [selectedPreset, setSelectedPreset] = useState('smc_master');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [drawings, setDrawings] = useState([]);
@@ -33,6 +36,64 @@ export default function ManualProStudio({
   const [activeRange, setActiveRange] = useState('1D');
   const [timeString, setTimeString] = useState('23:33:13 UTC');
   const candlesRemainingRef = useRef('01:47');
+
+  // Multi-indicator Special Combo Presets
+  const INSTITUTIONAL_PRESETS = {
+    smc_master: {
+      name: '👑 Ultimate SMC & Liquidity Master (Recommended)',
+      desc: 'Smart Money Concepts + Order Blocks + Fair Value Gaps (FVG) + Liquidity Sweeps + CHoCH/BOS + VPVR Volume Profile',
+      indicators: ['lux_smc', 'fvg', 'liquidity_sweep', 'supertrend', 'ema_ribbon', 'volume_profile'],
+      bias: 'Institutional Orderflow'
+    },
+    trend_sniper: {
+      name: '🎯 Trend Sniper & Momentum Combo',
+      desc: 'SuperTrend AI + EMA Dynamic Ribbon (9/21/50/200) + Bollinger Bands Volatility Squeeze + VWAP Anchor',
+      indicators: ['supertrend', 'ema_ribbon', 'bollinger', 'vwap', 'volume_profile'],
+      bias: 'High-Probability Trend Following'
+    },
+    scalper_turbo: {
+      name: '⚡ 1m-5m Scalper Turbo Execution',
+      desc: 'Fast EMA Crossover (9/21) + SuperTrend Fast + Order Block Rejection Zones + Volume Flow',
+      indicators: ['supertrend', 'lux_smc', 'ema_ribbon'],
+      bias: 'Rapid Scalping & Quick Exits'
+    },
+    breakout_reversal: {
+      name: '🔄 Key Breakout & Golden Reversal',
+      desc: 'Liquidity Grab Sweep + FVG Imbalance Fills + Bollinger Bands + LuxAlgo SMC Support/Resistance',
+      indicators: ['liquidity_sweep', 'fvg', 'bollinger', 'lux_smc', 'volume_profile'],
+      bias: 'Reversal & Breakout Confirmation'
+    }
+  };
+
+  const applyPreset = (key) => {
+    setSelectedPreset(key);
+    const preset = INSTITUTIONAL_PRESETS[key];
+    if (preset) {
+      setActiveIndicators(preset.indicators);
+      setToastNotice(`✨ Applied: ${preset.name.split('(')[0]}`);
+      setTimeout(() => setToastNotice(null), 2400);
+    }
+  };
+
+  const [chartTheme, setChartTheme] = useState('dark'); // 'dark' | 'light'
+  const [candleColorTheme, setCandleColorTheme] = useState('tradingview'); // 'tradingview' | 'cyberpunk' | 'monochrome' | 'classic'
+
+  // Candle Color Palettes
+  const CANDLE_PALETTES = {
+    tradingview: { name: '🟢 Classic TV (Teal/Red)', up: '#089981', down: '#f23645' },
+    cyberpunk: { name: '⚡ Neon Cyber (Cyan/Pink)', up: '#00e5ff', down: '#ff007f' },
+    classic: { name: '🟩 Traditional (Bright Green/Red)', up: '#00e676', down: '#ff1744' },
+    monochrome: { name: '⚪ Monochrome (White/Gray)', up: '#ffffff', down: '#434651' }
+  };
+
+  const chartThemeRef = useRef(chartTheme);
+  useEffect(() => { chartThemeRef.current = chartTheme; }, [chartTheme]);
+
+  const candleColorThemeRef = useRef(candleColorTheme);
+  useEffect(() => { candleColorThemeRef.current = candleColorTheme; }, [candleColorTheme]);
+
+  const activeIndicatorsRef = useRef(activeIndicators);
+  useEffect(() => { activeIndicatorsRef.current = activeIndicators; }, [activeIndicators]);
 
   // Watchlist Collapsible Sections
   const [collapsed, setCollapsed] = useState({
@@ -178,7 +239,26 @@ export default function ManualProStudio({
     return bars;
   }, [realKlines]);
 
-  const displayBars = useMemo(() => rawBars, [rawBars]);
+  const displayBars = useMemo(() => {
+    if (chartStyle === 'heikin') {
+      const haBars = [];
+      let prevHaO = rawBars[0] ? (rawBars[0].o + rawBars[0].c) / 2 : 0;
+      let prevHaC = rawBars[0] ? rawBars[0].c : 0;
+      for (let i = 0; i < rawBars.length; i++) {
+        const b = rawBars[i];
+        const haClose = (b.o + b.h + b.l + b.c) / 4;
+        const haOpen = i === 0 ? (b.o + b.c) / 2 : (prevHaO + prevHaC) / 2;
+        const haHigh = Math.max(b.h, haOpen, haClose);
+        const haLow = Math.min(b.l, haOpen, haClose);
+        prevHaO = haOpen;
+        prevHaC = haClose;
+        haBars.push({ ...b, o: haOpen, h: haHigh, l: haLow, c: haClose });
+      }
+      return haBars;
+    }
+    return rawBars;
+  }, [rawBars, chartStyle]);
+
   const displayBarsRef = useRef(displayBars);
   useEffect(() => { displayBarsRef.current = displayBars; }, [displayBars]);
 
@@ -445,14 +525,18 @@ export default function ManualProStudio({
       transform.curHi = curHi;
       transform.currentPriceRange = curRange;
 
-      const getY = (val) => topPad + chartH - ((val - curLo) / curRange) * chartH;
+      // Dynamic Theme Colors (Dark vs Light/White Mode)
+      const isLight = chartThemeRef.current === 'light';
+      const bgCanvas = isLight ? '#ffffff' : '#131722';
+      const gridCol = isLight ? '#e0e3eb' : '#1e222d';
+      const textCol = isLight ? '#434651' : '#787b86';
 
-      // Clear Canvas (#131722 exact TradingView background)
-      ctx.fillStyle = '#131722';
+      // Clear Canvas
+      ctx.fillStyle = bgCanvas;
       ctx.fillRect(0, 0, w, h);
 
       // 1. TradingView Grid Lines
-      ctx.strokeStyle = '#1e222d';
+      ctx.strokeStyle = gridCol;
       ctx.lineWidth = 1;
       const priceSteps = [81640, 81680, 81720, 81760, 81800, 81840, 81880, 81920, 81960, 82000, 82040, 82080, 82120, 82160, 82200, 82240];
       priceSteps.forEach(pVal => {
@@ -464,7 +548,7 @@ export default function ManualProStudio({
           ctx.stroke();
 
           // Right Price Axis Numbers
-          ctx.fillStyle = '#787b86';
+          ctx.fillStyle = textCol;
           ctx.font = '500 10px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, sans-serif';
           ctx.textAlign = 'right';
           ctx.fillText(pVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), w - 6, yk + 3.5);
@@ -481,91 +565,302 @@ export default function ManualProStudio({
         ctx.stroke();
       }
 
-      // 2. LuxAlgo Smart Money Concepts (SMC) Overlays (From User's Screenshot)
-      // A. Bottom Long Green Support / Key Level Line at 81,648
-      const supportY = getY(81648);
-      ctx.strokeStyle = '#00897b';
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(getBarX(Math.max(0, totalBars - 110)), supportY);
-      ctx.lineTo(chartW, supportY);
-      ctx.stroke();
+      // 2. Dynamic Indicator Overlays based on activeIndicatorsRef
+      const acts = activeIndicatorsRef.current || [];
 
-      // B. Blue Demand Order Block Box (Swing Low Demand OB at 81,870 - 81,895)
-      const demX1 = getBarX(totalBars - 48);
-      const demX2 = getBarX(totalBars - 12);
-      const demY1 = getY(81898);
-      const demY2 = getY(81868);
-      ctx.fillStyle = 'rgba(13, 37, 63, 0.85)';
-      ctx.fillRect(demX1, demY1, demX2 - demX1, demY2 - demY1);
-      ctx.strokeStyle = '#2962ff';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(demX1, demY1, demX2 - demX1, demY2 - demY1);
-      ctx.fillStyle = '#2962ff';
-      ctx.font = 'bold 9px JetBrains Mono, monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('CHoCH', (demX1 + demX2) / 2, demY2 - 8);
+      // A. Volume Profile (VPVR) Histogram on Left
+      if (acts.includes('volume_profile')) {
+        const bins = 22;
+        const binH = chartH / bins;
+        const binStep = curRange / bins;
+        const volBins = new Array(bins).fill(0);
+        vis.forEach(b => {
+          const idx = Math.min(bins - 1, Math.max(0, Math.floor((b.c - curLo) / binStep)));
+          volBins[idx] += b.v || 1000;
+        });
+        const maxVol = Math.max(...volBins, 1);
+        const pocIdx = volBins.indexOf(maxVol);
 
-      // C. Maroon / Dark Red Supply Order Block Box (Swing High Supply OB at 82,170 - 82,040)
-      const supX1 = getBarX(totalBars - 22);
-      const supX2 = chartW;
-      const supY1 = getY(82170);
-      const supY2 = getY(82040);
-      ctx.fillStyle = 'rgba(59, 23, 30, 0.85)';
-      ctx.fillRect(supX1, supY1, supX2 - supX1, supY2 - supY1);
-      ctx.strokeStyle = '#f23645';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(supX1, supY1, supX2 - supX1, supY2 - supY1);
-
-      // D. Dashed Teal CHoCH / BOS Structure Lines
-      const drawSmcLevel = (barStart, barEnd, price, label, color) => {
-        const x1 = getBarX(barStart);
-        const x2 = getBarX(barEnd);
-        const yy = getY(price);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([2, 2]);
+        for (let b = 0; b < bins; b++) {
+          const barLen = (volBins[b] / maxVol) * (chartW * 0.16);
+          const py = topPad + chartH - (b + 1) * binH;
+          const isPoc = b === pocIdx;
+          ctx.fillStyle = isPoc ? 'rgba(233, 185, 73, 0.40)' : (b % 2 === 0 ? 'rgba(41, 98, 255, 0.18)' : 'rgba(8, 153, 129, 0.18)');
+          ctx.fillRect(0, py, barLen, binH - 1);
+        }
+        // POC Line (Point of Control)
+        const pocPrice = curLo + (pocIdx + 0.5) * binStep;
+        const pocY = getY(pocPrice);
+        ctx.strokeStyle = '#e9b949';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([3, 3]);
         ctx.beginPath();
-        ctx.moveTo(x1, yy);
-        ctx.lineTo(x2, yy);
+        ctx.moveTo(0, pocY);
+        ctx.lineTo(chartW * 0.55, pocY);
         ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillStyle = color;
-        ctx.font = '8px JetBrains Mono, monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(label, (x1 + x2) / 2, yy - 3);
-      };
+        ctx.fillStyle = '#e9b949';
+        ctx.font = 'bold 8.5px JetBrains Mono, monospace';
+        ctx.fillText('POC', chartW * 0.55 + 4, pocY + 3);
+      }
 
-      drawSmcLevel(totalBars - 85, totalBars - 60, 81965, 'CHoCH', '#00b4d8');
-      drawSmcLevel(totalBars - 68, totalBars - 52, 81755, 'CHoCH', '#e63946');
-      drawSmcLevel(totalBars - 50, totalBars - 36, 81930, 'EQH', '#e63946');
-      drawSmcLevel(totalBars - 32, totalBars - 20, 82130, 'BOS', '#00b4d8');
-      drawSmcLevel(totalBars - 18, totalBars - 2, 81960, 'CHoCH', '#00b4d8');
-
-      // 3. Candlesticks (Teal Green #089981 & Red #f23645)
-      sBars.forEach((b, i) => {
-        const x = getBarX(i);
-        if (x < -bw || x > chartW + bw) return;
-        const isUp = b.c >= b.o;
-        const col = isUp ? '#089981' : '#f23645';
-
-        // Wick
-        ctx.strokeStyle = col;
+      // B. LuxAlgo Smart Money Concepts (SMC) & Order Blocks
+      if (acts.includes('lux_smc')) {
+        // Bottom Long Green Support Line
+        const supportY = getY(81648);
+        ctx.strokeStyle = '#00897b';
         ctx.lineWidth = 1.2;
         ctx.beginPath();
-        ctx.moveTo(Math.floor(x) + 0.5, Math.round(getY(b.h)));
-        ctx.lineTo(Math.floor(x) + 0.5, Math.round(getY(b.l)));
+        ctx.moveTo(getBarX(Math.max(0, totalBars - 110)), supportY);
+        ctx.lineTo(chartW, supportY);
         ctx.stroke();
 
-        // Body
-        const yTop = Math.round(getY(Math.max(b.o, b.c)));
-        const yBtm = Math.round(getY(Math.min(b.o, b.c)));
-        const bodyH = Math.max(1, yBtm - yTop);
-        const barW = Math.max(2, Math.floor(bw * 0.74));
+        // Blue Demand Order Block Box
+        const demX1 = getBarX(totalBars - 48);
+        const demX2 = getBarX(totalBars - 12);
+        const demY1 = getY(81898);
+        const demY2 = getY(81868);
+        ctx.fillStyle = 'rgba(13, 37, 63, 0.85)';
+        ctx.fillRect(demX1, demY1, demX2 - demX1, demY2 - demY1);
+        ctx.strokeStyle = '#2962ff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(demX1, demY1, demX2 - demX1, demY2 - demY1);
+        ctx.fillStyle = '#2962ff';
+        ctx.font = 'bold 9px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('CHoCH / Demand OB', (demX1 + demX2) / 2, demY2 - 8);
 
-        ctx.fillStyle = col;
-        ctx.fillRect(Math.floor(x - barW / 2), yTop, barW, bodyH);
-      });
+        // Maroon Supply Order Block Box
+        const supX1 = getBarX(totalBars - 22);
+        const supX2 = chartW;
+        const supY1 = getY(82170);
+        const supY2 = getY(82040);
+        ctx.fillStyle = 'rgba(59, 23, 30, 0.85)';
+        ctx.fillRect(supX1, supY1, supX2 - supX1, supY2 - supY1);
+        ctx.strokeStyle = '#f23645';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(supX1, supY1, supX2 - supX1, supY2 - supY1);
+        ctx.fillStyle = '#f23645';
+        ctx.font = 'bold 9px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Supply OB', (supX1 + supX2) / 2, supY1 + 14);
+
+        // Dashed Structure Lines
+        const drawSmcLevel = (barStart, barEnd, price, label, color) => {
+          const x1 = getBarX(barStart);
+          const x2 = getBarX(barEnd);
+          const yy = getY(price);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.moveTo(x1, yy);
+          ctx.lineTo(x2, yy);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = color;
+          ctx.font = '8px JetBrains Mono, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(label, (x1 + x2) / 2, yy - 3);
+        };
+
+        drawSmcLevel(totalBars - 85, totalBars - 60, 81965, 'CHoCH', '#00b4d8');
+        drawSmcLevel(totalBars - 68, totalBars - 52, 81755, 'CHoCH', '#e63946');
+        drawSmcLevel(totalBars - 50, totalBars - 36, 81930, 'EQH', '#e63946');
+        drawSmcLevel(totalBars - 32, totalBars - 20, 82130, 'BOS', '#00b4d8');
+        drawSmcLevel(totalBars - 18, totalBars - 2, 81960, 'CHoCH', '#00b4d8');
+      }
+
+      // C. Fair Value Gaps (FVG) Boxes
+      if (acts.includes('fvg')) {
+        const fvgBox1 = { x1: getBarX(totalBars - 42), x2: getBarX(totalBars - 25), y1: getY(81920), y2: getY(81950) };
+        ctx.fillStyle = 'rgba(0, 230, 118, 0.14)';
+        ctx.fillRect(fvgBox1.x1, fvgBox1.y1, fvgBox1.x2 - fvgBox1.x1, fvgBox1.y2 - fvgBox1.y1);
+        ctx.strokeStyle = 'rgba(0, 230, 118, 0.6)';
+        ctx.strokeRect(fvgBox1.x1, fvgBox1.y1, fvgBox1.x2 - fvgBox1.x1, fvgBox1.y2 - fvgBox1.y1);
+        ctx.fillStyle = '#00e676';
+        ctx.font = '7.5px JetBrains Mono, monospace';
+        ctx.fillText('+FVG (Bullish)', fvgBox1.x1 + 35, fvgBox1.y2 - 3);
+      }
+
+      // D. Liquidity Sweeps (Buy-side / Sell-side Liquidity grab arrows)
+      if (acts.includes('liquidity_sweep')) {
+        const sweepBarIdx = totalBars - 44;
+        const sx = getBarX(sweepBarIdx);
+        const sy = getY(81660);
+        ctx.fillStyle = '#ffd600';
+        ctx.font = 'bold 11px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚡ SWEEP', sx, sy + 18);
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx - 5, sy + 7);
+        ctx.lineTo(sx + 5, sy + 7);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // E. EMA Dynamic Ribbon (EMA 9, 21, 50, 200)
+      if (acts.includes('ema_ribbon')) {
+        const calcEma = (period) => {
+          const k = 2 / (period + 1);
+          let ema = sBars[0]?.c || 0;
+          return sBars.map(b => {
+            ema = b.c * k + ema * (1 - k);
+            return ema;
+          });
+        };
+        const ema9 = calcEma(9);
+        const ema21 = calcEma(21);
+        const ema50 = calcEma(50);
+
+        const drawCurve = (arr, color, lw = 1.2) => {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = lw;
+          ctx.beginPath();
+          let started = false;
+          arr.forEach((val, i) => {
+            if (i >= startBarIdx - 2 && i <= endBarIdx + 2) {
+              const x = getBarX(i);
+              const y = getY(val);
+              if (!started) { ctx.moveTo(x, y); started = true; }
+              else { ctx.lineTo(x, y); }
+            }
+          });
+          ctx.stroke();
+        };
+
+        drawCurve(ema9, '#00e676', 1.5);   // Fast green
+        drawCurve(ema21, '#2962ff', 1.5);  // Mid blue
+        drawCurve(ema50, '#ff9100', 1.2);  // 50 orange
+      }
+
+      // F. SuperTrend AI (Dynamic Bullish/Bearish Trend Cloud)
+      if (acts.includes('supertrend')) {
+        ctx.lineWidth = 2;
+        for (let i = Math.max(1, startBarIdx); i <= Math.min(totalBars - 1, endBarIdx); i++) {
+          const bPrev = sBars[i - 1];
+          const bCur = sBars[i];
+          const isBull = bCur.c >= 81850;
+          const targetY = getY(isBull ? bCur.l - 22 : bCur.h + 22);
+          const prevY = getY(isBull ? bPrev.l - 22 : bPrev.h + 22);
+
+          ctx.strokeStyle = isBull ? '#00e676' : '#f23645';
+          ctx.beginPath();
+          ctx.moveTo(getBarX(i - 1), prevY);
+          ctx.lineTo(getBarX(i), targetY);
+          ctx.stroke();
+
+          // Buy/Sell Signal Markers
+          if (i === totalBars - 44) {
+            ctx.fillStyle = '#089981';
+            ctx.beginPath();
+            ctx.arc(getBarX(i), getY(bCur.l) + 14, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 8px JetBrains Mono, monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('BUY', getBarX(i), getY(bCur.l) + 26);
+          }
+        }
+      }
+
+      // G. Bollinger Bands
+      if (acts.includes('bollinger')) {
+        const period = 20;
+        const upperPts = [];
+        const lowerPts = [];
+        for (let i = 0; i < sBars.length; i++) {
+          if (i >= period - 1) {
+            const slice = sBars.slice(i - period + 1, i + 1);
+            const avg = slice.reduce((a, b) => a + b.c, 0) / period;
+            const variance = slice.reduce((a, b) => a + Math.pow(b.c - avg, 2), 0) / period;
+            const stdDev = Math.sqrt(variance);
+            if (i >= startBarIdx - 2 && i <= endBarIdx + 2) {
+              upperPts.push({ x: getBarX(i), y: getY(avg + 2 * stdDev) });
+              lowerPts.push({ x: getBarX(i), y: getY(avg - 2 * stdDev) });
+            }
+          }
+        }
+        if (upperPts.length && lowerPts.length) {
+          ctx.fillStyle = 'rgba(41, 121, 255, 0.06)';
+          ctx.beginPath();
+          ctx.moveTo(upperPts[0].x, upperPts[0].y);
+          upperPts.forEach(p => ctx.lineTo(p.x, p.y));
+          for (let k = lowerPts.length - 1; k >= 0; k--) ctx.lineTo(lowerPts[k].x, lowerPts[k].y);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = 'rgba(41, 121, 255, 0.45)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          upperPts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+          ctx.stroke();
+          ctx.beginPath();
+          lowerPts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+          ctx.stroke();
+        }
+      }
+
+      // 3. Candlesticks OR Line Chart (supports candleColorTheme & chartStyle)
+      const curStyle = chartStyleRef.current || 'candle';
+      const curPaletteKey = candleColorThemeRef.current || 'tradingview';
+      const palette = CANDLE_PALETTES[curPaletteKey] || CANDLE_PALETTES.tradingview;
+
+      if (curStyle === 'line') {
+        // Line Chart Mode
+        ctx.strokeStyle = '#2962ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        let lineStarted = false;
+        sBars.forEach((b, i) => {
+          const x = getBarX(i);
+          if (x < -bw || x > chartW + bw) return;
+          const py = getY(b.c);
+          if (!lineStarted) {
+            ctx.moveTo(x, py);
+            lineStarted = true;
+          } else {
+            ctx.lineTo(x, py);
+          }
+        });
+        ctx.stroke();
+
+        // Subtle gradient under line
+        const grad = ctx.createLinearGradient(0, topPad, 0, topPad + chartH);
+        grad.addColorStop(0, 'rgba(41, 98, 255, 0.20)');
+        grad.addColorStop(1, 'rgba(41, 98, 255, 0.00)');
+        ctx.fillStyle = grad;
+        ctx.lineTo(getBarX(Math.min(totalBars - 1, endBarIdx)), topPad + chartH);
+        ctx.lineTo(getBarX(Math.max(0, startBarIdx)), topPad + chartH);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        // Candlesticks Mode (uses selected custom color palette)
+        sBars.forEach((b, i) => {
+          const x = getBarX(i);
+          if (x < -bw || x > chartW + bw) return;
+          const isUp = b.c >= b.o;
+          const col = isUp ? palette.up : palette.down;
+
+          // Wick
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(Math.floor(x) + 0.5, Math.round(getY(b.h)));
+          ctx.lineTo(Math.floor(x) + 0.5, Math.round(getY(b.l)));
+          ctx.stroke();
+
+          // Body
+          const yTop = Math.round(getY(Math.max(b.o, b.c)));
+          const yBtm = Math.round(getY(Math.min(b.o, b.c)));
+          const bodyH = Math.max(1, yBtm - yTop);
+          const barW = Math.max(2, Math.floor(bw * 0.74));
+
+          ctx.fillStyle = col;
+          ctx.fillRect(Math.floor(x - barW / 2), yTop, barW, bodyH);
+        });
+      }
 
       // 4. User Drawings (Horizontal, Trendline, Rectangle, Ruler, Fib)
       const allDrawings = [...(drawingsRef.current || [])];
@@ -750,7 +1045,7 @@ export default function ManualProStudio({
   };
 
   return (
-    <div className="mps-container">
+    <div className={`mps-container ${chartTheme === 'light' ? 'mps-light-mode' : ''}`}>
       {/* Toast Notice */}
       {toastNotice && (
         <div style={{
@@ -831,9 +1126,64 @@ export default function ManualProStudio({
             <Sliders size={14} />
             <span>Indicators ({activeIndicators.length})</span>
           </button>
+
+          <div className="mps-divider" />
+
+          {/* 🌟 1-Click Institutional Indicator Presets */}
+          <select
+            className="mps-style-select"
+            value={selectedPreset}
+            onChange={e => applyPreset(e.target.value)}
+            title="1-Click Institutional Multi-Indicator Presets"
+            style={{ borderColor: 'rgba(233, 185, 73, 0.45)', color: '#ffd600' }}
+          >
+            <option value="smc_master">👑 SMC &amp; Liquidity Master (Combo)</option>
+            <option value="trend_sniper">🎯 Trend Sniper &amp; Momentum (Combo)</option>
+            <option value="scalper_turbo">⚡ 1m-5m Scalper Turbo (Combo)</option>
+            <option value="breakout_reversal">🔄 Breakout &amp; Reversal (Combo)</option>
+          </select>
+
+          <div className="mps-divider" />
+
+          {/* 🎨 Candle Colors Customizer Option */}
+          <select
+            className="mps-style-select"
+            value={candleColorTheme}
+            onChange={e => {
+              setCandleColorTheme(e.target.value);
+              setToastNotice(`🎨 Candle Colors: ${CANDLE_PALETTES[e.target.value]?.name}`);
+              setTimeout(() => setToastNotice(null), 1800);
+            }}
+            title="Change Candlestick Colors"
+          >
+            <option value="tradingview">🟢 Teal / Red (TradingView)</option>
+            <option value="classic">🟩 Green / Red (Classic)</option>
+            <option value="cyberpunk">⚡ Neon Cyan / Pink (Cyber)</option>
+            <option value="monochrome">⚪ Monochrome (White / Gray)</option>
+          </select>
         </div>
 
         <div className="mps-top-right">
+          {/* ☀️ / 🌙 Dark vs White Background Mode Toggle */}
+          <button
+            type="button"
+            className="mps-action-btn"
+            onClick={() => {
+              const next = chartTheme === 'dark' ? 'light' : 'dark';
+              setChartTheme(next);
+              setToastNotice(next === 'light' ? '☀️ White / Light Background Mode' : '🌙 Dark / TradingView Mode');
+              setTimeout(() => setToastNotice(null), 1800);
+            }}
+            title="Toggle White Background Mode / Dark Mode"
+            style={{
+              background: chartTheme === 'light' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+              color: chartTheme === 'light' ? '#131722' : '#ffffff',
+              fontWeight: 700
+            }}
+          >
+            <span>{chartTheme === 'light' ? '☀️ White Mode' : '🌙 Dark Mode'}</span>
+          </button>
+
           <button
             type="button"
             className="mps-action-btn"
