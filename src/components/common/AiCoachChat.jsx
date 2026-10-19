@@ -34,6 +34,47 @@ export default function AiCoachChat({
     streamEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  useEffect(() => {
+    const handleNarratorEvent = (e) => {
+      if (!e.detail) return;
+      const { text, plan, badge, isTypingSimulation } = e.detail;
+
+      if (isTypingSimulation) {
+        setIsTyping(true);
+        setTimeout(() => {
+          setIsTyping(false);
+          setMessages(prev => [
+            ...prev,
+            {
+              id: `bot_narrate_${Date.now()}_${Math.random()}`,
+              role: 'assistant',
+              text,
+              plan: plan || null,
+              badge: badge || '🤖 AI BOT NARRATOR (සිංහල)',
+              drawn: false,
+              time: new Date().toLocaleTimeString()
+            }
+          ]);
+        }, 350);
+      } else {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `bot_narrate_${Date.now()}_${Math.random()}`,
+            role: 'assistant',
+            text,
+            plan: plan || null,
+            badge: badge || '🤖 AI BOT NARRATOR (සිංහල)',
+            drawn: false,
+            time: new Date().toLocaleTimeString()
+          }
+        ]);
+      }
+    };
+    window.addEventListener('trendlens_ai_narrator', handleNarratorEvent);
+    return () => window.removeEventListener('trendlens_ai_narrator', handleNarratorEvent);
+  }, []);
+
   const formatPrice = (p) => {
     return p > 100 ? p.toFixed(2) : p > 1 ? p.toFixed(4) : p.toFixed(6);
   };
@@ -167,7 +208,21 @@ export default function AiCoachChat({
       <div className="ai-chat-stream">
         {messages.map((m) => (
           <div key={m.id} className={`ai-msg ${m.role}`}>
-            <div className="ai-msg-text">{m.text}</div>
+            {m.badge && (
+              <div style={{
+                fontSize: '0.64rem',
+                fontWeight: 800,
+                color: '#00e676',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                marginBottom: 5
+              }}>
+                <span>{m.badge}</span>
+                {m.time && <span style={{ color: '#8592a6', fontWeight: 500 }}>· {m.time}</span>}
+              </div>
+            )}
+            <div className="ai-msg-text" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{m.text}</div>
 
             {/* Generated Trade Plan Card */}
             {m.plan && (

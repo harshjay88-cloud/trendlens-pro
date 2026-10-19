@@ -203,7 +203,110 @@ export async function testBybitApiConnection({ apiKey, apiSecret }) {
 }
 
 /**
- * Place a real Order on Bybit V5 (Market Order with TP and SL)
+ * Sets Bybit V5 Cross/Isolated Position Leverage
+ */
+export async function setBybitLeverage({
+  apiKey,
+  apiSecret,
+  endpoint = 'https://api-demo.bybit.com',
+  symbol = 'BTCUSDT',
+  leverage = 20
+}) {
+  if (!apiKey || !apiSecret) return { success: false, message: 'Missing API credentials' };
+
+  const cleanKey = apiKey.trim();
+  const cleanSecret = apiSecret.trim();
+  const timestamp = Date.now().toString();
+  const recvWindow = '5000';
+  const prefix = resolveEndpoint(endpoint);
+
+  let cleanSymbol = symbol.replace(/[\/\-_]/g, '').toUpperCase();
+  if (cleanSymbol === 'XAUUSD' || cleanSymbol === 'GOLD') cleanSymbol = 'BTCUSDT';
+
+  const payload = {
+    category: 'linear',
+    symbol: cleanSymbol,
+    buyLeverage: String(leverage),
+    sellLeverage: String(leverage)
+  };
+
+  const bodyStr = JSON.stringify(payload);
+  const message = `${timestamp}${cleanKey}${recvWindow}${bodyStr}`;
+
+  try {
+    const signature = await hmacSha256(cleanSecret, message);
+    const res = await fetch(`${prefix}/v5/position/set-leverage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-BAPI-API-KEY': cleanKey,
+        'X-BAPI-TIMESTAMP': timestamp,
+        'X-BAPI-RECV-WINDOW': recvWindow,
+        'X-BAPI-SIGN': signature
+      },
+      body: bodyStr
+    });
+    const data = await res.json();
+    return {
+      success: data.retCode === 0 || data.retCode === 110043, // 110043 = Leverage not modified
+      retCode: data.retCode,
+      message: data.retMsg
+    };
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+
+/**
+ * Calculates correct Bybit contract quantity based on Margin and Leverage
+ */
+export function calculateBybitQty(symbol, price, marginUsdt = 200, leverage = 20) {
+  const notional = marginUsdt * leverage;
+  if (!price || price <= 0) return '0.001';
+  const rawQty = notional / price;
+  const sym = symbol.replace(/[\/\-_]/g, '').toUpperCase();
+
+  if (sym.includes('BTC') || sym.includes('PAXG') || sym.includes('XAU')) {
+    return Math.max(0.001, parseFloat(rawQty.toFixed(3))).toString();
+  }
+  if (sym.includes('ETH') || sym.includes('BNB')) {
+    return Math.max(0.01, parseFloat(rawQty.toFixed(2))).toString();
+  }
+  if (sym.includes('SOL') || sym.includes('AVAX') || sym.includes('LINK') || sym.includes('NEAR')) {
+    return Math.max(0.1, parseFloat(rawQty.toFixed(1))).toString();
+  }
+  if (sym.includes('XRP') || sym.includes('DOGE') || sym.includes('ADA')) {
+    return Math.max(1, Math.round(rawQty)).toString();
+  }
+  return Math.max(0.01, parseFloat(rawQty.toFixed(2))).toString();
+}
+
+/**
+ * Fetch real-time market tickers from Bybit public endpoint
+ */
+export async function fetchBybitTickers() {
+  try {
+    const res = await fetch('https://api.bybit.com/v5/market/tickers?category=linear');
+    const data = await res.json();
+    if (data.retCode === 0 && Array.isArray(data.result?.list)) {
+      const map = {};
+      data.result.list.forEach(t => {
+        map[t.symbol] = {
+          price: parseFloat(t.lastPrice) || 0,
+          pcnt24h: parseFloat(t.price24hPcnt) || 0,
+          high24h: parseFloat(t.highPrice24h) || 0,
+          low24h: parseFloat(t.lowPrice24h) || 0,
+          volume24h: parseFloat(t.volume24h) || 0
+        };
+      });
+      return map;
+    }
+  } catch (e) {}
+  return {};
+}
+
+/**
+ * Place a real Order on Bybit V5 (Market Order with TP and SL and Leverage)
  */
 export async function placeBybitLiveOrder({
   apiKey,
@@ -212,6 +315,7 @@ export async function placeBybitLiveOrder({
   symbol = 'BTCUSDT',
   side = 'Buy',
   qty = '0.001',
+  leverage,
   takeProfit,
   stopLoss
 }) {
@@ -221,6 +325,13 @@ export async function placeBybitLiveOrder({
       reason: 'MISSING_SECRET',
       message: 'Bybit API Secret is required to place real orders.'
     };
+  }
+
+  // Set leverage on Bybit first if specified
+  if (leverage) {
+    try {
+      await setBybitLeverage({ apiKey, apiSecret, endpoint, symbol, leverage });
+    } catch (e) {}
   }
 
   const cleanKey = apiKey.trim();
