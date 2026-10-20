@@ -16,17 +16,32 @@ export default function TrailingStopModal({ isOpen, onClose, currentAsset = 'XAU
   const [stepPips, setStepPips] = useState(2);
   const [breakEvenOffsetPips, setBreakEvenOffsetPips] = useState(2);
   const [atrMultiplier, setAtrMultiplier] = useState(1.5);
-  const [livePeakPips, setLivePeakPips] = useState(38.5);
+
+  /**
+   * The peak is measured from the real price feed that feeds this modal, not
+   * from a random walk. The baseline is the price observed when the modal
+   * opened; the peak is the highest price seen since.
+   */
+  const [baselinePrice, setBaselinePrice] = useState(currentPrice);
+  const [peakPrice, setPeakPrice] = useState(currentPrice);
+
+  const pipMultiplier = currentAsset.includes('BTC') || currentAsset.includes('ETH') ? 10 : 10;
 
   useEffect(() => {
-    // Simulate real-time peak price ticks for visual trajectory
-    const interval = setInterval(() => {
-      setLivePeakPips(prev => +(Math.max(15, prev + (Math.random() - 0.45) * 1.2)).toFixed(1));
-    }, 1200);
-    return () => clearInterval(interval);
-  }, []);
+    if (!isOpen) return;
+    setBaselinePrice(currentPrice);
+    setPeakPrice(currentPrice);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!Number.isFinite(currentPrice) || currentPrice <= 0) return;
+    setPeakPrice(prev => (currentPrice > prev ? currentPrice : prev));
+  }, [currentPrice, isOpen]);
 
   if (!isOpen) return null;
+
+  const livePeakPips = +(((peakPrice - baselinePrice) / baselinePrice) * 10000 * (pipMultiplier / 10)).toFixed(1);
 
   // Calculate current trailing stop level based on peak pips
   const isActivated = livePeakPips >= activationPips;
@@ -175,10 +190,10 @@ export default function TrailingStopModal({ isOpen, onClose, currentAsset = 'XAU
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <TrendingUp size={14} color="#00e676" />
                 <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#e8ecf3' }}>
-                  LIVE TRAJECTORY SIMULATION · {currentAsset}
+                  LIVE PRICE TRAJECTORY · {currentAsset}
                 </span>
               </div>
-              <span className="tl-live-pill">● LIVE ENGINE</span>
+              <span className="tl-live-pill">● MEASURED</span>
             </div>
 
             <div className="tl-trajectory-bar">

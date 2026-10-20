@@ -1,0 +1,16 @@
+{
+  "name": "trendlens-pro-bybit-demo-proxy",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Server-side proxy for authenticated Bybit Demo Trading requests for TrendLens Pro. Holds the API credentials; the browser never sees them.",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "node --test"
+  }
+}

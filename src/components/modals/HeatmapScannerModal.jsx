@@ -1,158 +1,183 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, RefreshCw, ArrowUpRight, ArrowDownRight, Zap, CheckCircle2, Sliders, ExternalLink, X } from 'lucide-react';
-import { placeBybitLiveOrder } from '../../services/bybitService.js';
+import { Flame, RefreshCw, ArrowUpRight, X } from 'lucide-react';
+import {
+  placeBybitDemoOrder,
+  fetchBybitTickers,
+  fetchBybitKlines,
+  analyzeBybitMarketConfluence,
+} from '../../services/bybitService.js';
+import { useTradingModeStore, TRADING_MODES, MODE_LABELS } from '../../store/tradingModeStore.js';
 import './HeatmapScannerModal.css';
 
-const DEFAULT_ASSETS = [
-  {
-    symbol: 'BTCUSDT',
-    display: 'BTC/USDT',
-    category: 'Crypto',
-    price: 68420.50,
-    changePct: +3.42,
-    trend: 'BULLISH',
-    confluenceScore: 96,
-    fvgMitigated: true,
-    cvdDelta: '+78%',
-    whalePrints: '42.8M BUY',
-    setupType: 'STRONG BUY',
-    actionText: 'Displacement BOS + Asian Low Sweep',
-    isTopPick: true
-  },
-  {
-    symbol: 'ETHUSDT',
-    display: 'ETH/USDT',
-    category: 'Crypto',
-    price: 3624.10,
-    changePct: +2.15,
-    trend: 'BULLISH',
-    confluenceScore: 92,
-    fvgMitigated: true,
-    cvdDelta: '+64%',
-    whalePrints: '18.2M BUY',
-    setupType: 'BUY PULLBACK',
-    actionText: 'H1 Order Block Retest'
-  },
-  {
-    symbol: 'SOLUSDT',
-    display: 'SOL/USDT',
-    category: 'Crypto',
-    price: 182.40,
-    changePct: +5.80,
-    trend: 'BULLISH',
-    confluenceScore: 94,
-    fvgMitigated: true,
-    cvdDelta: '+82%',
-    whalePrints: '12.4M BUY',
-    setupType: 'MOMENTUM BUY',
-    actionText: 'Liquidity Pool Purge + Breakout'
-  },
-  {
-    symbol: 'XAUUSD',
-    display: 'XAU/USD (Gold)',
-    category: 'Metals',
-    price: 2654.11,
-    changePct: -0.22,
-    trend: 'BULLISH',
-    confluenceScore: 88,
-    fvgMitigated: false,
-    cvdDelta: '+52%',
-    whalePrints: '8.4M ABSORPTION',
-    setupType: 'DISCOUNT ACCUMULATION',
-    actionText: 'CME Value Area POC Defense'
-  },
-  {
-    symbol: 'EURUSD',
-    display: 'EUR/USD',
-    category: 'Forex',
-    price: 1.0842,
-    changePct: -0.14,
-    trend: 'BEARISH',
-    confluenceScore: 78,
-    fvgMitigated: true,
-    cvdDelta: '-62%',
-    whalePrints: '15.0M SELL',
-    setupType: 'SELL REJECTION',
-    actionText: 'London Session High Rejection'
-  },
-  {
-    symbol: 'NAS100',
-    display: 'NAS100',
-    category: 'Indices',
-    price: 20410.00,
-    changePct: +1.10,
-    trend: 'BULLISH',
-    confluenceScore: 84,
-    fvgMitigated: true,
-    cvdDelta: '+58%',
-    whalePrints: '28.0M BUY',
-    setupType: 'TREND CONTINUATION',
-    actionText: 'Fair Value Gap Expansion'
-  }
+/**
+ * Asset definitions only. Prices, changes, confluence scores and setup types
+ * are all derived from live Bybit market data at runtime — nothing is seeded
+ * with a fabricated value.
+ *
+ * NAS100 was removed: Bybit does not list a NAS100 linear perpetual, so it
+ * could never be traded from here.
+ */
+const ASSET_DEFS = [
+  { symbol: 'BTCUSDT', display: 'BTC/USDT', category: 'Crypto' },
+  { symbol: 'ETHUSDT', display: 'ETH/USDT', category: 'Crypto' },
+  { symbol: 'SOLUSDT', display: 'SOL/USDT', category: 'Crypto' },
+  { symbol: 'XAUUSDT', display: 'XAU/USD (Gold)', category: 'Metals' },
+  { symbol: 'EURUSDUSDT', display: 'EUR/USD', category: 'Forex' },
+  { symbol: 'GBPUSDUSDT', display: 'GBP/USD', category: 'Forex' },
 ];
 
+const NO_L2 = 'Unavailable (no L2 feed)';
+
+const emptyAsset = (def) => ({
+  ...def,
+  price: null,
+  changePct: null,
+  confluenceScore: null,
+  setupType: 'SCANNING',
+  actionText: 'Fetching market data…',
+  trend: null,
+  cvdDelta: NO_L2,
+  whalePrints: NO_L2,
+  isTopPick: false,
+});
+
 export default function HeatmapScannerModal({ isOpen, onClose, onSelectAsset, onNotify }) {
-  const [assets, setAssets] = useState(DEFAULT_ASSETS);
+  const tradingMode = useTradingModeStore();
+  const [assets, setAssets] = useState(ASSET_DEFS.map(emptyAsset));
   const [isScanning, setIsScanning] = useState(false);
   const [filterCategory, setFilterCategory] = useState('All');
   const [executingOrder, setExecutingOrder] = useState(null);
 
-  // Periodic simulated price & confluence shifts
+  /**
+   * Load real market data for every tracked asset and evaluate the confluence
+   * rules over real Bybit candles.
+   */
+  const loadScannerData = async () => {
+    setIsScanning(true);
+    const [tickerRes, ...klineResults] = await Promise.all([
+      fetchBybitTickers(),
+      ...ASSET_DEFS.map((a) => fetchBybitKlines(a.symbol, '15', 50)),
+    ]);
+
+    const tickers = tickerRes.ok ? tickerRes.data || {} : {};
+
+    const next = ASSET_DEFS.map((def, idx) => {
+      const ticker = tickers[def.symbol];
+      const klineRes = klineResults[idx];
+      const candles = klineRes && klineRes.ok ? klineRes.data : [];
+
+      if (!candles || candles.length < 20) {
+        return {
+          ...def,
+          price: ticker ? ticker.price : null,
+          changePct: ticker ? +(ticker.pcnt24h * 100).toFixed(2) : null,
+          confluenceScore: null,
+          setupType: 'NO DATA',
+          actionText: 'Not enough Bybit candle history to evaluate the rules.',
+          trend: null,
+          cvdDelta: NO_L2,
+          whalePrints: NO_L2,
+          isTopPick: false,
+        };
+      }
+
+      const analysis = analyzeBybitMarketConfluence(candles, ticker);
+      const price = candles[candles.length - 1].c;
+
+      return {
+        ...def,
+        price,
+        changePct: ticker ? +(ticker.pcnt24h * 100).toFixed(2) : null,
+        confluenceScore: analysis.score,
+        setupType: analysis.direction === 'BUY' ? 'BUY' : analysis.direction === 'SELL' ? 'SELL' : 'WAIT',
+        actionText: analysis.reason,
+        trend: analysis.direction === 'WAIT' ? 'NEUTRAL' : analysis.direction,
+        cvdDelta: NO_L2,
+        whalePrints: NO_L2,
+        isTopPick: false,
+      };
+    });
+
+    const ranked = [...next].sort(
+      (a, b) => (b.confluenceScore ?? -1) - (a.confluenceScore ?? -1)
+    );
+    if (ranked[0] && ranked[0].setupType !== 'WAIT' && ranked[0].setupType !== 'NO DATA') {
+      ranked[0].isTopPick = true;
+    }
+
+    setAssets(ranked);
+    setIsScanning(false);
+    if (onNotify) {
+      onNotify(
+        tickerRes.ok
+          ? `⚡ Heatmap refreshed from live Bybit market data (${ASSET_DEFS.length} instruments).`
+          : '⚠️ Heatmap refresh failed: the public Bybit market data endpoint is unavailable.'
+      );
+    }
+  };
+
   useEffect(() => {
     if (!isOpen) return;
-    const interval = setInterval(() => {
-      setAssets(prev => prev.map(a => {
-        const deltaPct = (Math.random() - 0.48) * 0.2;
-        const newScore = Math.min(99, Math.max(65, a.confluenceScore + (Math.random() > 0.6 ? (Math.random() > 0.5 ? 1 : -1) : 0)));
-        return {
-          ...a,
-          price: +(a.price * (1 + deltaPct / 100)).toFixed(a.price > 100 ? 2 : 4),
-          confluenceScore: newScore
-        };
-      }));
-    }, 3000);
-    return () => clearInterval(interval);
+    loadScannerData();
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleScan = () => {
-    setIsScanning(true);
-    setTimeout(() => {
-      setAssets(prev => [...prev].sort((a, b) => b.confluenceScore - a.confluenceScore));
-      setIsScanning(false);
-      if (onNotify) onNotify('⚡ Multi-Asset Heatmap Refresh Complete! Top Confluence updated.');
-    }, 600);
+    loadScannerData();
   };
 
   const handleExecuteBybit = async (asset) => {
+    if (tradingMode.mode !== TRADING_MODES.BYBIT_DEMO) {
+      if (onNotify) {
+        onNotify(`⛔ No order was sent — switch the trading mode to ${MODE_LABELS.BYBIT_DEMO} first (currently ${MODE_LABELS[tradingMode.mode]}).`);
+      }
+      return;
+    }
+    if (!tradingMode.canPlaceExchangeOrders()) {
+      if (onNotify) {
+        onNotify('⛔ No order was sent — automated demo trading is not enabled for this session.');
+      }
+      return;
+    }
+
     setExecutingOrder(asset.symbol);
     try {
-      const isBuy = !asset.setupType.includes('SELL');
+      const isBuy = asset.setupType === 'BUY';
       const qty = asset.symbol.includes('BTC') ? 0.001 : asset.symbol.includes('ETH') ? 0.01 : 0.1;
-      
-      const res = await placeBybitLiveOrder({
-        symbol: asset.symbol.replace('/', '').toUpperCase(),
+
+      const res = await placeBybitDemoOrder({
+        symbol: asset.symbol,
         side: isBuy ? 'Buy' : 'Sell',
-        qty,
-        category: 'linear',
-        endpoint: 'https://api-demo.bybit.com'
+        qty
       });
 
-      if (res.success) {
-        if (onNotify) onNotify(`✅ Real Bybit Order Executed: ${isBuy ? 'BUY' : 'SELL'} ${qty} ${asset.display}! (Order ID: #${res.orderId})`);
+      if (res.ok && res.orderId) {
+        if (onNotify) {
+          onNotify(`✅ Bybit Demo acknowledged order ${res.orderId}: ${isBuy ? 'BUY' : 'SELL'} ${qty} ${asset.display}.`);
+        }
       } else {
-        if (onNotify) onNotify(`⚠️ Bybit Order: ${res.message || 'Order placed into simulation'}`);
+        if (onNotify) {
+          onNotify(`⛔ No order was sent: ${res.error || 'the demo backend refused the request'}`);
+        }
       }
     } catch (err) {
-      if (onNotify) onNotify(`⚠️ Order execution completed: ${err.message}`);
+      if (onNotify) onNotify(`⛔ No order was sent: ${err.message}`);
     } finally {
       setExecutingOrder(null);
     }
   };
 
   const filtered = filterCategory === 'All' ? assets : assets.filter(a => a.category === filterCategory);
-  const topAsset = assets.reduce((max, a) => a.confluenceScore > max.confluenceScore ? a : max, assets[0]);
+  const topAsset = assets.reduce(
+    (max, a) => ((a.confluenceScore ?? -1) > (max.confluenceScore ?? -1) ? a : max),
+    assets[0]
+  );
+
+  const formatPrice = (price) => {
+    if (price === null || price === undefined) return '—';
+    return `$${price.toLocaleString('en-US', { minimumFractionDigits: price > 100 ? 2 : 4 })}`;
+  };
 
   return (
     <div className="modal-backdrop-window" onClick={onClose}>
@@ -189,11 +214,13 @@ export default function HeatmapScannerModal({ isOpen, onClose, onSelectAsset, on
             <div className="tl-top-pick-left">
               <span className="tl-crown-badge">👑 #1 HIGHEST CONFLUENCE SETUP</span>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                <b className="tl-top-asset-name">{topAsset.display}</b>
-                <span className="tl-top-asset-score">{topAsset.confluenceScore}% CONFLUENCE</span>
+                <b className="tl-top-asset-name">{topAsset?.display}</b>
+                <span className="tl-top-asset-score">
+                  {topAsset?.confluenceScore ?? '—'}/100 CONFLUENCE
+                </span>
               </div>
               <p className="tl-top-asset-reason">
-                {topAsset.setupType} · {topAsset.actionText} · CVD Delta: {topAsset.cvdDelta} Buyers
+                {topAsset?.setupType} · {topAsset?.actionText}
               </p>
             </div>
             <div className="tl-top-pick-actions">
@@ -212,9 +239,9 @@ export default function HeatmapScannerModal({ isOpen, onClose, onSelectAsset, on
                 className="btn btn-secondary btn-sm"
                 style={{ background: '#00e676', color: '#0a0d13', border: 'none', fontWeight: 800 }}
                 onClick={() => handleExecuteBybit(topAsset)}
-                disabled={executingOrder === topAsset.symbol}
+                disabled={executingOrder === topAsset.symbol || topAsset.setupType === 'WAIT'}
               >
-                {executingOrder === topAsset.symbol ? 'Sending...' : '⚡ Bybit 1-Click Order'}
+                {executingOrder === topAsset.symbol ? 'Sending...' : '⚡ Bybit Demo Order'}
               </button>
             </div>
           </div>
@@ -222,7 +249,7 @@ export default function HeatmapScannerModal({ isOpen, onClose, onSelectAsset, on
           {/* Filter Bar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <div className="tl-filter-tabs">
-              {['All', 'Crypto', 'Metals', 'Forex', 'Indices'].map(cat => (
+              {['All', 'Crypto', 'Metals', 'Forex'].map(cat => (
                 <button
                   key={cat}
                   type="button"
@@ -234,7 +261,7 @@ export default function HeatmapScannerModal({ isOpen, onClose, onSelectAsset, on
               ))}
             </div>
             <span style={{ fontSize: '0.68rem', color: '#8592a6' }}>
-              Auto-scans 6 institutional strategies simultaneously
+              Rules evaluated on live Bybit candles · no order-flow feed connected
             </span>
           </div>
 
@@ -254,8 +281,9 @@ export default function HeatmapScannerModal({ isOpen, onClose, onSelectAsset, on
               </thead>
               <tbody>
                 {filtered.map(asset => {
-                  const isTop = asset.symbol === topAsset.symbol;
-                  const isBull = asset.trend === 'BULLISH';
+                  const isTop = asset.symbol === topAsset?.symbol;
+                  const isBull = asset.trend === 'BUY';
+                  const isBear = asset.trend === 'SELL';
                   return (
                     <tr key={asset.symbol} className={isTop ? 'top-row' : ''}>
                       <td>
@@ -266,18 +294,16 @@ export default function HeatmapScannerModal({ isOpen, onClose, onSelectAsset, on
                       </td>
                       <td>
                         <b style={{ fontFamily: 'var(--font-mono, monospace)', color: '#fff' }}>
-                          ${asset.price.toLocaleString('en-US', { minimumFractionDigits: asset.price > 100 ? 2 : 4 })}
+                          {formatPrice(asset.price)}
                         </b>
                       </td>
                       <td>
-                        <span className={`tl-trend-pill ${isBull ? 'bull' : 'bear'}`}>
-                          {isBull ? '▲ ' : '▼ '}{asset.trend}
+                        <span className={`tl-trend-pill ${isBull ? 'bull' : isBear ? 'bear' : ''}`}>
+                          {isBull ? '▲ ' : isBear ? '▼ ' : ''}{asset.trend || '—'}
                         </span>
                       </td>
                       <td>
-                        <b style={{ color: asset.cvdDelta.startsWith('+') ? '#00e676' : '#ff3366', fontFamily: 'monospace' }}>
-                          {asset.cvdDelta}
-                        </b>
+                        <span style={{ fontSize: '0.68rem', color: '#aab3c3' }}>{asset.cvdDelta}</span>
                       </td>
                       <td>
                         <span style={{ fontSize: '0.68rem', color: '#aab3c3' }}>{asset.whalePrints}</span>
@@ -288,17 +314,17 @@ export default function HeatmapScannerModal({ isOpen, onClose, onSelectAsset, on
                             <div
                               className="tl-score-bar-fill"
                               style={{
-                                width: `${asset.confluenceScore}%`,
-                                background: asset.confluenceScore >= 90 ? '#00e676' : asset.confluenceScore >= 80 ? '#00D4FF' : '#e9b949'
+                                width: `${asset.confluenceScore ?? 0}%`,
+                                background: (asset.confluenceScore ?? 0) >= 90 ? '#00e676' : (asset.confluenceScore ?? 0) >= 80 ? '#00D4FF' : '#e9b949'
                               }}
                             />
                           </div>
                           <span style={{
                             fontFamily: 'monospace',
                             fontWeight: 700,
-                            color: asset.confluenceScore >= 90 ? '#00e676' : '#00D4FF'
+                            color: (asset.confluenceScore ?? 0) >= 90 ? '#00e676' : '#00D4FF'
                           }}>
-                            {asset.confluenceScore}%
+                            {asset.confluenceScore ?? '—'}
                           </span>
                         </div>
                       </td>
@@ -318,9 +344,9 @@ export default function HeatmapScannerModal({ isOpen, onClose, onSelectAsset, on
                           <button
                             type="button"
                             className="tl-action-icon-btn buy-btn"
-                            title="Execute Bybit Order"
+                            title="Send Bybit Demo order"
                             onClick={() => handleExecuteBybit(asset)}
-                            disabled={executingOrder === asset.symbol}
+                            disabled={executingOrder === asset.symbol || asset.setupType === 'WAIT'}
                           >
                             ⚡
                           </button>
@@ -337,7 +363,7 @@ export default function HeatmapScannerModal({ isOpen, onClose, onSelectAsset, on
         {/* Footer */}
         <div className="tl-window-footer">
           <span style={{ fontSize: '0.68rem', color: '#8592a6', marginRight: 'auto' }}>
-            ● Bybit Demo REST Gateway Linked · Real Orders Supported
+            ● Public Bybit market data · exchange orders require an enabled Bybit Demo session
           </span>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
             Close

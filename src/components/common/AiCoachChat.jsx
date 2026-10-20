@@ -103,7 +103,7 @@ export default function AiCoachChat({
 
     if (q.includes('setup') || q.includes('තියෙනවද') || q.includes('trade')) {
       return {
-        text: `ඔව් — ${currentAsset} price එක discount array එකට පැමිණ ඇත. 15m & H1 market structure එක bullish continuation එකක් තහවුරු කරයි. Buyer absorption එක $${formatPrice(p - delta * 0.4)} මට්ටමේ පවතී.`,
+        text: `ඔව් — ${currentAsset} price එක මෙම ක්‍රමයෙන් අගය කරයි. 15m & H1 market structure එකේ පැහැදිලි දිශාවක් නොමැති නිසා මෙය **rule-based** යෝජනාවකි. ඉහත මිලගණන් පරිච්ඡේදයක් මත පදනම්ව ඇත (0.8% / 0.3% පරාසය).`,
         plan,
       };
     }
@@ -117,21 +117,21 @@ export default function AiCoachChat({
 
     if (q.includes('whale') || q.includes('buyers') || q.includes('bp') || q.includes('aof')) {
       return {
-        text: `**Whale Order Flow (BP / AOF):**\nචාර්ට් එකේ දම්/කොළ බුබුළු (Whale Bubbles) මඟින් පෙන්වන්නේ වෙළඳපොළට එකවර වැටෙන විශාල Institutional Limit & Market orders ය. දැනට ලොකු buyers ලා sell limit orders absorb කරමින් සිටින නිසා downside risk එක සීමිතයි.`,
+        text: `**Whale Order Flow (BP / AOF):**\nThis data is not available - no Level-2 order book feed is connected, so whale prints, absorption and CVD cannot be shown.`,
         plan,
       };
     }
 
     if (q.includes('liq') || q.includes('liquidity') || q.includes('heatmap')) {
       return {
-        text: `**Liquidity Heatmap (LIQ):**\nචාර්ට් එක පිටුපසින් පෙනෙන Inferno තාප වර්ණ කලාප යනු Bookmap ක්‍රමයට resting orders එක්රැස් වී ඇති ස්ථානයි. දීප්තිමත් කහ/තැඹිලි කලාප මඟින් ශක්තිමත් Support හෝ Resistance බිත්ති (Liquidity Walls) පෙන්වයි. Price එක නිතරම මේ Liquidity ඇති දෙසට චලනය වේ.`,
+        text: `**Liquidity Heatmap (LIQ):**\nචාර්ට් පිටුපසින් පෙනෙන Inferno තාප වර්ණ කලාප යනු **සැකසුම් කල දත්ත** මත පදනම්ව ඇත — resting order දත්ත නොමැති නිසා මෙය ඇත්තාන්තර liquidity wall පෙන්වීමක් නොවේ.`,
         plan,
       };
     }
 
     // Default intelligent response
     return {
-      text: `${currentAsset} සඳහා තාක්ෂණික දර්ශක:\n• Session Bias: BULLISH\n• CME Value Area: POC ආසන්නයේ ගනුදෙනු වේ.\n• CVD Delta: Buyers ආධිපත්‍යය 68%.\n\nමෙම setup එක සඳහා සකසන ලද Trade Plan එක පහතින් බලන්න.`,
+      text: `${currentAsset} සඳහා තාක්ෂණික දර්ශක:\n• Rule-based plan (no order-flow or Level-2 feed is connected).\n• Session Bias: not determined — no live order-flow data available.\n• CVD Delta: unavailable (no L2 feed).\n\nමෙම setup එක සඳහා සකසන ලද Trade Plan එක පහතින් බලන්න.`,
       plan,
     };
   };

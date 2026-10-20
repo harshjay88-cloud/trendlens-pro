@@ -28,22 +28,15 @@ export default function BybitProTerminal({
   const currentPrice = typeof curData.price === 'number' ? curData.price : 82061.40;
   const isUp = (curData.changePct || 0) >= 0;
 
-  // Generate dynamic live orderbook depth levels around currentPrice
-  const spreadStep = currentPrice > 1000 ? 0.8 : currentPrice > 1 ? 0.002 : 0.0001;
-  const asks = [
-    { p: currentPrice + spreadStep * 5, q: '0.002', t: '2.840', d: 65 },
-    { p: currentPrice + spreadStep * 4, q: '0.001', t: '2.838', d: 45 },
-    { p: currentPrice + spreadStep * 3, q: '0.002', t: '2.837', d: 70 },
-    { p: currentPrice + spreadStep * 2, q: '0.008', t: '2.835', d: 90 },
-    { p: currentPrice + spreadStep * 1, q: '0.001', t: '2.827', d: 35 },
-  ];
-  const bids = [
-    { p: currentPrice - spreadStep * 1, q: '4.414', t: '4.414', d: 85 },
-    { p: currentPrice - spreadStep * 2, q: '0.001', t: '4.415', d: 30 },
-    { p: currentPrice - spreadStep * 3, q: '0.002', t: '4.417', d: 55 },
-    { p: currentPrice - spreadStep * 4, q: '0.001', t: '4.418', d: 40 },
-    { p: currentPrice - spreadStep * 5, q: '0.002', t: '4.420', d: 60 },
-  ];
+  /**
+   * Order book depth.
+   *
+   * No public depth feed is connected in this build, so no synthetic ladder
+   * is generated. The depth panel reports that the data is unavailable.
+   */
+  const orderBookUnavailable = true;
+  const asks = [];
+  const bids = [];
 
   const handleQuickOrder = (buy) => {
     const isBuy = buy;
@@ -55,8 +48,8 @@ export default function BybitProTerminal({
       entry: currentPrice,
       sl: +slP.toFixed(2),
       tp1: +tpP.toFixed(2),
-      score: 94,
-      reason: 'Bybit Fast Pro Market Execution',
+      score: null,
+      reason: 'Bybit Fast Pro market entry (paper)',
       lotSize: 1.0,
       marginUsdt: marginInput,
       leverage,
@@ -105,11 +98,11 @@ export default function BybitProTerminal({
           </div>
           <div>
             <span>24H TURNOVER</span>
-            <b>$4.08B</b>
+            <b>{curData.volume24h ? `$${(curData.volume24h * currentPrice / 1e6).toFixed(2)}M` : '---'}</b>
           </div>
           <div>
             <span>FUNDING RATE</span>
-            <b style={{ color: '#f7a600' }}>0.0092% / 01:55:30</b>
+            <b style={{ color: '#f7a600' }}>Not connected</b>
           </div>
         </div>
       </div>
@@ -233,7 +226,7 @@ export default function BybitProTerminal({
                 <span style={{ color: isUp ? '#089981' : '#f23645' }}>
                   {currentPrice.toFixed(2)} {isUp ? '▲' : '▼'}
                 </span>
-                <span style={{ fontSize: '0.62rem', color: '#787b86' }}>Index 82,063.00</span>
+                <span style={{ fontSize: '0.62rem', color: '#787b86' }}>Last Bybit price</span>
               </div>
 
               {/* Bids (Buys in Green) */}
@@ -245,6 +238,12 @@ export default function BybitProTerminal({
                   <span style={{ textAlign: 'right', color: '#787b86' }}>{b.t}</span>
                 </div>
               ))}
+
+              {orderBookUnavailable && (
+                <div style={{ padding: '10px 4px', fontSize: '0.66rem', color: '#787b86', textAlign: 'center' }}>
+                  Order book depth unavailable — no Level-2 feed is connected.
+                </div>
+              )}
             </div>
           </div>
 

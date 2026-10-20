@@ -53,8 +53,8 @@ export default function Admin() {
     });
 
     addToast({
-      title: 'Signal Broadcasted 🚀',
-      message: `New ${created.direction} signal on ${created.asset} (${created.engine}) published live!`,
+      title: 'Signal Saved Locally',
+      message: `New ${created.direction} signal on ${created.asset} (${created.engine}) added to this browser's signal list. It was not published to any external channel.`,
       type: 'success',
     });
   };

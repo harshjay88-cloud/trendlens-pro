@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Cpu, Zap, Maximize2, Sliders } from 'lucide-react';
+import { useTradingModeStore, MODE_LABELS } from '../../store/tradingModeStore.js';
 
 export default function TrendLensBotPanel({
   demoAccount,
@@ -33,6 +34,13 @@ export default function TrendLensBotPanel({
   onRefreshTickers
 }) {
   const [panelTab, setPanelTab] = useState('risk');
+  const tradingMode = useTradingModeStore();
+
+  // Measured from the real trade journal — never a default constant.
+  const journalTrades = demoAccount.trades || [];
+  const grossProfit = journalTrades.reduce((sum, t) => (t.pnlDollars > 0 ? sum + t.pnlDollars : sum), 0);
+  const grossLoss = journalTrades.reduce((sum, t) => (t.pnlDollars < 0 ? sum + Math.abs(t.pnlDollars) : sum), 0);
+  const profitFactor = grossLoss > 0 ? `${(grossProfit / grossLoss).toFixed(2)}x` : grossProfit > 0 ? '∞' : null;
 
   useEffect(() => {
     if (panelTab === 'coins' && Object.keys(liveTickerMap).length === 0 && onRefreshTickers) {
@@ -46,15 +54,17 @@ export default function TrendLensBotPanel({
       <div className="ultra-bot-header">
         <div className="ultra-bot-title">
           <Cpu size={16} color="#e9b949" />
-          <span>LIVE TRADING BOT & DEMO</span>
-          <span style={{ fontSize: '0.68rem', color: '#8592a6', fontWeight: 500 }}>($10K Starting)</span>
+          <span>{MODE_LABELS[tradingMode.mode]} TRADING BOT</span>
+          <span style={{ fontSize: '0.68rem', color: '#8592a6', fontWeight: 500 }}>($10K Paper Balance)</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button
             type="button"
             onClick={() => {
               toggleAutoBot();
-              setToastNotice(demoAccount.isAutoBotActive ? '⚪ Auto-Bot Paused' : '🟢 Auto-Bot Activated! Taking verified trades in real-time.');
+              setToastNotice(demoAccount.isAutoBotActive
+                ? `🟢 Auto-Bot activated — ${MODE_LABELS[tradingMode.mode]} mode. Orders are simulated locally unless a Bybit Demo order is acknowledged.`
+                : '⚪ Auto-Bot Paused');
               setTimeout(() => setToastNotice(null), 2500);
             }}
             style={{
@@ -169,8 +179,8 @@ export default function TrendLensBotPanel({
 
         {/* Quick Bybit Status & Settings Banner */}
         <div style={{
-          background: exchangeApi.isAutoTradeEnabled ? 'rgba(0, 230, 118, 0.09)' : 'rgba(233, 185, 73, 0.09)',
-          border: exchangeApi.isAutoTradeEnabled ? '1px solid rgba(0, 230, 118, 0.35)' : '1px solid rgba(233, 185, 73, 0.35)',
+          background: exchangeApi.connected ? 'rgba(0, 230, 118, 0.09)' : 'rgba(233, 185, 73, 0.09)',
+          border: exchangeApi.connected ? '1px solid rgba(0, 230, 118, 0.35)' : '1px solid rgba(233, 185, 73, 0.35)',
           borderRadius: '8px',
           padding: '10px 12px',
           display: 'flex',
@@ -180,13 +190,13 @@ export default function TrendLensBotPanel({
           gap: 8
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: exchangeApi.isAutoTradeEnabled ? '#00e676' : '#e9b949' }} />
+            <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: exchangeApi.connected ? '#00e676' : '#e9b949' }} />
             <div>
-              <b style={{ color: exchangeApi.isAutoTradeEnabled ? '#00e676' : '#e9b949', fontSize: '0.72rem' }}>
-                {exchangeApi.isAutoTradeEnabled ? 'BYBIT DEMO: CONNECTED & SYNCED' : 'BYBIT DEMO: READY TO CONNECT'}
+              <b style={{ color: exchangeApi.connected ? '#00e676' : '#e9b949', fontSize: '0.72rem' }}>
+                {exchangeApi.connected ? 'BYBIT DEMO: CONNECTED' : 'BYBIT DEMO: NOT CONNECTED'}
               </b>
               <div style={{ fontSize: '0.66rem', color: '#8592a6' }}>
-                Key: <code style={{ color: '#fff' }}>{exchangeApi.apiKey ? exchangeApi.apiKey.slice(0, 8) + '...' : 'None'}</code> · Secret: <code style={{ color: '#00e676' }}>{exchangeApi.apiSecret ? '●●●●●●●●' : 'Missing'}</code>
+                Backend: <code style={{ color: '#fff' }}>{exchangeApi.proxyBase || '—'}</code> · Credentials: <code style={{ color: '#00e676' }}>held server-side</code>
               </div>
             </div>
           </div>
@@ -538,18 +548,18 @@ export default function TrendLensBotPanel({
                 <b style={{ color: '#00e676', fontSize: '0.90rem' }}>
                   {(demoAccount.winCount + demoAccount.lossCount) > 0
                     ? (((demoAccount.winCount) / (demoAccount.winCount + demoAccount.lossCount)) * 100).toFixed(0)
-                    : 80}%
+                    : '—'}
                 </b>
               </div>
               <div style={{ background: 'rgba(0,0,0,0.4)', padding: '6px', borderRadius: '5px', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.58rem', color: '#8592a6' }}>Wins / Losses</div>
                 <b style={{ color: '#fff', fontSize: '0.80rem' }}>
-                  {demoAccount.winCount || 8}W / {demoAccount.lossCount || 2}L
+                  {demoAccount.winCount}W / {demoAccount.lossCount}L
                 </b>
               </div>
               <div style={{ background: 'rgba(0,0,0,0.4)', padding: '6px', borderRadius: '5px', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.58rem', color: '#8592a6' }}>Profit Factor</div>
-                <b style={{ color: '#00D4FF', fontSize: '0.80rem' }}>3.42x</b>
+                <b style={{ color: '#00D4FF', fontSize: '0.80rem' }}>{profitFactor ?? '—'}</b>
               </div>
             </div>
 
@@ -644,14 +654,20 @@ export default function TrendLensBotPanel({
                   
                   let signalLabel, signalColor;
                   if (sessionResult) {
-                    signalLabel = sessionResult.isWin
-                      ? (sessionResult.isBuy ? '✅ BUY WIN' : '✅ SELL WIN')
-                      : (sessionResult.isBuy ? '❌ BUY SL' : '❌ SELL SL');
-                    signalColor = sessionResult.isWin ? '#00e676' : '#ff3366';
+                    if (sessionResult.resolved === false) {
+                      signalLabel = 'OPEN';
+                      signalColor = '#e9b949';
+                    } else {
+                      signalLabel = sessionResult.isWin
+                        ? (sessionResult.isBuy ? '✅ BUY TP' : '✅ SELL TP')
+                        : (sessionResult.isBuy ? '❌ BUY SL' : '❌ SELL SL');
+                      signalColor = sessionResult.isWin ? '#00e676' : '#ff3366';
+                    }
                   } else if (ticker) {
+                    // Direction only. No confidence score is asserted without a
+                    // measured confluence evaluation.
                     const isBull = pcnt24h >= 0;
-                    const score = Math.min(96, Math.max(84, Math.round(86 + Math.abs(pcnt24h) * 250)));
-                    signalLabel = isBull ? `BUY ${score}%` : `SELL ${score}%`;
+                    signalLabel = isBull ? 'BUY (24h +)' : 'SELL (24h −)';
                     signalColor = isBull ? '#00e676' : '#ff3366';
                   } else {
                     signalLabel = 'SYNCING...';
@@ -868,9 +884,9 @@ export default function TrendLensBotPanel({
           <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
             <input
               type="text"
-              placeholder="API Key"
-              value={exchangeApi.apiKey}
-              onChange={(e) => setExchangeApi({ ...exchangeApi, apiKey: e.target.value })}
+              placeholder="Demo backend"
+              value={exchangeApi.proxyBase || ''}
+              readOnly
               style={{
                 flex: 1,
                 background: 'rgba(10, 13, 19, 0.9)',
@@ -882,22 +898,22 @@ export default function TrendLensBotPanel({
                 fontFamily: 'monospace'
               }}
             />
-            <input
-              type="password"
-              placeholder="API Secret"
-              value={exchangeApi.apiSecret || ''}
-              onChange={(e) => setExchangeApi({ ...exchangeApi, apiSecret: e.target.value })}
+            <div
               style={{
                 flex: 1,
                 background: 'rgba(10, 13, 19, 0.9)',
-                border: exchangeApi.apiSecret ? '1px solid rgba(0, 230, 118, 0.4)' : '1px solid rgba(255, 171, 0, 0.4)',
-                color: '#fff',
-                fontSize: '0.66rem',
+                border: '1px solid rgba(0, 230, 118, 0.25)',
+                color: '#8592a6',
+                fontSize: '0.62rem',
                 borderRadius: '5px',
                 padding: '5px 7px',
-                fontFamily: 'monospace'
+                fontFamily: 'monospace',
+                display: 'flex',
+                alignItems: 'center'
               }}
-            />
+            >
+              Credentials: server-side only
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
@@ -916,20 +932,19 @@ export default function TrendLensBotPanel({
                 cursor: 'pointer'
               }}
             >
-              🧪 Test API
+              🧪 Test Demo Connection
             </button>
             <button
               type="button"
               onClick={() => {
-                const nextState = !exchangeApi.isAutoTradeEnabled;
+                const nextState = !exchangeApi.connected;
                 setExchangeApi(prev => ({
                   ...prev,
-                  isAutoTradeEnabled: nextState,
-                  connectedAccount: nextState ? { balance: 15000, currency: 'USDT' } : null
+                  connected: nextState ? prev.connected : false
                 }));
                 setToastNotice(nextState
-                  ? `🟢 Connected to ${exchangeApi.exchange.toUpperCase()} Demo Account!`
-                  : '⚪ Disconnected Exchange Hook');
+                  ? 'ℹ️ Use “Test Demo Connection” to verify the backend before enabling order execution.'
+                  : '⚪ Demo backend status cleared.');
                 setTimeout(() => setToastNotice(null), 3000);
               }}
               style={{
@@ -937,14 +952,14 @@ export default function TrendLensBotPanel({
                 padding: '5px 8px',
                 borderRadius: '5px',
                 border: 'none',
-                background: exchangeApi.isAutoTradeEnabled ? '#00e676' : 'linear-gradient(135deg, #e9b949, #f2a33a)',
+                background: exchangeApi.connected ? '#00e676' : 'linear-gradient(135deg, #e9b949, #f2a33a)',
                 color: '#0a0d13',
                 fontSize: '0.66rem',
                 fontWeight: 800,
                 cursor: 'pointer'
               }}
             >
-              {exchangeApi.isAutoTradeEnabled ? 'Active (Connected)' : 'Connect Demo'}
+              {exchangeApi.connected ? 'Demo Connected' : 'Connect Demo'}
             </button>
           </div>
 

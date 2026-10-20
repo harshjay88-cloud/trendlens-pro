@@ -173,7 +173,8 @@ export default function RiskManagerModal({
               <div>
                 <b style={{ color: '#ff3366', fontSize: '0.78rem' }}>Daily Max Drawdown Circuit Breaker</b>
                 <p style={{ margin: '3px 0 0', fontSize: '0.68rem', color: '#aab3c3' }}>
-                  Instantly halts automated bots and prevents new orders if daily loss exceeds limit.
+                  Not enforced in this build: there is no server-side circuit breaker that halts automated
+            trading or blocks new orders. Use the limits as reference values only.
                 </p>
               </div>
             </div>

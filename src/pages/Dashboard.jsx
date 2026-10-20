@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/common/Navbar.jsx';
 import Sidebar from '../components/common/Sidebar.jsx';
-import { useAuthStore, useSignalStore, useThemeStore } from '../store/index.js';
+import { useAuthStore, useSignalStore, useThemeStore, useDemoAccountStore } from '../store/index.js';
 import { useMarketStore } from '../store/marketStore.js';
-import { MOCK_DAILY_TARGET, MOCK_ORDER_FLOW } from '../utils/mockData.js';
+import { MOCK_DAILY_TARGET } from '../utils/mockData.js';
+import { fetchBybitKlines, resolveBybitInterval, resolveBybitSymbol } from '../services/bybitService.js';
 import {
   TrendingUp, TrendingDown, Zap, Target, Activity,
   Maximize2, Minimize2, Columns, LayoutGrid, Cpu, LineChart, Sparkles, XCircle, List, Sliders, Bell, Download, PlayCircle, PenTool
@@ -66,17 +67,14 @@ function DailyTargetWidget({ asset, currentPrice, bias = 'BULLISH' }) {
           <div className="dt-level">
             <span className="dt-level-badge buy">TP1</span>
             <span className="dt-level-price">{fmt(tp1)}</span>
-            <span className="dt-level-status" style={{fontSize:'0.68rem', color:'var(--brand)'}}>94%</span>
           </div>
           <div className="dt-level">
             <span className="dt-level-badge buy">TP2</span>
             <span className="dt-level-price">{fmt(tp2)}</span>
-            <span className="dt-level-status" style={{fontSize:'0.68rem', color:'var(--brand)'}}>88%</span>
           </div>
           <div className="dt-level">
             <span className="dt-level-badge buy">TP3</span>
             <span className="dt-level-price">{fmt(tp3)}</span>
-            <span className="dt-level-status" style={{fontSize:'0.68rem', color:'var(--brand)'}}>72%</span>
           </div>
         </div>
         <div className="dt-support">
@@ -92,45 +90,46 @@ function DailyTargetWidget({ asset, currentPrice, bias = 'BULLISH' }) {
         </div>
       </div>
       <div className="dt-whale">
-        <span className="live-dot"></span>
-        <span>Whale Activity: </span>
-        <span style={{ color: 'var(--signal-buy)', fontWeight: 700 }}>ACCUMULATING (Absorption Verified)</span>
+        <span style={{ color: 'var(--signal-neutral)', fontWeight: 700 }}>
+          Levels are fixed offsets from the current price. No touch probability is asserted.
+        </span>
       </div>
     </div>
   );
 }
 
-function OrderFlowPanel({ data }) {
+/**
+ * Order-flow panel.
+ * There is no Level-2 feed connected in this build, so the panel states that
+ * explicitly instead of rendering simulated pressure and tape prints.
+ */
+function OrderFlowPanel() {
   return (
     <div className="orderflow card">
       <div className="of-header">
-        <div className="section-label" style={{ marginBottom: 0 }}>Level-2 Order Flow Depth</div>
-        <span className="live-dot"></span>
+        <div className="section-label" style={{ marginBottom: 0 }}>Order Flow Depth</div>
       </div>
       <div className="of-bars">
         <div className="of-bar-wrap">
-          <div className="of-bar-label"><span style={{color:'var(--signal-buy)'}}>▲ BUY PRESSURE</span><span>{data.buyPct}%</span></div>
+          <div className="of-bar-label"><span style={{color:'var(--signal-buy)'}}>▲ BUY PRESSURE</span><span>—</span></div>
           <div className="of-bar">
-            <div className="of-fill buy" style={{ width: data.buyPct + '%' }}></div>
+            <div className="of-fill buy" style={{ width: '0%' }}></div>
           </div>
         </div>
         <div className="of-bar-wrap">
-          <div className="of-bar-label"><span style={{color:'var(--signal-sell)'}}>▼ SELL PRESSURE</span><span>{data.sellPct}%</span></div>
+          <div className="of-bar-label"><span style={{color:'var(--signal-sell)'}}>▼ SELL PRESSURE</span><span>—</span></div>
           <div className="of-bar">
-            <div className="of-fill sell" style={{ width: data.sellPct + '%' }}></div>
+            <div className="of-fill sell" style={{ width: '0%' }}></div>
           </div>
         </div>
       </div>
       <div className="of-title">Institutional Tape Prints</div>
       <div className="of-orders">
-        {data.bigOrders.map((o, i) => (
-          <div key={i} className="of-order">
-            <span className="of-time">{o.time}</span>
-            <span className={`badge ${o.side === 'BUY' ? 'badge-buy' : 'badge-sell'}`} style={{fontSize:'0.65rem'}}>{o.side}</span>
-            <span className="of-size">{o.size.toLocaleString()} lots</span>
-            <span className="of-price">{o.price.toFixed(2)}</span>
-          </div>
-        ))}
+        <div className="of-order">
+          <span className="of-msg" style={{ color: 'var(--signal-neutral)' }}>
+            Unavailable — no Level-2 order book feed is connected.
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -170,9 +169,10 @@ function SignalFeed({ signals, currentAsset }) {
 
 export default function Dashboard() {
   const { user } = useAuthStore();
+  const demoAccount = useDemoAccountStore();
   const { signals } = useSignalStore();
   const { theme, setTheme } = useThemeStore();
-  const { prices, fetchLiveCrypto } = useMarketStore();
+  const { prices, fetchLiveCrypto, feedStatus } = useMarketStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeEngine, setActiveEngine] = useState('smc_ultra'); // 'smc_ultra', 'scalp', 'day_trading', 'swing_4h'
   const [symbol, setSymbol] = useState('BTCUSD');
@@ -189,6 +189,31 @@ export default function Dashboard() {
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [isBarReplayActive, setIsBarReplayActive] = useState(false);
   const [selectedRange, setSelectedRange] = useState('1D');
+
+  const bybitInterval = resolveBybitInterval(timeframe);
+  const bybitSymbol = resolveBybitSymbol(symbol);
+
+  // Real UTC clock.
+  const [utcClock, setUtcClock] = useState(() => new Date().toISOString().slice(11, 19));
+  useEffect(() => {
+    const iv = setInterval(() => setUtcClock(new Date().toISOString().slice(11, 19)), 1000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Performance figures are measured from the real trade journal, or shown
+  // as unavailable when nothing has been closed yet.
+  const journalTrades = demoAccount?.trades || [];
+  const measuredWinRate = journalTrades.length
+    ? `${Math.round((journalTrades.filter((t) => (t.pnlDollars || 0) > 0).length / journalTrades.length) * 100)}%`
+    : '—';
+  const totalPips = journalTrades.length
+    ? +journalTrades.reduce((s, t) => s + (t.pips || 0), 0).toFixed(1)
+    : null;
+
+  // Latest measured confluence strength across the signal list, if any.
+  const latestConfluence = signals.length && typeof signals[0].confluence?.score === 'number'
+    ? signals[0].confluence.score
+    : null;
 
   const handleRangeSelect = (range) => {
     setSelectedRange(range);
@@ -213,20 +238,39 @@ export default function Dashboard() {
     }
   };
 
-  const handleExportData = () => {
-    const csvContent = "data:text/csv;charset=utf-8," +
-      "Timestamp,Open,High,Low,Close,Volume,Signal,Strategy\n" +
-      "2026-10-19 23:00,81950.00,82120.00,81900.00,82061.40,14250,BUY,SMC Asian Low Sweep\n" +
-      "2026-10-19 22:00,81820.00,82000.00,81750.00,81950.00,12100,BUY,FVG Mitigation Zone\n" +
-      "2026-10-19 21:00,81650.00,81880.00,81600.00,81820.00,9800,BUY,Orderblock Defense\n" +
-      "2026-10-19 20:00,81700.00,81780.00,81500.00,81650.00,15400,WAIT,Liquidity Absorption\n";
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `TrendLens_40K_Bars_${symbol}.csv`);
+  /**
+   * Export the REAL Bybit candles for the selected symbol and timeframe.
+   * Nothing is fabricated: if the market data endpoint is unavailable the
+   * export is refused rather than replaced with placeholder rows.
+   */
+  const handleExportData = async () => {
+    if (!bybitSymbol.ok) {
+      setToastNotice(`⚠️ Export failed: ${bybitSymbol.message}`);
+      setTimeout(() => setToastNotice(null), 4000);
+      return;
+    }
+    const res = await fetchBybitKlines(bybitSymbol.symbol, bybitInterval, 1000);
+    if (!res.ok || !res.data || res.data.length === 0) {
+      setToastNotice(`⚠️ Export failed: ${res.error || 'no Bybit candle data available for this symbol.'}`);
+      setTimeout(() => setToastNotice(null), 4000);
+      return;
+    }
+
+    const header = 'Timestamp,Open,High,Low,Close,Volume\n';
+    const rows = res.data
+      .map((k) => `${new Date(k.t).toISOString()},${k.o},${k.h},${k.l},${k.c},${k.v}`)
+      .join('\n');
+    const csvContent = `data:text/csv;charset=utf-8,${encodeURIComponent(header + rows)}`;
+
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', `TrendLens_${res.symbol}_${bybitInterval}_${res.data.length}bars.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    setToastNotice(`✅ Exported ${res.data.length} real Bybit ${res.symbol} bars.`);
+    setTimeout(() => setToastNotice(null), 3500);
   };
 
   const handleEngineSwitch = (eng) => {
@@ -584,8 +628,12 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="engine-status-right">
-            <span className="engine-tag-pill">AI Confluence: 96%</span>
-            <span className="engine-tag-pill live">STREAMING LIVE</span>
+            <span className="engine-tag-pill">
+              Confluence: {latestConfluence !== null ? `${latestConfluence}/100` : '—'}
+            </span>
+            <span className={`engine-tag-pill${feedStatus === 'LIVE' ? ' live' : ''}`}>
+              {feedStatus === 'LIVE' ? 'STREAMING LIVE' : feedStatus === 'PARTIAL' ? 'PARTIAL FEED' : feedStatus === 'DEMO' ? 'DEMO FEED' : 'FEED OFFLINE'}
+            </span>
           </div>
         </div>
 
@@ -653,15 +701,15 @@ export default function Dashboard() {
             />
             <StatCard
               label="Your Win Rate"
-              value={`${user?.stats?.winRate}%`}
-              sub="GoldVIP verified performance"
+              value={measuredWinRate}
+              sub={measuredWinRate === '—' ? 'No closed trades measured yet' : 'Measured from your trade journal'}
               icon={Target}
               color="var(--signal-neutral)"
             />
             <StatCard
               label="Total Pips"
-              value={`+${user?.stats?.pips}`}
-              sub={`${user?.stats?.streak} day winning streak 🔥`}
+              value={totalPips === null ? '—' : `${totalPips >= 0 ? '+' : ''}${totalPips}`}
+              sub={totalPips === null ? 'No closed trades measured yet' : 'Measured from your trade journal'}
               icon={Activity}
               color="var(--gold)"
             />
@@ -986,7 +1034,7 @@ export default function Dashboard() {
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--signal-buy, #089981)' }} />
                         Market Open
                       </span>
-                      <span>23:54:11 (UTC)</span>
+                      <span>{utcClock}</span>
                     </div>
                   </div>
                 </div>
@@ -1080,23 +1128,14 @@ export default function Dashboard() {
             {activeEngine === 'smc_ultra' && (
               <>
                 <DailyTargetWidget asset={currentAsset} currentPrice={currentPrice} />
-                <OrderFlowPanel data={MOCK_ORDER_FLOW} />
+                <OrderFlowPanel />
                 <div className="whale-alerts card">
                   <div className="section-label" style={{ marginBottom: 12 }}>Institutional Whale Alerts ({currentAsset})</div>
-                  {[
-                    { time: '14:32', msg: `BUYING ABSORPTION @ ${currentPrice > 100 ? (currentPrice * 0.998).toFixed(2) : (currentPrice * 0.998).toFixed(4)} — 15,400 lots`, side: 'BUY' },
-                    { time: '14:18', msg: `LARGE BUY ORDER DETECTED @ ${currentPrice > 100 ? (currentPrice * 0.997).toFixed(2) : (currentPrice * 0.997).toFixed(4)} — 22,000 lots`, side: 'BUY' },
-                    { time: '13:55', msg: `Sell pressure detected at ${currentPrice > 100 ? (currentPrice * 1.002).toFixed(2) : (currentPrice * 1.002).toFixed(4)} — 8,700 lots`, side: 'SELL' },
-                    { time: '13:41', msg: `Institutional iceberg buy filled — 31,200 lots`, side: 'BUY' },
-                  ].map((a, i) => (
-                    <div key={i} className="whale-alert-item">
-                      <div className="whale-alert-top">
-                        <span className={`badge ${a.side === 'BUY' ? 'badge-buy' : 'badge-sell'}`} style={{fontSize:'0.65rem'}}>🐋 {a.side}</span>
-                        <span className="whale-time">{a.time}</span>
-                      </div>
-                      <div className="whale-msg">{a.msg}</div>
+                  <div className="whale-alert-item">
+                    <div className="whale-msg" style={{ color: 'var(--signal-neutral)' }}>
+                      Unavailable — no Level-2 order book feed is connected, so no whale prints can be detected.
                     </div>
-                  ))}
+                  </div>
                 </div>
               </>
             )}
@@ -1119,7 +1158,7 @@ export default function Dashboard() {
 
             {activeEngine === 'swing_4h' && (
               <>
-                <MacroAlignmentWidget />
+                <MacroAlignmentWidget symbol={bybitSymbol.ok ? bybitSymbol.symbol : 'BTCUSDT'} />
                 <SwingRiskRewardWidget currentPrice={currentPrice} />
                 <CotWhaleAccumulationWidget />
               </>

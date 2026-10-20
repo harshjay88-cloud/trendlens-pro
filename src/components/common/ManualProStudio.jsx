@@ -1273,8 +1273,8 @@ export default function ManualProStudio({
               className="mps-tv-btn-sell"
               onClick={() => {
                 const p = (currentPrice * 0.9998).toFixed(currentPrice < 2 ? 4 : (currentPrice < 50 ? 3 : 2));
-                setToastNotice(`🔴 SELL Order Executed @ ${p}`);
-                setTimeout(() => setToastNotice(null), 2000);
+                setToastNotice(`📝 PAPER sell entry staged @ ${p} — no exchange order was sent.`);
+                setTimeout(() => setToastNotice(null), 2600);
               }}
             >
               <span>SELL</span>
@@ -1285,8 +1285,8 @@ export default function ManualProStudio({
               className="mps-tv-btn-buy"
               onClick={() => {
                 const p = (currentPrice * 1.0002).toFixed(currentPrice < 2 ? 4 : (currentPrice < 50 ? 3 : 2));
-                setToastNotice(`🟢 BUY Order Executed @ ${p}`);
-                setTimeout(() => setToastNotice(null), 2000);
+                setToastNotice(`📝 PAPER buy entry staged @ ${p} — no exchange order was sent.`);
+                setTimeout(() => setToastNotice(null), 2600);
               }}
             >
               <span>{(currentPrice * 1.0002).toFixed(currentPrice < 2 ? 4 : (currentPrice < 50 ? 3 : 2))}</span>

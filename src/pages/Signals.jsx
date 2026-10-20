@@ -29,7 +29,7 @@ function SignalCard({ sig }) {
   };
 
   const handleCopy = () => {
-    const text = `🎯 TrendLens Pro Signal\nAsset: ${sig.asset} (${sig.marketCategory || 'Market'})\nAction: ${sig.direction}\nEntry: ${sig.entry?.min} - ${sig.entry?.max}\nSL: ${sig.stopLoss}\nTP1: ${sig.targets?.tp1}\nTP2: ${sig.targets?.tp2}\nTP3: ${sig.targets?.tp3}\nEngine: ${sig.engine}\nAccuracy: ${sig.accuracy}%`;
+    const text = `🎯 TrendLens Pro Signal\nAsset: ${sig.asset} (${sig.marketCategory || 'Market'})\nAction: ${sig.direction}\nEntry: ${sig.entry?.min} - ${sig.entry?.max}\nSL: ${sig.stopLoss}\nTP1: ${sig.targets?.tp1}\nTP2: ${sig.targets?.tp2}\nTP3: ${sig.targets?.tp3}\nEngine: ${sig.engine}${sig.confluence?.score ? `\nConfluence strength: ${sig.confluence.score}/100 (not a calibrated probability)` : ''}`;
     navigator.clipboard?.writeText(text);
     addToast({
       title: 'Signal Copied! 📋',
@@ -40,8 +40,8 @@ function SignalCard({ sig }) {
 
   const handleBridge = () => {
     addToast({
-      title: 'MT5 Bridge Dispatched ⚡',
-      message: `Order relayed to HSR Ultra MT5 EA: ${sig.direction} ${sig.asset} @ ${sig.entry?.min}`,
+      title: 'MT5 Bridge Not Configured',
+      message: `No order was relayed. The MT5 bridge is not configured in this build — the signal was not sent anywhere.`,
       type: 'info',
     });
   };
@@ -99,7 +99,7 @@ function SignalCard({ sig }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
           <span className="sc-status">{statusLabel}</span>
           <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--brand)' }}>
-            Accuracy: {sig.accuracy}%
+            {sig.confluence?.score ? `Confluence ${sig.confluence.score}/100` : 'Confluence —'}
           </span>
         </div>
         <div className="progress-bar">
@@ -202,16 +202,17 @@ export default function Signals() {
         <div className="signals-content">
           <div className="signals-header">
             <div>
-              <h2>Live Signals Hub <span className="badge badge-buy" style={{fontSize:'0.75rem', verticalAlign:'middle', marginLeft:8}}>16 LIVE STREAMS</span></h2>
-              <p>Gold, Forex &amp; Crypto setups backed by Level-2 Order Flow, Whale AOF, and ICT Smart Money.</p>
+              <h2>Signals Hub <span className="badge badge-neutral" style={{fontSize:'0.75rem', verticalAlign:'middle', marginLeft:8}}>DEMO DATASET</span></h2>
+              <p>Illustrative signal examples. They are not produced by a live analysis engine, and no accuracy,
+                touch probability or order-flow value on them has been measured.</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <Link to="/indicators" className="btn btn-sm btn-ghost" style={{ gap: 6 }}>
                 <Sliders size={14} /> Indicator Suite
               </Link>
-              <Link to="/admin" className="btn btn-sm btn-primary" style={{ gap: 6 }}>
-                <PlusCircle size={14} /> Dispatch Signal
-              </Link>
+                <Link to="/admin" className="btn btn-sm btn-primary" style={{ gap: 6 }}>
+                  <PlusCircle size={14} /> Add Local Signal
+                </Link>
             </div>
           </div>
 

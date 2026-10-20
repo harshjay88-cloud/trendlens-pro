@@ -128,6 +128,11 @@ export const MOCK_PRICES = {
   'GER40':   { category: 'Indices', price: 19480.00, change: +85.00,  changePct: +0.44, high: 19520.00, low: 19370.00, spread: 1.00 },
 };
 
+/**
+ * DEMO SIGNAL DATASET - illustrative examples, not live signals.
+ * Every figure is a placeholder; no accuracy, touch probability or order-flow
+ * value here was measured.
+ */
 export const MOCK_SIGNALS = [
   // --- METALS & COMMODITIES ---
   {
@@ -135,12 +140,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H1', entry: { min: 2638.50, max: 2640.00 }, stopLoss: 2630.00,
     targets: { tp1: 2650.00, tp2: 2658.00, tp3: 2668.00 },
     status: 'tp2_hit', createdAt: new Date(Date.now() - 3600000 * 2),
-    result: 'win', pips: 175, accuracy: 94,
+    result: 'win', pips: 175, accuracy: null,
     confluence: {
-      dailyBias: 'BULLISH (Historical Futures Pattern)',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Asian Session Liquidity Sweep @ 2,638.50 + Bullish FVG Fill',
-      orderFlow: '15,400 lots absorbed at Bid. Cumulative Delta +4,820 lots.',
-      targetsTouchProb: { tp1: '95%', tp2: '89%', tp3: '74%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Institutional absorption confirmed. Buyers defending structural support.'
     }
   },
@@ -149,12 +154,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H4', entry: { min: 2641.00, max: 2643.50 }, stopLoss: 2633.00,
     targets: { tp1: 2655.00, tp2: 2663.00, tp3: 2672.00 },
     status: 'active', createdAt: new Date(Date.now() - 1800000),
-    result: null, pips: null, accuracy: 91,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BULLISH',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'H4 Bullish Order Block mitigation with Market Structure Shift (MSS)',
-      orderFlow: 'Aggressive Market Buys breaking resting sell limit orders @ 2,642.00',
-      targetsTouchProb: { tp1: '92%', tp2: '84%', tp3: '68%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'High-probability momentum continuation toward London session high.'
     }
   },
@@ -163,12 +168,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'M15', entry: { min: 31.25, max: 31.35 }, stopLoss: 30.90,
     targets: { tp1: 31.65, tp2: 32.10, tp3: 32.60 },
     status: 'active', createdAt: new Date(Date.now() - 2100000),
-    result: null, pips: null, accuracy: 89,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BULLISH (Silver SMT Divergence with Gold)',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'SMT Divergence: Silver making higher low while Gold swept low',
-      orderFlow: 'Heavy bid walls stepping up at $31.20 support band',
-      targetsTouchProb: { tp1: '91%', tp2: '83%', tp3: '70%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Strong institutional accumulation in precious metals.'
     }
   },
@@ -177,12 +182,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H1', entry: { min: 71.50, max: 71.80 }, stopLoss: 72.40,
     targets: { tp1: 70.80, tp2: 70.10, tp3: 69.20 },
     status: 'active', createdAt: new Date(Date.now() - 3200000),
-    result: null, pips: null, accuracy: 88,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BEARISH',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Break of Structure (BOS) on H1 + Bearish breaker block rejection',
-      orderFlow: 'Aggressive selling delta -12,400 contracts at London close',
-      targetsTouchProb: { tp1: '93%', tp2: '86%', tp3: '71%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Inventory build up leading to downside expansion.'
     }
   },
@@ -193,12 +198,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H4', entry: { min: 68200, max: 68500 }, stopLoss: 69200,
     targets: { tp1: 67000, tp2: 65800, tp3: 64500 },
     status: 'tp1_hit', createdAt: new Date(Date.now() - 7200000),
-    result: 'win', pips: 120, accuracy: 88,
+    result: 'win', pips: 120, accuracy: null,
     confluence: {
-      dailyBias: 'BEARISH (Crypto Macro Distribution)',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Buy-Side Liquidity (BSL) swept above $68,400 followed by displacement',
-      orderFlow: 'Negative Delta divergence on new highs. Heavy resting asks at $68,500.',
-      targetsTouchProb: { tp1: '90%', tp2: '81%', tp3: '62%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Smart money capping rally. Distribution into retail stops.'
     }
   },
@@ -207,12 +212,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H1', entry: { min: 66800, max: 67100 }, stopLoss: 66100,
     targets: { tp1: 68200, tp2: 69500, tp3: 71000 },
     status: 'active', createdAt: new Date(Date.now() - 1200000),
-    result: null, pips: null, accuracy: 93,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BULLISH REVERSAL',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Sell-Side Liquidity sweep of $66,900 Asian low + strong market displacement',
-      orderFlow: 'Binance & Coinbase spot order book shows 450 BTC absorption wall',
-      targetsTouchProb: { tp1: '93%', tp2: '85%', tp3: '70%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Institutional absorption floor confirmed on Bitcoin.'
     }
   },
@@ -221,12 +226,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H4', entry: { min: 3380, max: 3410 }, stopLoss: 3310,
     targets: { tp1: 3480, tp2: 3560, tp3: 3680 },
     status: 'active', createdAt: new Date(Date.now() - 1500000),
-    result: null, pips: null, accuracy: 91,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BULLISH',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Daily discount array retest with Bullish Fair Value Gap fill',
-      orderFlow: 'CVD divergence showing rising buying pressure while price consolidated',
-      targetsTouchProb: { tp1: '91%', tp2: '84%', tp3: '69%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Smart money accumulation prior to US session expansion.'
     }
   },
@@ -235,12 +240,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'M15', entry: { min: 181.50, max: 183.00 }, stopLoss: 177.00,
     targets: { tp1: 188.00, tp2: 194.00, tp3: 202.00 },
     status: 'active', createdAt: new Date(Date.now() - 800000),
-    result: null, pips: null, accuracy: 90,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'STRONG BULLISH',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'M15 liquidity run into 1-minute order block with aggressive wick rejection',
-      orderFlow: 'Tape aggressor prints dominated 78% market buys over 10 minutes',
-      targetsTouchProb: { tp1: '94%', tp2: '86%', tp3: '74%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'High-momentum Solana scalp targeting daily highs.'
     }
   },
@@ -249,12 +254,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H1', entry: { min: 585.00, max: 589.00 }, stopLoss: 574.00,
     targets: { tp1: 602.00, tp2: 615.00, tp3: 630.00 },
     status: 'active', createdAt: new Date(Date.now() - 2700000),
-    result: null, pips: null, accuracy: 88,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BULLISH',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Equilibrium retest of weekly range + structural higher high',
-      orderFlow: 'Positive cumulative delta divergence on Binance spot',
-      targetsTouchProb: { tp1: '89%', tp2: '81%', tp3: '65%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Trend continuation setup with favorable 1:3.2 R:R ratio.'
     }
   },
@@ -263,12 +268,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H1', entry: { min: 2.08, max: 2.12 }, stopLoss: 1.96,
     targets: { tp1: 2.25, tp2: 2.38, tp3: 2.55 },
     status: 'active', createdAt: new Date(Date.now() - 600000),
-    result: null, pips: null, accuracy: 94,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'PARABOLIC EXPANSION',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Break of Structure (BOS) on H1 + Bullish FVG Mitigation',
-      orderFlow: 'Perpetual open interest spiked +14% with spot whale absorption',
-      targetsTouchProb: { tp1: '95%', tp2: '88%', tp3: '74%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Aggressive institutional buying into new all-time high discovery.'
     }
   },
@@ -277,12 +282,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'M15', entry: { min: 0.138, max: 0.141 }, stopLoss: 0.131,
     targets: { tp1: 0.148, tp2: 0.156, tp3: 0.168 },
     status: 'active', createdAt: new Date(Date.now() - 950000),
-    result: null, pips: null, accuracy: 90,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BULLISH MOMENTUM',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'M15 Asian liquidity sweep followed by sharp displacement candle',
-      orderFlow: 'Cumulative Volume Delta (CVD) divergence showing heavy market buys',
-      targetsTouchProb: { tp1: '92%', tp2: '82%', tp3: '68%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Breakout continuation from high-volume consolidation base.'
     }
   },
@@ -291,12 +296,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H4', entry: { min: 27.60, max: 28.10 }, stopLoss: 26.20,
     targets: { tp1: 29.80, tp2: 31.50, tp3: 33.80 },
     status: 'active', createdAt: new Date(Date.now() - 1400000),
-    result: null, pips: null, accuracy: 89,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BULLISH RECOVERY',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Discount array retest at $27.80 with bullish market structure shift',
-      orderFlow: 'Resting limit sell orders pulled from books, opening pathway upward',
-      targetsTouchProb: { tp1: '91%', tp2: '83%', tp3: '69%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Layer-1 rotation flow providing strong tailwinds.'
     }
   },
@@ -305,12 +310,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H1', entry: { min: 0.538, max: 0.545 }, stopLoss: 0.521,
     targets: { tp1: 0.565, tp2: 0.585, tp3: 0.615 },
     status: 'active', createdAt: new Date(Date.now() - 1900000),
-    result: null, pips: null, accuracy: 88,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BULLISH REVERSAL',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Equal lows swept at $0.5350 followed by immediate rejection wick',
-      orderFlow: 'Large institutional bid wall at $0.5380 defending downside',
-      targetsTouchProb: { tp1: '90%', tp2: '81%', tp3: '67%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Accumulation confirmed with favorable risk-to-reward ratio.'
     }
   },
@@ -319,12 +324,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H4', entry: { min: 565.00, max: 578.00 }, stopLoss: 535.00,
     targets: { tp1: 615.00, tp2: 650.00, tp3: 710.00 },
     status: 'active', createdAt: new Date(Date.now() - 2100000),
-    result: null, pips: null, accuracy: 93,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'STRONG BULLISH (AI Sector Leader)',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'H4 Order block mitigation + clean liquidity sweep above $580',
-      orderFlow: 'Tape aggressor prints show 82% spot buy volume on Kraken & Binance',
-      targetsTouchProb: { tp1: '94%', tp2: '87%', tp3: '73%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'AI narrative momentum driving institutional accumulation.'
     }
   },
@@ -335,12 +340,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'M15', entry: { min: 1.0855, max: 1.0860 }, stopLoss: 1.0840,
     targets: { tp1: 1.0875, tp2: 1.0890, tp3: 1.0910 },
     status: 'active', createdAt: new Date(Date.now() - 900000),
-    result: null, pips: null, accuracy: 89,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'NEUTRAL-BULLISH',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'London Open Killzone Judas Swing rejection + discount array entry',
-      orderFlow: 'BookFlow shows positive bid/ask skew 64% vs 36%',
-      targetsTouchProb: { tp1: '88%', tp2: '79%', tp3: '65%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Clean scalp continuation targeting Asian session high.'
     }
   },
@@ -349,12 +354,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H4', entry: { min: 1.2680, max: 1.2690 }, stopLoss: 1.2720,
     targets: { tp1: 1.2640, tp2: 1.2600, tp3: 1.2550 },
     status: 'tp3_hit', createdAt: new Date(Date.now() - 86400000 * 2),
-    result: 'win', pips: 140, accuracy: 87,
+    result: 'win', pips: 140, accuracy: null,
     confluence: {
-      dailyBias: 'BEARISH',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Premium Fair Value Gap (FVG) retest during NY session open',
-      orderFlow: 'Aggressive market sell imbalance prints exceeding 3:1 ratio',
-      targetsTouchProb: { tp1: '94%', tp2: '87%', tp3: '76%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Trend exhaustion at key institutional resistance zone.'
     }
   },
@@ -363,12 +368,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H1', entry: { min: 151.90, max: 152.10 }, stopLoss: 151.40,
     targets: { tp1: 152.80, tp2: 153.40, tp3: 154.20 },
     status: 'active', createdAt: new Date(Date.now() - 2400000),
-    result: null, pips: null, accuracy: 92,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BULLISH',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Previous day low tapped & rejected with strong institutional displacement',
-      orderFlow: 'Massive iceberg buy orders detected between 151.85 and 152.00',
-      targetsTouchProb: { tp1: '91%', tp2: '85%', tp3: '70%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Macro yield differential momentum confirmed by L2 depth.'
     }
   },
@@ -377,12 +382,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H1', entry: { min: 0.6565, max: 0.6575 }, stopLoss: 0.6540,
     targets: { tp1: 0.6610, tp2: 0.6650, tp3: 0.6700 },
     status: 'active', createdAt: new Date(Date.now() - 1700000),
-    result: null, pips: null, accuracy: 89,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BULLISH',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Asian range breakout retest with institutional order block mitigation',
-      orderFlow: 'Absorption of retail sell stops at 0.6560 key handle',
-      targetsTouchProb: { tp1: '90%', tp2: '82%', tp3: '68%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'High-conviction commodity currency swing long setup.'
     }
   },
@@ -391,12 +396,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'M15', entry: { min: 1.3910, max: 1.3920 }, stopLoss: 1.3945,
     targets: { tp1: 1.3870, tp2: 1.3830, tp3: 1.3780 },
     status: 'active', createdAt: new Date(Date.now() - 1100000),
-    result: null, pips: null, accuracy: 88,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BEARISH',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Equal Highs (EQH) liquidity sweep followed by sharp displacement lower',
-      orderFlow: 'Large institutional limit sell orders capping upside at 1.3920',
-      targetsTouchProb: { tp1: '92%', tp2: '83%', tp3: '69%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Oil strength causing Loonie appreciation against the Dollar.'
     }
   },
@@ -405,12 +410,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H4', entry: { min: 0.8870, max: 0.8885 }, stopLoss: 0.8920,
     targets: { tp1: 0.8820, tp2: 0.8760, tp3: 0.8700 },
     status: 'active', createdAt: new Date(Date.now() - 4100000),
-    result: null, pips: null, accuracy: 87,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BEARISH',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Weekly liquidity pool rejection + bearish market structure change',
-      orderFlow: 'Order book shows continuous distribution prints by Swiss banks',
-      targetsTouchProb: { tp1: '89%', tp2: '80%', tp3: '66%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Safe haven CHF demand accelerating into London fixing.'
     }
   },
@@ -419,12 +424,12 @@ export const MOCK_SIGNALS = [
     timeframe: 'H1', entry: { min: 0.8560, max: 0.8570 }, stopLoss: 0.8535,
     targets: { tp1: 0.8605, tp2: 0.8640, tp3: 0.8690 },
     status: 'active', createdAt: new Date(Date.now() - 5200000),
-    result: null, pips: null, accuracy: 91,
+    result: null, pips: null, accuracy: null,
     confluence: {
-      dailyBias: 'BULLISH',
+      dailyBias: 'Not determined - no futures positioning feed is connected.',
       ictConcept: 'Double bottom liquidity sweep on H1 chart with rapid reclaim',
-      orderFlow: 'ECB rate expectation positioning driving aggressive bid delta',
-      targetsTouchProb: { tp1: '93%', tp2: '85%', tp3: '72%' },
+      orderFlow: 'Unavailable - no order-flow feed is connected.',
+      targetsTouchProb: null,
       verdict: 'Clean mean-reversion setup off institutional support.'
     }
   },
@@ -441,8 +446,8 @@ export const HSR_INDICATORS_SUITE = [
     description: 'On-chart high-probability BUY/SELL signals powered by multi-timeframe order flow filters and server-side licensing.',
     features: ['Non-repainting on candle close', 'Embedded ATR stop loss & multi-target projection', 'Real-time alert chime & Telegram push', 'Auto spread & slippage compensation'],
     color: '#00E676',
-    status: 'Active',
-    winRate: '92.4%',
+    status: 'Implemented (real Bybit candles)',
+    edge: 'Not measured',
   },
   {
     id: 'heatmap',
@@ -453,8 +458,8 @@ export const HSR_INDICATORS_SUITE = [
     description: 'Visualizes resting institutional liquidity depth directly on the chart. Bright horizontal bands act as price magnets or rejection walls.',
     features: ['Reads genuine broker Level-2 depth', 'Zero blue background wash (high contrast display)', 'Magnets vs Absorption walls detection', 'Visualizes real bid/ask resting limit orders'],
     color: '#00D4FF',
-    status: 'Active',
-    winRate: '94.1%',
+    status: 'Not connected - no Level-2 depth feed',
+    edge: 'Not measured',
   },
   {
     id: 'targets_magnet',
@@ -465,8 +470,8 @@ export const HSR_INDICATORS_SUITE = [
     description: 'Ranks the strongest market levels (HVN, POC, liquidity pools, prior-day high/low) and computes mathematical Touch Probability % for each.',
     features: ['Automated High Volume Node (HVN) & Point of Control (POC)', 'Dynamic Touch Probability % calculation', 'Draws ranked institutional target lines', 'Eliminates guesswork in Take Profit placement'],
     color: '#FFB300',
-    status: 'Active',
-    winRate: '89.7%',
+    status: 'Partially implemented - fixed price offsets only',
+    edge: 'Not measured',
   },
   {
     id: 'footprint',
@@ -477,8 +482,8 @@ export const HSR_INDICATORS_SUITE = [
     description: 'Displays the bid x ask volume executed inside every single candle to reveal institutional traps and absorption at extremes.',
     features: ['Diagonal bid/ask volume clusters', 'Unfinished business / auction market flags', 'Imbalance highlighting (>300% ratio)', 'Point of Control (POC) per candle bar'],
     color: '#818CF8',
-    status: 'Active',
-    winRate: '91.8%',
+    status: 'Not connected - no trade tape feed',
+    edge: 'Not measured',
   },
   {
     id: 'bubble_flow',
@@ -489,8 +494,8 @@ export const HSR_INDICATORS_SUITE = [
     description: 'Paints executed market orders as dynamic bubbles sized proportional to contract lot size. Instant identification of institutional market orders.',
     features: ['Size-proportional visual bubbles', 'Distinct green (market buys) & red (market sells)', 'Speed of tape velocity detector', 'Filter out retail noise (<10 lots)'],
     color: '#F43F5E',
-    status: 'Active',
-    winRate: '88.9%',
+    status: 'Not connected - no trade tape feed',
+    edge: 'Not measured',
   },
   {
     id: 'cvd_divergence',
@@ -501,8 +506,8 @@ export const HSR_INDICATORS_SUITE = [
     description: 'Cumulative Volume Delta tracking that flags market divergence between price highs/lows and net aggressive buyer/seller participation.',
     features: ['Spot smart-money exhaustion before price turns', 'CCI momentum confluence overlay', 'Automatic divergence trendline drawing', 'Bullish & Bearish divergence alerts'],
     color: '#34D399',
-    status: 'Active',
-    winRate: '90.2%',
+    status: 'Not connected - no trade tape feed',
+    edge: 'Not measured',
   },
   {
     id: 'orderflow_detector',
@@ -513,8 +518,8 @@ export const HSR_INDICATORS_SUITE = [
     description: 'Monitors the broker Level-2 book in real-time and detects when large institutional orders absorb aggressive retail momentum.',
     features: ['Instant absorption alerts (Bullish/Bearish)', 'Calculates bid/ask skew ratio (e.g. 67% Buy / 33% Sell)', 'Identifies iceberg orders & block trades', 'Real Level-2 depth tracking for Gold & FX'],
     color: '#38BDF8',
-    status: 'Active',
-    winRate: '93.5%',
+    status: 'Not connected - no Level-2 depth feed',
+    edge: 'Not measured',
   },
   {
     id: 'vp_reversal',
@@ -525,8 +530,8 @@ export const HSR_INDICATORS_SUITE = [
     description: 'Statistical volume profile exhaustion model that identifies when auction price deviates into low-volume rejection territory.',
     features: ['Value Area High (VAH) & Value Area Low (VAL) bounds', 'Statistical 2-sigma deviation reversals', 'Volume profile distribution curves', 'High-confidence mean-reversion entries'],
     color: '#A78BFA',
-    status: 'Active',
-    winRate: '87.6%',
+    status: 'Partially implemented - volume profile only',
+    edge: 'Not measured',
   },
   {
     id: 'renko_generator',
@@ -537,8 +542,8 @@ export const HSR_INDICATORS_SUITE = [
     description: 'Constructs custom tick-based and ATR-based Renko bricks to eliminate market chop and reveal pristine trend swings.',
     features: ['Time-independent price movement bricks', 'Clear breakout and pullback structure', 'Integrates with HSR Ultra signal engine', 'Ideal for fast scalping on Gold (XAU/USD)'],
     color: '#FB923C',
-    status: 'Active',
-    winRate: '86.4%',
+    status: 'Implemented (price derived)',
+    edge: 'Not measured',
   },
 ];
 
@@ -550,7 +555,8 @@ export const AI_STRATEGY_ENGINES = [
     type: 'Institutional Tracking',
     description: 'Aggregates large institutional block orders across connected markets and delivers an automated plain-language absorption verdict.',
     logic: 'Detects large market orders that price fails to break through (absorption). A whale buy that price holds above = aggressive demand. A whale sell that price fails to break below = absorption of supply.',
-    accuracy: '94.8%',
+    status: 'Not connected - no Level-2 feed',
+    accuracy: null,
   },
   {
     id: 'daily_target_engine',
@@ -558,7 +564,8 @@ export const AI_STRATEGY_ENGINES = [
     type: 'Session Directional Bias',
     description: 'Computes a once-a-day data-driven directional bias (BUY or SELL) from futures market history and projects session magnet targets.',
     logic: 'Analyzes overnight institutional positioning, futures settlement deltas, and volatility expansion bounds to dictate whether the day is Bullish or Bearish.',
-    accuracy: '91.2%',
+    status: 'Partially implemented - fixed offsets',
+    accuracy: null,
   },
   {
     id: 'ict_smart_money',
@@ -566,7 +573,8 @@ export const AI_STRATEGY_ENGINES = [
     type: 'Structure & Liquidity',
     description: 'Maps institutional market structure, internal/external range liquidity, order blocks, and Fair Value Gaps (FVG).',
     logic: 'Waits for clean liquidity sweeps of Asian/London session highs or lows, confirms with a Market Structure Shift (MSS), and triggers entries on FVG mitigations.',
-    accuracy: '93.1%',
+    status: 'Implemented (real Bybit candles)',
+    accuracy: null,
   },
   {
     id: 'lstm_sequence_model',
@@ -574,7 +582,8 @@ export const AI_STRATEGY_ENGINES = [
     type: 'Predictive Neural Net',
     description: 'Trained recurrent neural network that learns short-term non-linear price trajectory patterns from order book micro-deltas.',
     logic: 'Processes 500 preceding ticks of bid/ask depth changes to calculate instantaneous upward/downward velocity probabilities.',
-    accuracy: '89.5%',
+    status: 'Not implemented - no neural network in this build',
+    accuracy: null,
   },
   {
     id: 'hft_scalp_bot',
@@ -582,10 +591,15 @@ export const AI_STRATEGY_ENGINES = [
     type: 'High Frequency Scalper',
     description: 'Executes lightning-fast momentum scalps on M1-M15 timeframes during high volatility sessions (London & New York open).',
     logic: 'Capitalizes on transient liquidity voids and imbalance spikes with tight 10-15 pip stops and rapid 20-30 pip profit harvesting.',
-    accuracy: '88.3%',
+    status: 'Not implemented - no HFT engine in this build',
+    accuracy: null,
   },
 ];
 
+/**
+ * DEMO LEADERBOARD DATASET - illustrative rows. These are not real traders
+ * and their win rates, pips and streaks were never measured.
+ */
 export const MOCK_LEADERBOARD = [
   { rank: 1, username: 'TrendMaster_Ali', avatar: '🦅', country: '🇦🇪', countryName: 'UAE',      winRate: 94.8, pips: 3284, signals: 187, streak: 12, sparkline: [120,180,95,210,165,240,195] },
   { rank: 2, username: 'GoldSniper_Kai',  avatar: '🎯', country: '🇯🇵', countryName: 'Japan',    winRate: 91.2, pips: 2876, signals: 143, streak: 8,  sparkline: [90,140,175,110,200,155,180] },

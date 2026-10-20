@@ -64,7 +64,7 @@ export default function Landing() {
         <div className="container hero-content">
           <div className="hero-badge animate-fade-up">
             <span className="hero-badge-dot"></span>
-            Live Trading Platform · 10,000+ Traders Worldwide
+            Live Trading Platform · Bybit Demo & Paper Trading
           </div>
           <h1 className="hero-title animate-fade-up delay-1">
             AI-Powered Trading<br />

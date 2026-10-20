@@ -30,7 +30,8 @@ export default function Indicators() {
             <div>
               <div className="section-label" style={{ marginBottom: 4 }}>INSTITUTIONAL SUITE · GOLDVIP PRO ARCHITECTURE</div>
               <h2>Indicators & AI Strategy Hub <span className="badge badge-buy">10 PRO TOOLS</span></h2>
-              <p>Explore the complete order flow indicator suite, AI neural models, and multi-step signal confluence engine.</p>
+              <p>Browse the indicator suite and the rule-based strategy engines. Each entry states whether it
+                runs on live Bybit market data or requires a feed that is not connected.</p>
             </div>
           </div>
 
@@ -61,15 +62,15 @@ export default function Indicators() {
                 <div className="c-step-num">3</div>
                 <div className="c-step-content">
                   <div className="c-step-title">AOF Whale Absorption</div>
-                  <div className="c-step-desc">L2 broker book verifies institutional buyers absorbing sell orders.</div>
+                  <div className="c-step-desc">Requires a Level-2 order book feed. Not connected in this build.</div>
                 </div>
               </div>
               <div className="c-arrow"><ArrowRight size={16} /></div>
               <div className="c-step">
                 <div className="c-step-num">4</div>
                 <div className="c-step-content">
-                  <div className="c-step-title">HSR Magnet Probability</div>
-                  <div className="c-step-desc">Target levels calculated with &gt;88% touch probability before dispatch.</div>
+                  <div className="c-step-title">Target Levels</div>
+                  <div className="c-step-desc">Target lines are fixed offsets from price. No touch probability is asserted.</div>
                 </div>
               </div>
             </div>
@@ -117,8 +118,8 @@ export default function Indicators() {
                 </div>
                 <div className="ind-footer">
                   <div className="ind-stat">
-                    <span className="ind-stat-label">Verified Edge</span>
-                    <span className="ind-stat-val" style={{ color: ind.color }}>{ind.winRate}</span>
+                    <span className="ind-stat-label">Status</span>
+                    <span className="ind-stat-val" style={{ color: ind.color, fontSize: '0.68rem' }}>{ind.status}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <Link
@@ -145,7 +146,7 @@ export default function Indicators() {
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{selectedIndicator.type} · MT5 & Desktop Terminal Engine</div>
                 </div>
                 <div className="inspector-badge" style={{ borderColor: selectedIndicator.color, color: selectedIndicator.color }}>
-                  Historical Accuracy: {selectedIndicator.winRate}
+                  {selectedIndicator.status}
                 </div>
               </div>
               <div className="inspector-body">
@@ -165,7 +166,7 @@ export default function Indicators() {
                   <div className="spec-box">
                     <div className="spec-row">
                       <span className="spec-title">Data Feed Source:</span>
-                      <span className="spec-val">Real Broker Level-2 Depth + Candle Memory</span>
+                      <span className="spec-val">Bybit public market data (candles, tickers). Level-2 depth: not connected.</span>
                     </div>
                     <div className="spec-row">
                       <span className="spec-title">Supported Assets:</span>
@@ -173,7 +174,7 @@ export default function Indicators() {
                     </div>
                     <div className="spec-row">
                       <span className="spec-title">Alert Dispatch:</span>
-                      <span className="spec-val">Desktop Chime + Webhook MT5 EA Bridge</span>
+                      <span className="spec-val">In-browser audio chime only. No webhook or MT5 EA bridge is configured.</span>
                     </div>
                   </div>
 
@@ -184,27 +185,26 @@ export default function Indicators() {
                   </div>
                 </div>
                 <div className="inspector-col visual-col">
-                  <h4>Live Visual Simulation Preview:</h4>
+                  <h4>Visual Preview (illustrative):</h4>
                   <div className="visual-sim-box">
                     <div className="sim-header">
                       <span>Chart: XAU/USD · M15</span>
-                      <span className="live-dot"></span>
                     </div>
                     <div className="sim-canvas">
                       <div className="sim-magnet-band" style={{ top: '25%' }}>
-                        <span>HVN Magnet Resistance (Touch Prob: 94%)</span>
+                        <span>Target Line (fixed offset from price)</span>
                         <span>2,658.00</span>
                       </div>
                       <div className="sim-candle green" style={{ left: '30%', height: '70px', top: '40%' }}></div>
                       <div className="sim-candle green" style={{ left: '42%', height: '90px', top: '35%' }}></div>
-                      <div className="sim-whale-marker" style={{ left: '42%', top: '30%' }}>
-                        🐋 Whale Buy 15,400 Lots
-                      </div>
                       <div className="sim-candle red" style={{ left: '54%', height: '40px', top: '45%' }}></div>
                       <div className="sim-candle green" style={{ left: '66%', height: '110px', top: '28%' }}></div>
                       <div className="sim-magnet-band support" style={{ bottom: '15%' }}>
-                        <span>L2 Demand Absorption Floor</span>
+                        <span>Support Line (fixed offset from price)</span>
                         <span>2,638.50</span>
+                      </div>
+                      <div style={{ position: 'absolute', left: '12px', bottom: '6px', fontSize: '0.62rem', color: '#8592a6' }}>
+                        Illustrative layout only — not live order-flow data.
                       </div>
                     </div>
                   </div>
@@ -216,8 +216,9 @@ export default function Indicators() {
           {/* Section: AI Strategy Engines Breakdown */}
           <div className="engines-section">
             <div className="section-label" style={{ marginBottom: 8 }}>AI ENGINE INTELLIGENCE</div>
-            <h2>5 Machine-Learning Decision Engines</h2>
-            <p>Our proprietary algorithms continuously read the order book to discover high-probability setups before price moves.</p>
+            <h2>Strategy Engines</h2>
+            <p>Rule-based engines evaluated on live Bybit candles. Engines that require a Level-2 feed or a
+              machine-learning model are labelled as unavailable — no accuracy figure is claimed for them.</p>
 
             <div className="engines-list">
               {AI_STRATEGY_ENGINES.map((engine) => (
@@ -227,7 +228,7 @@ export default function Indicators() {
                       <h4 className="engine-name">{engine.name}</h4>
                       <span className="engine-type">{engine.type}</span>
                     </div>
-                    <span className="badge badge-buy" style={{ fontSize: '0.75rem' }}>{engine.accuracy} Accuracy</span>
+                    <span className="badge badge-buy" style={{ fontSize: '0.75rem' }}>{engine.status}</span>
                   </div>
                   <p className="engine-desc">{engine.description}</p>
                   <div className="engine-logic-box">

@@ -95,7 +95,7 @@ export default function AlertManagerModal({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Volume2 size={14} color="var(--signal-buy)" />
-              <span>Instant Web Audio Sound Chime + Desktop Push</span>
+              <span>Web Audio chime on signal (in-browser)</span>
             </div>
             <button type="submit" className="btn btn-primary" style={{ fontSize: '0.78rem', padding: '6px 14px', gap: 6 }}>
               <Plus size={14} />

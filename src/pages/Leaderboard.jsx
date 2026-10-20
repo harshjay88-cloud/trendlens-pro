@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TrendingUp, Search, ArrowLeft } from 'lucide-react';
-import { MOCK_LEADERBOARD } from '../utils/mockData.js';
 import PriceTickerBar from '../components/common/PriceTickerBar.jsx';
 import './Leaderboard.css';
 
@@ -44,10 +43,8 @@ function PodiumCard({ trader, position }) {
 export default function Leaderboard() {
   const [activeTab, setActiveTab] = useState('Weekly');
   const [search, setSearch] = useState('');
-  const top3 = MOCK_LEADERBOARD.slice(0, 3);
-  const rest = MOCK_LEADERBOARD.slice(3).filter(t =>
-    t.username.toLowerCase().includes(search.toLowerCase())
-  );
+  const top3 = [];
+  const rest = [];
 
   return (
     <div className="leaderboard-page">
@@ -68,8 +65,10 @@ export default function Leaderboard() {
       <div className="leaderboard-content container" style={{ paddingTop: 'calc(var(--topnav-h) + 36px + 40px)', paddingBottom: 60 }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <div className="section-label">Community Rankings</div>
-          <h1>Live <span className="text-brand">Leaderboard</span></h1>
-          <p style={{ marginTop: 12 }}>Top-performing traders ranked by win rate, pips, and consistency.</p>
+          <h1>Leaderboard <span className="text-brand">Unavailable</span></h1>
+          <p style={{ marginTop: 12 }}>
+            No community ranking service is connected to this build, so no trader ranking is published here.
+          </p>
         </div>
 
         {/* Tabs */}
@@ -80,9 +79,9 @@ export default function Leaderboard() {
         {/* Podium */}
         <div className="podium-wrap">
           <div className="podium-section">
-            <PodiumCard trader={top3[1]} position={2} />
-            <PodiumCard trader={top3[0]} position={1} />
-            <PodiumCard trader={top3[2]} position={3} />
+            <div className="card" style={{ padding: '24px', width: '100%', textAlign: 'center', color: 'var(--text-muted)' }}>
+              No ranked traders — the leaderboard data source is not connected.
+            </div>
           </div>
         </div>
 
@@ -136,6 +135,13 @@ export default function Leaderboard() {
                   <td><Sparkline data={t.sparkline} /></td>
                 </tr>
               ))}
+              {top3.length === 0 && rest.length === 0 && (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '28px', color: 'var(--text-muted)' }}>
+                    No ranking rows available.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

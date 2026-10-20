@@ -60,7 +60,7 @@ export default function Login() {
                 <div key={i} className="login-avatar-chip" style={{ marginLeft: i ? -10 : 0 }}>{a}</div>
               ))}
             </div>
-            <span>Join <strong>10,000+</strong> traders worldwide</span>
+            <span>Local demo session · no real account is created</span>
           </div>
         </div>
       </div>
@@ -112,7 +112,7 @@ export default function Login() {
           </form>
 
           <div className="login-security">
-            <Shield size={13} /> Encrypted & Protected · v2.0.0
+            <Shield size={13} /> Local demo session only · no credentials are sent anywhere
           </div>
 
           <div className="login-signup-note">

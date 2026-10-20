@@ -1,22 +1,40 @@
 import { create } from 'zustand';
 import { MOCK_PRICES } from '../utils/mockData.js';
+import { BYBIT_PUBLIC_REST_BASE } from '../config/tradingMode.js';
+
+export const FEED_STATUS = Object.freeze({
+  LIVE: 'LIVE',
+  PARTIAL: 'PARTIAL',
+  DEMO: 'DEMO',
+  DISCONNECTED: 'DISCONNECTED',
+});
 
 export const useMarketStore = create((set, get) => ({
+  /**
+   * Reference prices. These are DEMO values and are only used until a real
+   * Bybit ticker arrives for that instrument. They are never presented as
+   * live data — `feedStatus` and `liveAssets` describe exactly which values
+   * came from the exchange.
+   */
   prices: { ...MOCK_PRICES },
+  liveAssets: [],
+  feedStatus: FEED_STATUS.DEMO,
+  lastUpdated: null,
   selectedCategory: 'All',
-  lastUpdated: new Date(),
-  isLive: true,
 
   setSelectedCategory: (category) => set({ selectedCategory: category }),
 
   getCategoryPrices: () => {
     const { prices, selectedCategory } = get();
     if (selectedCategory === 'All') return Object.entries(prices);
-    return Object.entries(prices).filter(([_, data]) => data.category === selectedCategory);
+    return Object.entries(prices).filter(([, data]) => data.category === selectedCategory);
   },
 
+  /** True when the displayed price for this asset came from Bybit. */
+  isLiveAsset: (asset) => get().liveAssets.includes(asset),
+
   // Update a single asset price with calculated change
-  updatePrice: (asset, newPrice, customChangePct = null, customHigh = null, customLow = null) => {
+  updatePrice: (asset, newPrice, customChangePct = null, customHigh = null, customLow = null, isLive = false) => {
     set(state => {
       const current = state.prices[asset] || { price: newPrice, change: 0, changePct: 0, high: newPrice, low: newPrice, category: 'Crypto' };
       let change, changePct;
@@ -32,6 +50,10 @@ export const useMarketStore = create((set, get) => ({
       const high = customHigh !== null ? customHigh : Math.max(current.high || newPrice, newPrice);
       const low = customLow !== null ? customLow : Math.min(current.low || newPrice, newPrice);
 
+      const liveAssets = isLive && !state.liveAssets.includes(asset)
+        ? [...state.liveAssets, asset]
+        : state.liveAssets;
+
       return {
         prices: {
           ...state.prices,
@@ -42,51 +64,33 @@ export const useMarketStore = create((set, get) => ({
             changePct,
             high,
             low,
+            isLive,
           },
         },
-        lastUpdated: new Date(),
+        liveAssets,
+        lastUpdated: isLive ? new Date() : state.lastUpdated,
       };
     });
   },
 
-  // Simulate or sync live tick
-  tick: () => {
-    set(state => {
-      const nextPrices = { ...state.prices };
-      Object.keys(nextPrices).forEach(asset => {
-        const item = nextPrices[asset];
-        const isForex = item.category === 'Forex';
-        // micro variation
-        const deltaPct = (Math.random() - 0.495) * (isForex ? 0.0003 : 0.001);
-        const decimals = item.price > 100 ? 2 : 4;
-        const newPrice = +(item.price * (1 + deltaPct)).toFixed(decimals);
-        const change = +(item.change + (newPrice - item.price)).toFixed(decimals);
-        const changePct = +(item.changePct + (deltaPct * 100)).toFixed(2);
-        
-        nextPrices[asset] = {
-          ...item,
-          price: newPrice,
-          change,
-          changePct,
-          high: Math.max(item.high, newPrice),
-          low: Math.min(item.low, newPrice),
-        };
-      });
-
-      return {
-        prices: nextPrices,
-        lastUpdated: new Date(),
-      };
-    });
-  },
-
-  // Fetch real crypto and commodity prices directly from Bybit V5 public endpoint
+  /**
+   * Fetch real tickers from Bybit's public endpoint.
+   * Failures are surfaced through `feedStatus` instead of being swallowed, so
+   * the UI can show a disconnected state rather than silently showing
+   * reference values as if they were live.
+   */
   fetchLiveCrypto: async () => {
     try {
-      const res = await fetch('https://api.bybit.com/v5/market/tickers?category=linear');
-      if (!res.ok) return;
+      const res = await fetch(`${BYBIT_PUBLIC_REST_BASE}/v5/market/tickers?category=linear`);
+      if (!res.ok) {
+        set(state => ({ feedStatus: state.liveAssets.length ? FEED_STATUS.PARTIAL : FEED_STATUS.DISCONNECTED }));
+        return;
+      }
       const data = await res.json();
-      if (data.retCode !== 0 || !Array.isArray(data.result?.list)) return;
+      if (data.retCode !== 0 || !Array.isArray(data.result?.list)) {
+        set(state => ({ feedStatus: state.liveAssets.length ? FEED_STATUS.PARTIAL : FEED_STATUS.DISCONNECTED }));
+        return;
+      }
 
       const symbolMap = {
         'BTCUSDT': 'BTC/USD',
@@ -103,7 +107,6 @@ export const useMarketStore = create((set, get) => ({
         'APTUSDT': 'APT/USD',
         'DOTUSDT': 'DOT/USD',
         'LTCUSDT': 'LTC/USD',
-        'UNIUSDT': 'UNI/USD',
         'TONUSDT': 'TON/USD',
         'SHIB1000USDT': 'SHIB/USD',
         'PEPEUSDT': 'PEPE/USD',
@@ -142,9 +145,12 @@ export const useMarketStore = create((set, get) => ({
         'EURUSDUSDT': 'EUR/USD',
         'GBPUSDUSDT': 'GBP/USD',
         'USDJPYUSDT': 'USD/JPY',
-        'XAUUSDT': 'XAU/USD'
+        'XAUUSDT': 'XAU/USD',
+        'XAGUSDT': 'XAG/USD',
+        'XPTUSDT': 'XPT/USD',
       };
 
+      let applied = 0;
       data.result.list.forEach(item => {
         const pair = symbolMap[item.symbol];
         if (pair) {
@@ -154,12 +160,20 @@ export const useMarketStore = create((set, get) => ({
             const high = parseFloat(item.highPrice24h) || px;
             const low = parseFloat(item.lowPrice24h) || px;
             const decimals = px > 100 ? 2 : px > 1 ? 4 : 6;
-            get().updatePrice(pair, +px.toFixed(decimals), pcnt, high, low);
+            get().updatePrice(pair, +px.toFixed(decimals), pcnt, high, low, true);
+            applied++;
           }
         }
       });
+
+      set(state => ({
+        feedStatus: applied > 0 ? FEED_STATUS.LIVE : FEED_STATUS.DISCONNECTED,
+        lastUpdated: new Date(),
+      }));
     } catch {
-      // Fallback silently if offline
+      set(() => ({
+        feedStatus: state.liveAssets.length ? FEED_STATUS.PARTIAL : FEED_STATUS.DISCONNECTED,
+      }));
     }
   },
 }));
