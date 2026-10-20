@@ -25,7 +25,7 @@ const THEMES = [
 export default function Navbar() {
   const { theme, setTheme } = useThemeStore();
   const { user, logout } = useAuthStore();
-  const { prices } = useMarketStore();
+  const { prices, isLiveAsset } = useMarketStore();
   const { addToast } = useToastStore();
   const [themeOpen, setThemeOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
@@ -33,6 +33,9 @@ export default function Navbar() {
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   const goldData = prices['XAU/USD'] || { price: 2645.82, change: 12.34 };
+  // The pill only claims to be live when this asset actually received a
+  // Bybit tick. Otherwise it is a seeded reference value and says so.
+  const goldIsLive = isLiveAsset('XAU/USD');
 
   const toggleSound = () => {
     setSoundEnabled(!soundEnabled);
@@ -72,7 +75,7 @@ export default function Navbar() {
           >
             <Zap size={15} />
             <span>Signals Hub</span>
-            <span className="nav-badge-live">Live</span>
+            <span className="nav-badge-live" title="Seeded sample signals — the signal feed is not a live market feed">Sample</span>
           </NavLink>
 
           <NavLink
@@ -107,12 +110,13 @@ export default function Navbar() {
         <div className="navbar-right">
           {/* Live price pill */}
           <div className="live-price-pill">
-            <span className="live-dot"></span>
+            <span className={`live-dot${goldIsLive ? '' : ' demo'}`}></span>
             <span className="live-asset">XAU/USD</span>
             <span className="live-value">{goldData.price.toFixed(2)}</span>
             <span className={`live-change ${goldData.change >= 0 ? 'positive' : 'negative'}`}>
               {goldData.change >= 0 ? '+' : ''}{goldData.change.toFixed(2)}
             </span>
+            {!goldIsLive && <span className="live-state">DEMO</span>}
           </div>
 
           {/* Risk Calculator Action */}

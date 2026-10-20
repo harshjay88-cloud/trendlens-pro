@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { HelpCircle, Check, X, Info, TrendingUp, TrendingDown, Volume2, VolumeX, Zap, PlayCircle, StopCircle, Shield, Clock, Cpu, BarChart2, Layers, CheckCircle2, Sliders, Maximize2, Minimize2, ExternalLink, Flame, Scale, Wifi, Activity } from 'lucide-react';
+import { HelpCircle, Check, X, Info, TrendingUp, TrendingDown, Volume2, VolumeX, Zap, PlayCircle, StopCircle, Shield, Cpu, BarChart2, Layers, CheckCircle2, Sliders, Maximize2, Minimize2, ExternalLink, Flame, Scale, Wifi, Activity } from 'lucide-react';
 import { useSignalStore, useDemoAccountStore } from '../../store/index.js';
 import { useMarketStore } from '../../store/marketStore.js';
 import {
@@ -446,7 +446,9 @@ export default function TrendLensUltraChart({
     LIQ: true,
     BP: true,
     CME: engineMode !== 'scalper',
-    DOM: true,
+    // The depth ladder is an overlay panel. It is off by default so it
+    // never covers the candles; the DEPTH chip turns it on.
+    DOM: false,
   });
 
   // Signal Store connection & Confluence Audit State
@@ -454,6 +456,8 @@ export default function TrendLensUltraChart({
   const activeSigIdRef = useRef(null);
   const [showConfluenceMatrix, setShowConfluenceMatrix] = useState(false);
   const [activePillars, setActivePillars] = useState(null);
+  // The SMC analysis readout is a collapsible panel, not a floating HUD.
+  const [showAnalysisPanel, setShowAnalysisPanel] = useState(false);
 
   // Demo Account & Live Auto-Trading Bot Store
   const {
@@ -470,21 +474,96 @@ export default function TrendLensUltraChart({
   // Chart Height Mode: 'standard' (620px), 'large' (740px), 'cinema' (860px)
   const [chartHeightMode, setChartHeightMode] = useState('large');
 
-  // 10-Trade Bot Forward Tester & Live Sequential Execution State (Open by default)
+  // 10-Trade Bot Forward Tester & Live Sequential Execution State
+  // The bot studio is a GRID COLUMN next to the chart, not an overlay.
+  // It keeps its own state (runner, account, settings) either way; the
+  // panel is only mounted once.
   const [showBotTester, setShowBotTester] = useState(() => {
     try {
       const saved = localStorage.getItem('tl_show_bot_tester');
-      return saved !== null ? saved === 'true' : true;
+      // The bot studio is hidden until the user opens it. A previously saved
+      // preference is respected.
+      return saved !== null ? saved === 'true' : false;
     } catch {
-      return true;
+      return false;
     }
   });
+
+  // Width of the bot studio column in pixels. It is clamped against the
+  // measured body width so the chart always keeps a usable minimum.
+  const [botPanelWidth, setBotPanelWidth] = useState(360);
+  const [isResizingBot, setIsResizingBot] = useState(false);
+  const bodyRef = useRef(null);
+
+  const BOT_MIN_WIDTH = 280;
+  const BOT_MAX_WIDTH = 720;
 
   const handleToggleBotTester = (val) => {
     const nextVal = typeof val === 'boolean' ? val : !showBotTester;
     setShowBotTester(nextVal);
     try { localStorage.setItem('tl_show_bot_tester', String(nextVal)); } catch {}
   };
+
+  // Keep the bot column at a sensible share of the workspace when it opens.
+  useEffect(() => {
+    if (!showBotTester) return;
+    const body = bodyRef.current;
+    if (!body) return;
+    const w = body.clientWidth;
+    if (!w) return;
+    setBotPanelWidth((prev) => {
+      const desired = Math.round(w * 0.4);
+      const clamped = Math.max(BOT_MIN_WIDTH, Math.min(BOT_MAX_WIDTH, desired));
+      // Only adjust on the transition into the open state, or when the
+      // current width no longer fits the available space.
+      return Math.max(clamped, Math.min(prev, Math.round(w * 0.45)));
+    });
+  }, [showBotTester]);
+
+  // The workspace needs to know whether the bot studio is open so it can
+  // keep the watchlist as an overlay instead of crushing the chart.
+  useEffect(() => {
+    const emit = () => window.dispatchEvent(new CustomEvent('trendlens_bot_panel_state', {
+      detail: { open: showBotTester },
+    }));
+    emit();
+    // A child effect runs before the parent's listener is attached, so the
+    // state is published again on the next tick.
+    const t = setTimeout(emit, 0);
+    return () => clearTimeout(t);
+  }, [showBotTester]);
+
+  // The dashboard rail and the watchlist both dispatch this event.
+  useEffect(() => {
+    const onToggle = () => handleToggleBotTester();
+    window.addEventListener('trendlens_toggle_bot_panel', onToggle);
+    return () => window.removeEventListener('trendlens_toggle_bot_panel', onToggle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showBotTester]);
+
+  const onBotResizeStart = (e) => {
+    const body = bodyRef.current;
+    if (!body) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setIsResizingBot(true);
+    const bodyRect = body.getBoundingClientRect();
+
+    const onMove = (ev) => {
+      const next = bodyRect.right - ev.clientX;
+      const max = Math.min(BOT_MAX_WIDTH, Math.round(bodyRect.width * 0.45));
+      const clamped = Math.max(BOT_MIN_WIDTH, Math.min(max, Math.round(next)));
+      setBotPanelWidth(clamped);
+    };
+    const onUp = () => {
+      setIsResizingBot(false);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
   const [tradeJourneyMode, setTradeJourneyMode] = useState('minimized');
   const [isBotFullscreen, setIsBotFullscreen] = useState(false);
   const [showBybitModal, setShowBybitModal] = useState(false);
@@ -3935,63 +4014,122 @@ export default function TrendLensUltraChart({
             {fmt(currentPx)}
           </span>
         </div>
+
+        {/* Compact, always-visible data-source state. It replaced the
+            floating "Data: …" badge so the candles are never covered. */}
+        <span
+          className={`ultra-source-pill ${chartDataSource === 'bybit' ? 'live' : chartDataSource === 'simulation' ? 'sim' : 'off'}`}
+          title={
+            chartDataSource === 'bybit'
+              ? `Real Bybit candles · ${feedStatusLabel(feedStatus)}`
+              : chartDataSource === 'simulation'
+                ? 'Simulated candles — the live feed is unavailable'
+                : 'Market data unavailable'
+          }
+        >
+          {chartDataSource === 'bybit'
+            ? `BYBIT · ${feedStatusLabel(feedStatus)}`
+            : chartDataSource === 'simulation' ? 'SIMULATED' : 'UNAVAILABLE'}
+        </span>
+
+        {/* SMC Analysis panel toggle — the analysis badges live in a
+            collapsible panel instead of floating over the candles. */}
+        <button
+          type="button"
+          className={`ultra-analysis-toggle ${showAnalysisPanel ? 'on' : ''}`}
+          onClick={() => setShowAnalysisPanel((v) => !v)}
+          aria-expanded={showAnalysisPanel}
+          aria-controls="trendlens-smc-analysis"
+          title="SMC analysis readout (trend bias, confluence rules, session, data source)"
+        >
+          <Activity size={12} />
+          <span>SMC</span>
+        </button>
       </div>
 
-      {/* Main Canvas + Depth of Market Body */}
-      <div className={`ultra-body h-${chartHeightMode} ${!chips.DOM ? 'no-dom' : ''}`}>
+      {/* Main Canvas + Depth of Market Body
+          The body is a grid: [ chart | resizer | bot studio ].
+          The bot track collapses to 0 when the studio is closed, so the
+          chart owns the full width. */}
+      <div
+        ref={bodyRef}
+        className={`ultra-body h-${chartHeightMode} ${!chips.DOM ? 'no-dom' : ''}`}
+        style={{
+          '--bot-w': showBotTester ? `${botPanelWidth}px` : '0px',
+          '--bot-gap': showBotTester ? '6px' : '0px',
+        }}
+      >
         <div className="ultra-canvas-wrap">
-          {/* Active Overlay Status HUD */}
-          <div className="ultra-chart-hud">
-            <div className="ultra-hud-badge">
-              <span style={{ color: '#2fd39a' }}>●</span>
-              <span>{engineMode === 'scalper' ? 'HSR Flow Scalper Pro' : 'Ultra Engine v2.4'}</span>
-              <span style={{ color: '#e9b949' }}>[{timeframe}]</span>
-            </div>
-            <div className="ultra-hud-badge" style={{ color: '#2fd39a', border: '1px solid rgba(47, 211, 154, 0.45)' }}>
-              <Shield size={11} />
-              <span>Confluence rules: STRICT (anti-chop)</span>
-            </div>
-            <div className="ultra-hud-badge" style={{
-              color: macroBias === 'BULLISH' ? '#2fd39a' : macroBias === 'BEARISH' ? '#ff3366' : '#8592a6',
-              border: `1px solid ${macroBias === 'BULLISH' ? 'rgba(47, 211, 154, 0.45)' : macroBias === 'BEARISH' ? 'rgba(255, 51, 102, 0.45)' : 'rgba(133, 146, 166, 0.45)'}`
-            }}>
-              <TrendingUp size={11} />
-              <span>Trend Bias (6 vs 18 bars): {macroBias}</span>
-            </div>
-            <div className="ultra-hud-badge" style={{ color: '#e9b949', border: '1px solid rgba(233, 185, 73, 0.45)' }}>
-              <Clock size={11} />
-              <span>Session: {utcSessionLabel}</span>
-            </div>
-            {engineMode === 'scalper' && (
-              <div className="ultra-hud-badge" style={{ color: '#2fd39a', border: '1px solid #2fd39a' }}>
-                <Zap size={11} />
-                <span>Micro-Ticks Active (170ms)</span>
+          {/* The floating analysis HUD was removed. Its content now lives in
+              the collapsible SMC Analysis panel in the chip bar, so no badge
+              ever covers the candles. The data-source state is still always
+              visible as a compact pill in the chip bar. */}
+
+          {/* SMC Analysis panel — collapsed by default so no label ever
+              covers the candles. It is anchored to the chart column (grid
+              column 1), never to the bot column. */}
+          {showAnalysisPanel && (
+            <div className="ultra-analysis-panel" id="trendlens-smc-analysis" role="region" aria-label="SMC analysis">
+              <div className="ultra-analysis-head">
+                <span>SMC Analysis</span>
+                <button
+                  type="button"
+                  className="ultra-analysis-close"
+                  onClick={() => setShowAnalysisPanel(false)}
+                  title="Close the analysis panel"
+                  aria-label="Close the analysis panel"
+                >
+                  ✕
+                </button>
               </div>
-            )}
-            <div className="ultra-hud-badge" style={{
-              color: feedStatus === FEED_STATUS.LIVE ? '#2fd39a' : feedStatus === FEED_STATUS.STALE ? '#e9b949' : '#ff3366',
-              border: `1px solid ${feedStatus === FEED_STATUS.LIVE ? 'rgba(47, 211, 154, 0.45)' : feedStatus === FEED_STATUS.STALE ? 'rgba(233, 185, 73, 0.45)' : 'rgba(255, 51, 102, 0.45)'}`
-            }}>
-              <Activity size={11} />
-              <span>
-                {chartDataSource === 'simulation'
-                  ? 'Data: SIMULATED candles'
-                  : chartDataSource === 'unavailable'
-                    ? 'Data: unavailable (Bybit)'
-                    : `Data: Bybit candles · ${feedStatusLabel(feedStatus)}`}
-              </span>
+              <div className="ultra-analysis-row">
+                <span className="ultra-analysis-key">Engine</span>
+                <span className="ultra-analysis-val">{engineMode === 'scalper' ? 'HSR Flow Scalper Pro' : 'Ultra Engine v2.4'}</span>
+              </div>
+              <div className="ultra-analysis-row">
+                <span className="ultra-analysis-key">Timeframe</span>
+                <span className="ultra-analysis-val">{timeframe}</span>
+              </div>
+              <div className="ultra-analysis-row">
+                <span className="ultra-analysis-key">Confluence</span>
+                <span className="ultra-analysis-val">STRICT (anti-chop)</span>
+              </div>
+              <div className="ultra-analysis-row">
+                <span className="ultra-analysis-key">Bias</span>
+                <span className={`ultra-analysis-val ${macroBias === 'BULLISH' ? 'up' : macroBias === 'BEARISH' ? 'down' : ''}`}>
+                  Trend Bias (6 vs 18 bars): {macroBias}
+                </span>
+              </div>
+              <div className="ultra-analysis-row">
+                <span className="ultra-analysis-key">Session</span>
+                <span className="ultra-analysis-val">{utcSessionLabel}</span>
+              </div>
+              <div className="ultra-analysis-row">
+                <span className="ultra-analysis-key">Data</span>
+                <span className="ultra-analysis-val">
+                  {chartDataSource === 'simulation'
+                    ? 'SIMULATED candles'
+                    : chartDataSource === 'unavailable'
+                      ? 'UNAVAILABLE (Bybit)'
+                      : `Bybit candles · ${feedStatusLabel(feedStatus)}`}
+                </span>
+              </div>
+              <div className="ultra-analysis-row">
+                <span className="ultra-analysis-key">Depth feed</span>
+                <span className="ultra-analysis-val muted">not connected — liquidity heatmap unavailable</span>
+              </div>
+              <div className="ultra-analysis-row">
+                <span className="ultra-analysis-key">Order flow</span>
+                <span className="ultra-analysis-val muted">not connected — no trade tape</span>
+              </div>
+              {activePlan && (
+                <div className="ultra-analysis-row">
+                  <span className="ultra-analysis-key">AI plan</span>
+                  <span className="ultra-analysis-val">{activePlan.type} · {activePlan.ratio}</span>
+                </div>
+              )}
             </div>
-            {chips.LIQ && (
-              <div className="ultra-hud-badge" style={{ color: '#f2a33a' }}>
-                <span>🔥 Inferno Heatmap: Active</span>
-              </div>
-            )}
-            {activePlan && (
-              <div className="ultra-hud-badge" style={{ color: '#2fd39a', border: '1px solid #2fd39a' }}>
-                <span>🎯 AI Plan Active: {activePlan.type}</span>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Interactive Chart Canvas */}
 
@@ -4157,6 +4295,18 @@ export default function TrendLensUltraChart({
             )}
           </div>
         )}
+        {/* Drag handle between the chart and the bot studio. */}
+        {showBotTester && (
+          <div
+            className={`ultra-resizer${isResizingBot ? ' dragging' : ''}`}
+            onPointerDown={onBotResizeStart}
+            title="Drag to resize the Bot Studio column"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize Bot Studio"
+          />
+        )}
+
         {/* Dedicated Right-Side Dock: Demo Account & Live Trading Bot */}
         {showBotTester ? (
           <TrendLensBotPanel

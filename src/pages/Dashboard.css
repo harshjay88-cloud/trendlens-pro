@@ -46,10 +46,10 @@
 
 /* Dashboard canvas — compact spacing so the chart owns the viewport. */
 .dashboard-content {
-  padding: 10px 12px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
@@ -62,6 +62,111 @@
   gap: 8px;
   flex: 0 0 auto;
 }
+
+/* ── Compact KPI ribbon ──────────────────────────────────────────────
+   One row instead of four cards. Every value states its provenance:
+   a live Bybit price is tagged LIVE, a seeded reference price DEMO, and
+   the signal count is tagged as sample data. */
+.dash-kpi-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 4px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 6px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.dash-kpi-ribbon::-webkit-scrollbar { height: 0; }
+
+.kpi-block {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.kpi-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.kpi-value {
+  font-family: var(--font-heading);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.kpi-block--price .kpi-value { font-size: 1.05rem; }
+.kpi-note {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.kpi-delta { font-size: 0.68rem; font-weight: 700; }
+.kpi-delta.up { color: var(--signal-buy); }
+.kpi-delta.down { color: var(--signal-sell); }
+.kpi-delta.flat { color: var(--text-muted); font-weight: 500; }
+.kpi-sep { width: 1px; height: 18px; background: var(--border); flex: 0 0 auto; }
+.kpi-spacer { flex: 1 1 auto; min-width: 4px; }
+
+.kpi-feed {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.kpi-feed--live { color: var(--signal-buy); border-color: var(--signal-buy); }
+.kpi-feed--partial { color: var(--signal-neutral); border-color: var(--signal-neutral); }
+.kpi-feed--demo { color: var(--text-muted); }
+.kpi-feed--disconnected { color: var(--signal-sell); border-color: var(--signal-sell); }
+
+.kpi-toggle {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text-secondary);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.kpi-toggle:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+  background: var(--bg-elevated, rgba(255, 255, 255, 0.04));
+}
+
+/* Expandable detail view: the full statistics cards live here so they
+   never occupy chart height by default. */
+.dash-kpi-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 6px);
+}
+.dash-kpi-details-head h2 { font-size: 1rem; margin-bottom: 2px; }
+.dash-kpi-details-head p { font-size: 0.76rem; color: var(--text-muted); }
+.dash-kpi-details-note { font-size: 0.66rem; color: var(--text-muted); }
 
 /* Terminal area: the chart owns the full height, the engine analytics
    below it are reached by scrolling this region. */
@@ -167,11 +272,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 12px;
+  padding: 4px 10px;
   background: var(--bg-card, #1e222d);
   border-bottom: 1px solid var(--border, #2a2e39);
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -221,10 +326,13 @@
   background: var(--bg-card, #1e222d);
 }
 .chart-container .ultra-chips-group {
+  /* The chip row must never collapse to zero width: it is the only way to
+     reach the indicator / depth / bot controls on a narrow workspace. */
+  flex: 1 1 auto;
   flex-wrap: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
-  min-width: 0;
+  min-width: 220px;
   scrollbar-width: none;
 }
 .chart-container .ultra-chips-group::-webkit-scrollbar { height: 0; }
@@ -241,13 +349,8 @@
   flex-shrink: 0;
 }
 
-/* The depth-of-market ladder is a chart panel that cannot narrow (it is a
-   fixed price/size grid) and it was squeezing the canvas down to a
-   ~190px strip on 1366px screens. It follows the chart's own existing
-   responsive behaviour and steps aside on narrow terminals. */
-@media (max-width: 1500px) {
-  .chart-container .ultra-dom { display: none; }
-}
+/* The depth-of-market ladder is an overlay panel inside the chart body, so
+   it never takes width from the canvas. */
 
 .chart-ctrl-divider {
   width: 1px;
@@ -335,16 +438,30 @@
   .dash-main-row { min-height: 320px; }
 }
 @media (max-width: 1024px) {
-  /* The right drawer overlays the workspace instead of squeezing the chart,
-     so the terminal never has to scroll sideways. */
-  .tv-terminal-wrapper > .tv-watchlist-drawer,
-  .tv-terminal-wrapper > .tv-side-drawer-container {
+  /* The right drawer is an overlay on narrow workspaces. It is positioned by
+     the .tv-drawer--overlay modifier, which keeps it clear of the 44px icon
+     rail. */
+  .tv-watchlist-drawer.tv-drawer--overlay,
+  .tv-side-drawer-container.tv-drawer--overlay {
+    max-width: 78%;
+  }
+}
+
+/* Narrow workspaces: a pinned drawer would shrink the chart, so the drawer
+   is always an overlay there. The chart keeps its full width. */
+@media (max-width: 1100px) {
+  .tv-watchlist-drawer.tv-drawer--pinned,
+  .tv-side-drawer-container.tv-drawer--pinned {
     position: absolute;
     top: 0;
-    right: 0;
+    right: 44px;
     bottom: 0;
-    z-index: 20;
-    box-shadow: -6px 0 24px rgba(0, 0, 0, 0.45);
+    width: 320px;
+    min-width: 0;
+    max-width: 78%;
+    z-index: 30;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.55);
+    animation: tvDrawerSlideIn 0.2s ease-out;
   }
 }
 @media (max-width: 640px) {
@@ -490,6 +607,33 @@
   flex-direction: column;
 }
 
+/* Overlay drawer: slides over the chart and takes no layout width. */
+.tv-side-drawer-container.tv-drawer--overlay {
+  position: absolute;
+  top: 0;
+  right: 44px;
+  bottom: 0;
+  width: 320px;
+  min-width: 0;
+  max-width: 46%;
+  z-index: 30;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.55);
+  animation: tvDrawerSlideIn 0.2s ease-out;
+}
+
+/* Pinned drawer: docked beside the chart, taking real width. */
+.tv-side-drawer-container.tv-drawer--pinned {
+  position: relative;
+  flex: 0 0 320px;
+  width: 320px;
+  min-width: 320px;
+}
+
+@keyframes tvDrawerSlideIn {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 .tv-rail-btn {
   width: 34px;
   height: 34px;
@@ -523,61 +667,10 @@
   overflow-y: auto;
 }
 
-/* ── Engine Status Bar & Sub-Header ── */
-.engine-status-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 7px 18px;
-  background: var(--bg-secondary, #0c0d10);
-  border-bottom: 1px solid var(--border, #2a2e39);
-  font-size: 0.72rem;
-  font-family: var(--font-mono, monospace);
-  flex-shrink: 0;
-}
-
-.engine-status-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.engine-status-pulse {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--signal-buy, #089981);
-  box-shadow: 0 0 8px var(--signal-buy, #089981);
-  animation: blink 1.6s infinite ease-in-out;
-}
-
-.engine-status-title {
-  color: #ffffff;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  font-size: 0.73rem;
-}
-
-.engine-status-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.engine-tag-pill {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-secondary, #787b86);
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 700;
-}
-
-.engine-tag-pill.live {
-  background: rgba(8, 153, 129, 0.12);
-  color: var(--signal-buy, #089981);
-  border: 1px solid rgba(8, 153, 129, 0.3);
-}
+/* ── Engine Status Bar ──
+   Removed: the sub-header repeated the engine name shown by the engine
+   navigation, carried unsupported claims and duplicated the feed status
+   that now lives in the KPI ribbon and the chart's SMC Analysis panel. */
 
 /* ── TradingView / Bybit Style Top View Navigation Bar ── */
 .dash-view-selector-bar {
@@ -586,13 +679,13 @@
   justify-content: space-between;
   background: var(--bg-card, #1e222d);
   border-bottom: 1px solid var(--border, #2a2e39);
-  padding: 0 16px;
-  min-height: 44px;
-  height: 44px;
+  padding: 0 12px;
+  min-height: 38px;
+  height: 38px;
   flex-shrink: 0;
   z-index: 40;
   overflow-x: auto;
-  gap: 12px;
+  gap: 10px;
 }
 
 .dash-view-tabs {

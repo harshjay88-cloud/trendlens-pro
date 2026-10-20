@@ -3,7 +3,6 @@ import Navbar from '../components/common/Navbar.jsx';
 import Sidebar from '../components/common/Sidebar.jsx';
 import { useAuthStore, useSignalStore, useThemeStore, useDemoAccountStore } from '../store/index.js';
 import { useMarketStore } from '../store/marketStore.js';
-import { MOCK_DAILY_TARGET } from '../utils/mockData.js';
 import { buildPaperMetricsView } from '../utils/paperMetricsView.js';
 import { fetchBybitKlines, resolveBybitInterval, resolveBybitSymbol } from '../services/bybitService.js';
 import {
@@ -53,9 +52,9 @@ function DailyTargetWidget({ asset, currentPrice, bias = 'BULLISH' }) {
           <div className="section-label" style={{ marginBottom: 4 }}>Daily Target Engine</div>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Session Projection · {asset}</div>
         </div>
-        <div className={`bias-badge ${bias === 'BULLISH' ? 'buy' : 'sell'}`}>
+        <div className={`bias-badge ${bias === 'BULLISH' ? 'buy' : 'sell'}`} title="Seeded sample bias — not a verified market reading">
           {bias === 'BULLISH' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-          {bias}
+          SAMPLE {bias}
         </div>
       </div>
       <div className="dt-price">
@@ -146,7 +145,7 @@ function SignalFeed({ signals, currentAsset }) {
         <div className="section-label" style={{ marginBottom: 0 }}>
           Signals ({currentAsset})
         </div>
-        <span className="badge badge-buy">LIVE</span>
+        <span className="badge badge-buy" title="Seeded sample signals — not a live market feed">SAMPLE</span>
       </div>
       <div className="sf-list">
         {displayList.slice(0, 5).map(sig => (
@@ -173,7 +172,7 @@ export default function Dashboard() {
   const demoAccount = useDemoAccountStore();
   const { signals } = useSignalStore();
   const { theme, setTheme } = useThemeStore();
-  const { prices, fetchLiveCrypto, feedStatus } = useMarketStore();
+  const { prices, fetchLiveCrypto, feedStatus, isLiveAsset } = useMarketStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeEngine, setActiveEngine] = useState('smc_ultra'); // 'smc_ultra', 'scalp', 'day_trading', 'swing_4h'
   const [symbol, setSymbol] = useState('BTCUSD');
@@ -182,7 +181,53 @@ export default function Dashboard() {
   const [chartFocusMode, setChartFocusMode] = useState(false);
   const [chartEngine, setChartEngine] = useState('ultra'); // 'ultra', 'scalper', 'day', 'swing'
   const [sideColTab, setSideColTab] = useState('coach'); // 'coach' or 'signals'
-  const [showRightDrawer, setShowRightDrawer] = useState('watchlist'); // 'watchlist', 'coach', or null
+  // The right drawer is CLOSED by default: the chart owns the full width
+  // until the user asks for the watchlist, the coach or the signal feed.
+  const [showRightDrawer, setShowRightDrawer] = useState(null); // 'watchlist', 'coach', 'signals', or null
+  // A pinned drawer takes layout width (docked). An unpinned drawer slides
+  // over the chart (overlay) so the chart is never crushed.
+  const [drawerPinned, setDrawerPinned] = useState(() => {
+    try {
+      return localStorage.getItem('tl_drawer_pinned') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  // The bot studio lives inside the chart component. The workspace needs to
+  // know when it is open so a drawer can never squeeze the chart twice.
+  // The chart publishes the change through a `trendlens_bot_panel_state`
+  // event; the initial value is read from the same persisted flag the chart
+  // uses, because a child's effect runs before the parent's listener is
+  // attached and the first event would otherwise be missed.
+  const [botPanelOpen, setBotPanelOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tl_show_bot_tester');
+      return saved !== null ? saved === 'true' : false;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('tl_drawer_pinned', String(drawerPinned));
+    } catch {}
+  }, [drawerPinned]);
+
+  useEffect(() => {
+    const onBotState = (e) => {
+      setBotPanelOpen(e?.detail?.open === true);
+    };
+    window.addEventListener('trendlens_bot_panel_state', onBotState);
+    return () => window.removeEventListener('trendlens_bot_panel_state', onBotState);
+  }, []);
+
+  // While the bot studio is open the drawer must stay an overlay, otherwise
+  // the chart would lose both the bot column and the drawer width.
+  const drawerIsOverlay = botPanelOpen || !drawerPinned;
+  // The KPI ribbon is the compact top row. The detailed statistics live in
+  // an expandable panel so they never occupy chart height by default.
+  const [showKpiDetails, setShowKpiDetails] = useState(false);
   const [activeDrawingTool, setActiveDrawingTool] = useState('crosshair');
   const [activePlan, setActivePlan] = useState(null);
   const [showMultiGrid, setShowMultiGrid] = useState(false);
@@ -465,6 +510,24 @@ export default function Dashboard() {
   const currentChange = assetData.change ?? 12.34;
   const currentPct = assetData.changePct ?? 0.47;
 
+  // A price is only presented as live when the market store says this
+  // asset actually received a Bybit tick. Everything else is a seeded
+  // reference value and is labelled as such.
+  const isPriceLive = isLiveAsset(currentAsset);
+  const priceText = currentPrice > 100
+    ? currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : currentPrice.toFixed(4);
+  const hasRealChange = isPriceLive && typeof assetData.change === 'number' && typeof assetData.changePct === 'number';
+  const deltaText = hasRealChange
+    ? `${currentChange >= 0 ? '+' : ''}${currentChange.toFixed(2)} (${currentPct >= 0 ? '+' : ''}${currentPct}%)`
+    : 'change unavailable';
+  const deltaClass = hasRealChange ? (currentPct >= 0 ? 'up' : 'down') : 'flat';
+  const feedLabel = feedStatus === 'LIVE' ? 'LIVE FEED'
+    : feedStatus === 'PARTIAL' ? 'PARTIAL FEED'
+    : feedStatus === 'DEMO' ? 'DEMO FEED'
+    : 'FEED OFFLINE';
+  const paperTradeCount = (demoAccount?.trades || []).length;
+
   const activeCount = signals.filter(s => s.status === 'active' || s.status.includes('tp')).length;
 
   const ALL_TIMEFRAMES = [
@@ -635,27 +698,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Engine Status Sub-Header */}
-        <div className="engine-status-bar">
-          <div className="engine-status-left">
-            <span className="engine-status-pulse"></span>
-            <span className="engine-status-title">
-              {activeEngine === 'smc_ultra' && 'INSTITUTIONAL SMC ULTRA · ORDER BLOCKS · FVG MITIGATION · LIQUIDITY SWEEPS · BOOKMAP INFERNO HEATMAP'}
-              {activeEngine === 'scalp' && 'MICRO-ORDERFLOW FLOW SCALPER · M1/M5 FAST TICKS · TAPE MOMENTUM · BOOKMAP WALL DEFENSE'}
-              {activeEngine === 'day_trading' && 'INTRADAY KILLZONE ENGINE · ASIAN/LONDON/NY SESSIONS · VWAP BANDS · EQUILIBRIUM RETRACEMENTS'}
-              {activeEngine === 'swing_4h' && '4-HOURS MACRO SWING ENGINE · H4/D1 MULTI-DAY STRUCTURE · 1:3+ R:R ASYMMETRIC TARGETS'}
-              {activeEngine === 'manual_studio' && 'TRADINGVIEW PRO MANUAL STUDIO · 50+ TECHNICAL INDICATORS · VOLUME PROFILE VPVR / POC · HEIKIN ASHI / RENKO · 18 DRAWING TOOLS'}
-            </span>
-          </div>
-          <div className="engine-status-right">
-            <span className="engine-tag-pill">
-              Confluence: {latestConfluence !== null ? `${latestConfluence}/100` : '—'}
-            </span>
-            <span className={`engine-tag-pill${feedStatus === 'LIVE' ? ' live' : ''}`}>
-              {feedStatus === 'LIVE' ? 'STREAMING LIVE' : feedStatus === 'PARTIAL' ? 'PARTIAL FEED' : feedStatus === 'DEMO' ? 'DEMO FEED' : 'FEED OFFLINE'}
-            </span>
-          </div>
-        </div>
+        {/* Engine Status Sub-Header
+            Removed: it repeated the engine name already shown by the engine
+            navigation above, carried marketing copy with unsupported claims
+            ("BOOKMAP INFERNO HEATMAP" with no depth feed connected) and
+            duplicated the feed status that now lives in the KPI ribbon.
+            The live feed state is shown in the KPI ribbon and again inside
+            the chart's SMC Analysis panel. */}
 
         {/* Bar Replay Toolbar if active */}
         {isBarReplayActive && (
@@ -692,49 +741,91 @@ export default function Dashboard() {
         ) : (
         <div className="dashboard-content">
           <div className="dash-top-strip">
-            {/* Greeting */}
-            <div className="dash-greeting">
-              <div>
-                <h2>Welcome back, <span className="text-brand">{user?.username}</span> {user?.avatar}</h2>
-                <p>Institutional Order Flow &amp; AI Intelligence Dashboard.</p>
+            {/* Compact KPI ribbon — one row, no card chrome.
+                Every value states where it came from: a live Bybit price is
+                tagged LIVE, a seeded reference price is tagged DEMO, and
+                the signal count is tagged as sample data. */}
+            <div className="dash-kpi-ribbon" role="group" aria-label="Key indicators">
+              <div className="kpi-block kpi-block--price">
+                <span className="kpi-label">{currentAsset}</span>
+                <span className="kpi-value">{priceText}</span>
+                <span className={`kpi-delta ${deltaClass}`}>{deltaText}</span>
               </div>
-              <div className={`bias-badge ${MOCK_DAILY_TARGET.bias === 'BULLISH' ? 'buy' : 'sell'} big`}>
-                {MOCK_DAILY_TARGET.bias === 'BULLISH' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
-                Session Bias: {MOCK_DAILY_TARGET.bias}
+              <span className={`kpi-feed kpi-feed--${feedStatus.toLowerCase()}`}>{feedLabel}</span>
+              <span className="kpi-sep" />
+              <div className="kpi-block">
+                <span className="kpi-label">Signals</span>
+                <span className="kpi-value">{activeCount}</span>
+                <span className="kpi-note">sample</span>
               </div>
+              <span className="kpi-sep" />
+              <div className="kpi-block">
+                <span className="kpi-label">Paper W/R</span>
+                <span className="kpi-value">{paperView.winRate}</span>
+                <span className="kpi-note">{paperTradeCount} trades</span>
+              </div>
+              <div className="kpi-block">
+                <span className="kpi-label">Paper Pips</span>
+                <span className="kpi-value">{paperView.totalPips}</span>
+              </div>
+              <div className="kpi-block">
+                <span className="kpi-label">Confluence</span>
+                <span className="kpi-value">{latestConfluence !== null ? `${latestConfluence}/100` : '—'}</span>
+              </div>
+              <span className="kpi-spacer" />
+              <button
+                type="button"
+                className="kpi-toggle"
+                onClick={() => setShowKpiDetails((v) => !v)}
+                aria-expanded={showKpiDetails}
+                title="Show the detailed statistics and journal scope"
+              >
+                {showKpiDetails ? 'Hide details' : 'Details'}
+              </button>
             </div>
 
-            {/* Stats Row */}
-            <div className="dash-stats">
-              <StatCard
-                label={`Live ${currentAsset}`}
-                value={currentPrice > 100 ? currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : currentPrice.toFixed(4)}
-                sub={`${currentChange >= 0 ? '+' : ''}${currentChange.toFixed(2)} (${currentPct >= 0 ? '+' : ''}${currentPct}%)`}
-                icon={TrendingUp}
-                color="var(--brand)"
-              />
-              <StatCard
-                label="Active Signals"
-                value={`${activeCount}`}
-                sub="Multi-engine algorithmic feed"
-                icon={Zap}
-                color="var(--signal-buy)"
-              />
-              <StatCard
-                label="Your Win Rate"
-                value={paperView.winRate}
-                sub={paperView.scopeNotice}
-                icon={Target}
-                color="var(--signal-neutral)"
-              />
-              <StatCard
-                label="Total Pips"
-                value={paperView.totalPips}
-                sub={paperView.pipsCoverageNotice || paperView.scopeNotice}
-                icon={Activity}
-                color="var(--gold)"
-              />
-            </div>
+            {/* Expandable detail view — holds the full statistics cards. */}
+            {showKpiDetails && (
+              <div className="dash-kpi-details">
+                <div className="dash-kpi-details-head">
+                  <h2>Welcome back, <span className="text-brand">{user?.username}</span> {user?.avatar}</h2>
+                  <p>Institutional Order Flow &amp; AI Intelligence Dashboard.</p>
+                  <span className="dash-kpi-details-note">
+                    Reference prices that are not yet live are tagged DEMO. The signal feed is sample data.
+                  </span>
+                </div>
+                <div className="dash-stats">
+                  <StatCard
+                    label={`${isPriceLive ? 'Live' : 'Demo'} ${currentAsset}`}
+                    value={priceText}
+                    sub={deltaText}
+                    icon={TrendingUp}
+                    color="var(--brand)"
+                  />
+                  <StatCard
+                    label="Sample Signals"
+                    value={`${activeCount}`}
+                    sub="Seeded sample feed — not live market signals"
+                    icon={Zap}
+                    color="var(--signal-buy)"
+                  />
+                  <StatCard
+                    label="Your Win Rate"
+                    value={paperView.winRate}
+                    sub={paperView.scopeNotice}
+                    icon={Target}
+                    color="var(--signal-neutral)"
+                  />
+                  <StatCard
+                    label="Total Pips"
+                    value={paperView.totalPips}
+                    sub={paperView.pipsCoverageNotice || paperView.scopeNotice}
+                    icon={Activity}
+                    color="var(--gold)"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="dash-workspace">
@@ -1064,18 +1155,26 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* 4. Right Collapsible Watchlist & Detail Drawer */}
+                  {/* 4. Right Collapsible Watchlist & Detail Drawer
+                      The drawer is closed by default. It is an overlay
+                      (slides over the chart, takes no width) unless it is
+                      pinned — and pinning is unavailable while the bot
+                      studio is open, so the chart is never crushed twice. */}
                   {showRightDrawer === 'watchlist' && (
                     <TradingViewWatchlist
                       prices={prices}
                       selectedSymbol={symbol}
                       onSelectSymbol={(newSym) => setSymbol(newSym)}
                       onOpenBot={() => window.dispatchEvent(new CustomEvent('trendlens_toggle_bot_panel'))}
+                      pinned={drawerPinned && !botPanelOpen}
+                      overlay={drawerIsOverlay}
+                      onTogglePin={() => setDrawerPinned((p) => !p)}
+                      pinDisabled={botPanelOpen}
                     />
                   )}
 
                   {showRightDrawer === 'coach' && (
-                    <div className="tv-side-drawer-container">
+                    <div className={`tv-side-drawer-container ${drawerIsOverlay ? 'tv-drawer--overlay' : 'tv-drawer--pinned'}`}>
                       <AiCoachChat
                         currentAsset={currentAsset}
                         currentPrice={currentPrice}
@@ -1089,7 +1188,7 @@ export default function Dashboard() {
                   )}
 
                   {showRightDrawer === 'signals' && (
-                    <div className="tv-side-drawer-container" style={{ padding: '12px' }}>
+                    <div className={`tv-side-drawer-container ${drawerIsOverlay ? 'tv-drawer--overlay' : 'tv-drawer--pinned'}`} style={{ padding: '12px' }}>
                       <SignalFeed signals={signals} currentAsset={currentAsset} />
                     </div>
                   )}
@@ -1118,9 +1217,9 @@ export default function Dashboard() {
                       <Zap size={16} />
                     </button>
                     <button
-                      className="tv-rail-btn"
+                      className={`tv-rail-btn ${botPanelOpen ? 'active' : ''}`}
                       onClick={() => window.dispatchEvent(new CustomEvent('trendlens_toggle_bot_panel'))}
-                      title="10-Coin Institutional AI Bot"
+                      title={botPanelOpen ? 'Close the Bot Studio' : 'Open the Bot Studio (10-Coin Institutional AI Bot)'}
                     >
                       <Cpu size={16} />
                     </button>

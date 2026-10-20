@@ -104,6 +104,19 @@
   background: var(--signal-buy);
   animation: blink 1.5s ease-in-out infinite;
 }
+.live-dot.demo {
+  background: var(--text-muted);
+  animation: none;
+}
+.live-state {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
 .live-asset { color: var(--text-secondary); font-weight: 600; font-size: 0.78rem; letter-spacing: 0.05em; }
 .live-value { font-family: var(--font-mono); font-weight: 700; color: var(--text-primary); }
 .live-change { font-weight: 700; font-family: var(--font-mono); font-size: 0.8rem; }

@@ -47,7 +47,7 @@ export default function Sidebar({ open, setOpen }) {
               onClick={() => window.innerWidth < 1024 && setOpen(false)}>
               <Icon size={18} />
               <span>{label}</span>
-              {label === 'Signals Hub' && <span className="sidebar-badge">Live</span>}
+              {label === 'Signals Hub' && <span className="sidebar-badge" title="Seeded sample signals — not a live market feed">Sample</span>}
               {label === 'Indicator Suite' && <span className="sidebar-badge" style={{background:'rgba(0, 230, 118, 0.15)', color:'var(--signal-buy)'}}>10 Pro</span>}
               {label === 'Signal Dispatcher' && <span className="sidebar-badge" style={{background:'var(--brand-glow)', color:'var(--brand)'}}>Admin</span>}
             </NavLink>

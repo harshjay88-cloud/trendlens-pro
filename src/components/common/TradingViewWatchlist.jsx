@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Plus, Sliders, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Sliders, ExternalLink, TrendingUp, TrendingDown, Pin, PinOff } from 'lucide-react';
 import './TradingViewWatchlist.css';
 
 const WATCHLIST_SECTIONS = [
@@ -95,7 +95,11 @@ export default function TradingViewWatchlist({
   prices = {},
   selectedSymbol = 'BTCUSD',
   onSelectSymbol,
-  onOpenBot
+  onOpenBot,
+  pinned = false,
+  overlay = true,
+  onTogglePin,
+  pinDisabled = false
 }) {
   const [collapsedSections, setCollapsedSections] = useState({});
 
@@ -207,7 +211,7 @@ export default function TradingViewWatchlist({
   const activeData = prices[selectedPair] || { price: 81978.43, changePct: 0.04, high: 82500, low: 81200 };
 
   return (
-    <div className="tv-watchlist-drawer">
+    <div className={`tv-watchlist-drawer ${overlay ? 'tv-drawer--overlay' : 'tv-drawer--pinned'}`}>
       {/* Header */}
       <div className="tv-wl-header">
         <div className="tv-wl-title-wrap">
@@ -215,6 +219,18 @@ export default function TradingViewWatchlist({
           <ChevronDown size={14} />
         </div>
         <div className="tv-wl-actions">
+          <button
+            className={`tv-wl-btn ${pinned ? 'on' : ''}`}
+            onClick={() => { if (!pinDisabled && onTogglePin) onTogglePin(); }}
+            title={pinDisabled
+              ? 'Pinning is unavailable while the Bot Studio is open — the drawer stays as an overlay so the chart is never crushed'
+              : (pinned ? 'Unpin the watchlist (slide over the chart)' : 'Pin the watchlist (dock it beside the chart)')}
+            aria-pressed={pinned}
+            aria-label={pinned ? 'Unpin watchlist' : 'Pin watchlist'}
+            disabled={pinDisabled}
+          >
+            {pinned ? <PinOff size={14} /> : <Pin size={14} />}
+          </button>
           <button className="tv-wl-btn" title="Add Symbol (+)">
             <Plus size={15} />
           </button>

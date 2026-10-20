@@ -13,6 +13,44 @@
   z-index: 10;
 }
 
+/* Overlay mode: the drawer slides over the chart and takes NO layout width,
+   so opening it can never crush the chart. */
+.tv-watchlist-drawer.tv-drawer--overlay {
+  position: absolute;
+  top: 0;
+  right: 44px;
+  bottom: 0;
+  width: 320px;
+  min-width: 0;
+  max-width: 46%;
+  z-index: 30;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.55);
+  animation: tvDrawerSlideIn 0.2s ease-out;
+}
+
+/* Pinned mode: the drawer is docked and takes real width. */
+.tv-watchlist-drawer.tv-drawer--pinned {
+  position: relative;
+  flex: 0 0 320px;
+  width: 320px;
+  min-width: 320px;
+}
+
+@keyframes tvDrawerSlideIn {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.tv-wl-btn.on {
+  color: var(--text-primary, #e8ecf3);
+  background: var(--bg-elevated, rgba(255, 255, 255, 0.06));
+}
+
+.tv-wl-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .tv-wl-header {
   padding: 10px 12px 8px;
   display: flex;
