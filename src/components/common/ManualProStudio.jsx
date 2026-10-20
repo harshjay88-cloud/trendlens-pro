@@ -489,70 +489,82 @@ export default function ManualProStudio({
 
     // ── Continuous Render Frame Loop ──
     const draw = () => {
-      const w = cv.clientWidth;
-      const h = cv.clientHeight;
-      const sBars = displayBarsRef.current;
-      const totalBars = sBars.length;
-      if (totalBars < 2) return;
+      animId = requestAnimationFrame(draw);
 
-      const transform = chartTransformRef.current;
-      const topPad = 25;
-      const btmPad = 30;
-      const rightPad = 72;
-      const chartW = w - rightPad;
-      const chartH = h - topPad - btmPad;
+      try {
+        const w = cv.clientWidth;
+        const h = cv.clientHeight;
+        if (w < 40 || h < 40) return;
 
-      // Dynamic Candle Width based on Zoom
-      const baseVisible = 55;
-      const maxAllowed = Math.max(300, totalBars + 50);
-      const visibleCount = Math.max(8, Math.min(maxAllowed, Math.round(baseVisible / transform.zoomLevel)));
-      const bw = (chartW - 20) / visibleCount;
+        const sBars = displayBarsRef.current || [];
+        const totalBars = sBars.length;
+        if (totalBars < 2) return;
 
-      transform.bw = bw;
-      transform.chartW = chartW;
-      transform.chartH = chartH;
+        const transform = chartTransformRef.current;
+        const topPad = 25;
+        const btmPad = 30;
+        const rightPad = 72;
+        const chartW = w - rightPad;
+        const chartH = h - topPad - btmPad;
+        if (chartW <= 0 || chartH <= 0) return;
 
-      // Horizontal Bar Pan
-      const rightMargin = 8;
-      const maxPanLeft = -(totalBars - 10);
-      const maxPanRight = totalBars;
-      transform.panX = Math.max(maxPanLeft, Math.min(maxPanRight, transform.panX));
+        // Dynamic Candle Width based on Zoom
+        const baseVisible = 55;
+        const maxAllowed = Math.max(300, totalBars + 50);
+        const visibleCount = Math.max(8, Math.min(maxAllowed, Math.round(baseVisible / transform.zoomLevel)));
+        const bw = (chartW - 20) / visibleCount;
 
-      const endBarIdx = Math.round(totalBars - 1 + rightMargin + transform.panX);
-      const startBarIdx = endBarIdx - visibleCount;
-      transform.startBarIdx = startBarIdx;
+        transform.bw = bw;
+        transform.chartW = chartW;
+        transform.chartH = chartH;
 
-      const getBarX = (i) => 12 + (i - startBarIdx) * bw + bw / 2;
+        // Horizontal Bar Pan
+        const rightMargin = 8;
+        const maxPanLeft = -(totalBars - 10);
+        const maxPanRight = Math.max(10, totalBars - 10);
+        transform.panX = Math.max(maxPanLeft, Math.min(maxPanRight, transform.panX));
 
-      // Visible bar high & low
-      const vis = sBars.filter((_, idx) => idx >= Math.max(0, startBarIdx) && idx <= Math.min(totalBars - 1, endBarIdx));
-      if (!vis.length) return;
+        const endBarIdx = Math.round(totalBars - 1 + rightMargin + transform.panX);
+        const startBarIdx = endBarIdx - visibleCount;
+        transform.startBarIdx = startBarIdx;
 
-      const lo = Math.min(...vis.map(b => b.l));
-      const hi = Math.max(...vis.map(b => b.h));
+        const getBarX = (i) => 12 + (i - startBarIdx) * bw + bw / 2;
 
-      // Dynamic Price Bounds with PanY & PriceScaleY
-      const centerP = (hi + lo) / 2 + transform.panY;
-      const rawHalf = (hi - lo) / 2 || (centerP * 0.005);
-      const minHalf = Math.max(0.0001, centerP * 0.0005);
-      const halfRange = Math.max(minHalf, rawHalf * (1.18 / transform.priceScaleY));
-      const curLo = centerP - halfRange;
-      const curHi = centerP + halfRange;
-      const curRange = curHi - curLo || (centerP * 0.001);
+        // Visible bar high & low with safe fallback
+        let vis = sBars.filter((_, idx) => idx >= Math.max(0, startBarIdx) && idx <= Math.min(totalBars - 1, endBarIdx));
+        if (!vis.length) {
+          vis = sBars.slice(-visibleCount);
+        }
+        if (!vis.length) return;
 
-      transform.curLo = curLo;
-      transform.curHi = curHi;
-      transform.currentPriceRange = curRange;
+        const lo = Math.min(...vis.map(b => b.l));
+        const hi = Math.max(...vis.map(b => b.h));
 
-      // Dynamic Theme Colors (Dark vs Light/White Mode)
-      const isLight = chartThemeRef.current === 'light';
-      const bgCanvas = isLight ? '#ffffff' : '#131722';
-      const gridCol = isLight ? '#e0e3eb' : '#1e222d';
-      const textCol = isLight ? '#434651' : '#787b86';
+        // Dynamic Price Bounds with PanY & PriceScaleY
+        const centerP = (hi + lo) / 2 + transform.panY;
+        const rawHalf = (hi - lo) / 2 || (centerP * 0.005);
+        const minHalf = Math.max(0.0001, centerP * 0.0005);
+        const halfRange = Math.max(minHalf, rawHalf * (1.18 / transform.priceScaleY));
+        const curLo = centerP - halfRange;
+        const curHi = centerP + halfRange;
+        const curRange = curHi - curLo || (centerP * 0.001);
 
-      // Clear Canvas
-      ctx.fillStyle = bgCanvas;
-      ctx.fillRect(0, 0, w, h);
+        transform.curLo = curLo;
+        transform.curHi = curHi;
+        transform.currentPriceRange = curRange;
+
+        // Y coordinate projection helper function
+        const getY = (p) => topPad + chartH - ((p - curLo) / curRange) * chartH;
+
+        // Dynamic Theme Colors (Dark vs Light/White Mode)
+        const isLight = chartThemeRef.current === 'light';
+        const bgCanvas = isLight ? '#ffffff' : '#131722';
+        const gridCol = isLight ? '#e0e3eb' : '#1e222d';
+        const textCol = isLight ? '#434651' : '#787b86';
+
+        // Clear Canvas
+        ctx.fillStyle = bgCanvas;
+        ctx.fillRect(0, 0, w, h);
 
       // 1. TradingView Dynamic Grid Lines
       ctx.strokeStyle = gridCol;
@@ -1054,9 +1066,10 @@ export default function ManualProStudio({
         ctx.textAlign = 'center';
         ctx.fillText(hoverPrice.toFixed(2), chartW + rightPad / 2, m.y + 3.5);
       }
-
-      animId = requestAnimationFrame(draw);
-    };
+    } catch (err) {
+      console.warn('Canvas render error:', err);
+    }
+  };
 
     animId = requestAnimationFrame(draw);
 

@@ -3650,151 +3650,7 @@ export default function TrendLensUltraChart({
             )}
           </div>
 
-          {/* Live Floating Trade Journey & Drawdown Monitor on Chart (Unobtrusive & Collapsible) */}
-          {demoAccount.openPosition && (demoAccount.openPosition.asset === asset) && tradeJourneyMode !== 'hidden' && (
-            tradeJourneyMode === 'minimized' ? (
-              <div
-                onClick={() => setTradeJourneyMode('expanded')}
-                style={{
-                  position: 'absolute',
-                  bottom: 12,
-                  left: 14,
-                  background: 'rgba(10, 13, 19, 0.95)',
-                  backdropFilter: 'blur(10px)',
-                  border: `1px solid ${demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366'}`,
-                  borderRadius: '16px',
-                  padding: '4px 12px',
-                  zIndex: 15,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  fontSize: '0.70rem',
-                  fontFamily: 'var(--font-mono, monospace)',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.6)'
-                }}
-                title="Click to expand Live Trade Journey & Drawdown Monitor"
-              >
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366' }} />
-                <b style={{ color: demoAccount.openPosition.type === 'BUY' ? '#00e676' : '#ff3366' }}>
-                  {demoAccount.openPosition.type} 1.0L ({demoAccount.openPosition.asset})
-                </b>
-                <span style={{ color: demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366', fontWeight: 800 }}>
-                  {demoAccount.unrealizedPnL >= 0 ? '+' : ''}${demoAccount.unrealizedPnL.toFixed(2)}
-                </span>
-                <span style={{ color: '#8592a6', fontSize: '0.65rem' }}>[ ↗ Expand ]</span>
-              </div>
-            ) : (
-              <div style={{
-                position: 'absolute',
-                bottom: 14,
-                left: 14,
-                background: 'rgba(10, 13, 19, 0.95)',
-                backdropFilter: 'blur(12px)',
-                border: `1px solid ${demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366'}`,
-                borderRadius: '10px',
-                padding: '8px 12px',
-                zIndex: 15,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 5,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.7)',
-                fontSize: '0.74rem',
-                maxWidth: 360,
-                fontFamily: 'var(--font-mono, monospace)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: demoAccount.openPosition.type === 'BUY' ? '#00e676' : '#ff3366' }}>
-                    <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366' }} />
-                    <span>{demoAccount.openPosition.type} 1.0L ({demoAccount.openPosition.asset})</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: '#8592a6', fontSize: '0.70rem' }}>
-                      ⏱️ {Math.floor((demoAccount.openPosition.secondsElapsed || 0) / 60)}m {((demoAccount.openPosition.secondsElapsed || 0) % 60).toString().padStart(2, '0')}s
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setTradeJourneyMode('minimized')}
-                      title="Minimize to small badge"
-                      style={{ background: 'transparent', border: 'none', color: '#8592a6', cursor: 'pointer', fontSize: '0.8rem', padding: '0 4px', fontWeight: 800 }}
-                    >
-                      _
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTradeJourneyMode('hidden')}
-                      title="Hide monitor from chart"
-                      style={{ background: 'transparent', border: 'none', color: '#8592a6', cursor: 'pointer', fontSize: '0.8rem', padding: '0 4px', fontWeight: 800 }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-
-                {/* Price targets & current status */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.70rem', color: '#8592a6' }}>
-                  <span>Entry: <b style={{ color: '#e9b949' }}>{fmt(demoAccount.openPosition.entryPrice)}</b></span>
-                  <span>Current: <b style={{ color: '#fff' }}>{fmt(currentPx)}</b></span>
-                  <span>TP: <b style={{ color: '#00e676' }}>{fmt(demoAccount.openPosition.tp)}</b></span>
-                </div>
-
-                {/* Live Journey Metrics: Loss Side vs Win Side */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, background: 'rgba(255,255,255,0.04)', padding: '6px 8px', borderRadius: '6px' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.62rem', color: '#8592a6', display: 'block' }}>Loss Side (Max DD)</span>
-                    <b style={{ color: '#ff3366', fontSize: '0.75rem' }}>{demoAccount.openPosition.maxDrawdownPips || 0}p</b>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.62rem', color: '#8592a6', display: 'block' }}>Win Side Peak</span>
-                    <b style={{ color: '#00e676', fontSize: '0.75rem' }}>+{demoAccount.openPosition.maxRunupPips || 0}p</b>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.62rem', color: '#8592a6', display: 'block' }}>Live Floating</span>
-                    <b style={{ color: demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366', fontSize: '0.78rem' }}>
-                      {demoAccount.unrealizedPnL >= 0 ? '+' : ''}${demoAccount.unrealizedPnL.toFixed(2)}
-                    </b>
-                  </div>
-                </div>
-
-                {/* Visual Trajectory Progress Bar between SL and TP */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#8592a6', marginBottom: 2 }}>
-                    <span style={{ color: '#ff3366' }}>🛑 SL: {fmt(demoAccount.openPosition.sl)}</span>
-                    <span style={{ color: '#00e676' }}>🎯 TP: {fmt(demoAccount.openPosition.tp)}</span>
-                  </div>
-                  <div style={{
-                    height: 6,
-                    background: 'rgba(255, 51, 102, 0.25)',
-                    borderRadius: 3,
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      position: 'absolute',
-                      left: '50%',
-                      top: 0,
-                      bottom: 0,
-                      width: demoAccount.unrealizedPnL >= 0
-                        ? `${Math.min(50, Math.max(0, (demoAccount.unrealizedPnL / 1200) * 50))}%`
-                        : 0,
-                      background: '#00e676'
-                    }} />
-                    <div style={{
-                      position: 'absolute',
-                      right: '50%',
-                      top: 0,
-                      bottom: 0,
-                      width: demoAccount.unrealizedPnL < 0
-                        ? `${Math.min(50, Math.max(0, (Math.abs(demoAccount.unrealizedPnL) / 600) * 50))}%`
-                        : 0,
-                      background: '#ff3366'
-                    }} />
-                    <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 2, background: '#e9b949' }} />
-                  </div>
-                </div>
-              </div>
-            )
-          )}
+          {/* Interactive Chart Canvas */}
 
           <canvas ref={canvasRef} />
 
@@ -3987,6 +3843,135 @@ export default function TrendLensUltraChart({
           </button>
         )}
       </div>
+
+      {/* Dedicated Live Trade Journey & Drawdown Monitor Bar (Placed right below chart so candles are 100% visible) */}
+      {demoAccount.openPosition && (demoAccount.openPosition.asset === asset) && (
+        <div style={{
+          background: 'linear-gradient(90deg, #131722 0%, #1e222d 100%)',
+          borderTop: `2px solid ${demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366'}`,
+          borderBottom: '1px solid #2a2e39',
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+          fontFamily: 'var(--font-mono, monospace)',
+          fontSize: '0.76rem',
+          boxShadow: '0 4px 18px rgba(0, 0, 0, 0.4)',
+          zIndex: 10
+        }}>
+          {/* Left: Position type, Asset, Timer */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '4px 10px',
+              borderRadius: '6px',
+              background: demoAccount.openPosition.type === 'BUY' ? 'rgba(0, 230, 118, 0.15)' : 'rgba(255, 51, 102, 0.15)',
+              border: `1px solid ${demoAccount.openPosition.type === 'BUY' ? '#00e676' : '#ff3366'}`,
+              color: demoAccount.openPosition.type === 'BUY' ? '#00e676' : '#ff3366',
+              fontWeight: 800
+            }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: demoAccount.openPosition.type === 'BUY' ? '#00e676' : '#ff3366' }} />
+              <span>{demoAccount.openPosition.type} 1.0L ({demoAccount.openPosition.asset})</span>
+            </div>
+            <div style={{ color: '#8592a6', fontSize: '0.72rem' }}>
+              ⏱️ Run Time: <b style={{ color: '#e8ecf3' }}>{Math.floor((demoAccount.openPosition.secondsElapsed || 0) / 60)}m {((demoAccount.openPosition.secondsElapsed || 0) % 60).toString().padStart(2, '0')}s</b>
+            </div>
+          </div>
+
+          {/* Center-Left: Entry, Current, TP, SL */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: '0.72rem', color: '#8592a6' }}>
+            <span>Entry: <b style={{ color: '#e9b949' }}>{fmt(demoAccount.openPosition.entryPrice)}</b></span>
+            <span>Current: <b style={{ color: '#ffffff' }}>{fmt(currentPx)}</b></span>
+            <span>TP: <b style={{ color: '#00e676' }}>{fmt(demoAccount.openPosition.tp)}</b></span>
+            <span>SL: <b style={{ color: '#ff3366' }}>{fmt(demoAccount.openPosition.sl)}</b></span>
+          </div>
+
+          {/* Center-Right: Loss Side (Max DD) | Win Side Peak | Live Floating */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: '5px', textAlign: 'center' }}>
+              <span style={{ fontSize: '0.62rem', color: '#8592a6', display: 'block' }}>Loss Side (Max DD)</span>
+              <b style={{ color: '#ff3366', fontSize: '0.75rem' }}>{demoAccount.openPosition.maxDrawdownPips || 0}p</b>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: '5px', textAlign: 'center' }}>
+              <span style={{ fontSize: '0.62rem', color: '#8592a6', display: 'block' }}>Win Side Peak</span>
+              <b style={{ color: '#00e676', fontSize: '0.75rem' }}>+{demoAccount.openPosition.maxRunupPips || 0}p</b>
+            </div>
+            <div style={{
+              background: demoAccount.unrealizedPnL >= 0 ? 'rgba(0, 230, 118, 0.14)' : 'rgba(255, 51, 102, 0.14)',
+              border: `1px solid ${demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366'}`,
+              padding: '3px 10px',
+              borderRadius: '6px',
+              textAlign: 'center'
+            }}>
+              <span style={{ fontSize: '0.62rem', color: '#8592a6', display: 'block' }}>Live Floating PnL</span>
+              <b style={{ color: demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366', fontSize: '0.88rem', fontWeight: 800 }}>
+                {demoAccount.unrealizedPnL >= 0 ? '+' : ''}${demoAccount.unrealizedPnL.toFixed(2)}
+              </b>
+            </div>
+          </div>
+
+          {/* Right: Progress bar & Close Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 200 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', color: '#8592a6', marginBottom: 2 }}>
+                <span style={{ color: '#ff3366' }}>SL</span>
+                <span style={{ color: '#e9b949' }}>Trajectory</span>
+                <span style={{ color: '#00e676' }}>TP</span>
+              </div>
+              <div style={{
+                height: 6,
+                background: 'rgba(255, 51, 102, 0.25)',
+                borderRadius: 3,
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: 0,
+                  bottom: 0,
+                  width: demoAccount.unrealizedPnL >= 0
+                    ? `${Math.min(50, Math.max(0, (demoAccount.unrealizedPnL / 1200) * 50))}%`
+                    : 0,
+                  background: '#00e676'
+                }} />
+                <div style={{
+                  position: 'absolute',
+                  right: '50%',
+                  top: 0,
+                  bottom: 0,
+                  width: demoAccount.unrealizedPnL < 0
+                    ? `${Math.min(50, Math.max(0, (Math.abs(demoAccount.unrealizedPnL) / 600) * 50))}%`
+                    : 0,
+                  background: '#ff3366'
+                }} />
+                <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 2, background: '#e9b949' }} />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={closeDemoTrade}
+              style={{
+                background: 'rgba(255, 51, 102, 0.2)',
+                border: '1px solid #ff3366',
+                color: '#ff3366',
+                borderRadius: '6px',
+                padding: '5px 10px',
+                fontSize: '0.70rem',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+              title="Close active live demo position"
+            >
+              ✕ Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Status Bar Footer */}
       <div className="ultra-tfoot">
