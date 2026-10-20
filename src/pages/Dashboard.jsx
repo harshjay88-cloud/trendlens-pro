@@ -503,9 +503,9 @@ export default function Dashboard() {
     : ['15m', '1h', '4h', '1D'];
 
   return (
-    <div className="app-layout">
+    <div className="app-layout app-layout--terminal">
       <Navbar />
-      <main className="app-main">
+      <main className="app-main app-main--terminal">
         {/* Top 4 Dedicated Engine Selector Bar */}
         <div className="dash-view-selector-bar">
           <div className="dash-view-tabs">
@@ -563,7 +563,7 @@ export default function Dashboard() {
               className={`btn btn-sm ${showMultiGrid ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setShowMultiGrid(!showMultiGrid)}
               title="Parallel Multi-Chart Grid (16 Charts / 10-Coin Bot Matrix)"
-              style={{ fontSize: '0.74rem', gap: 5, padding: '4px 9px', color: '#ffffff' }}
+              style={{ fontSize: '0.74rem', gap: 5, padding: '4px 9px' }}
             >
               <LayoutGrid size={14} />
               <span>{showMultiGrid ? 'Single Engine' : '10-Coin Matrix'}</span>
@@ -575,7 +575,7 @@ export default function Dashboard() {
               className={`btn btn-sm ${isBarReplayActive ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setIsBarReplayActive(!isBarReplayActive)}
               title="Bar Replay: Replay Historical Candles Bar-by-Bar"
-              style={{ fontSize: '0.74rem', gap: 5, padding: '4px 9px', color: '#ffffff' }}
+              style={{ fontSize: '0.74rem', gap: 5, padding: '4px 9px' }}
             >
               <PlayCircle size={14} />
               <span>Bar Replay</span>
@@ -587,7 +587,7 @@ export default function Dashboard() {
               className="btn btn-sm btn-ghost"
               onClick={() => setShowAlertModal(true)}
               title="Multi-Condition Alerts (1,000 Alerts Capacity)"
-              style={{ fontSize: '0.74rem', gap: 5, padding: '4px 9px', color: '#ffffff' }}
+              style={{ fontSize: '0.74rem', gap: 5, padding: '4px 9px' }}
             >
               <Bell size={14} />
               <span>1,000 Alerts</span>
@@ -599,7 +599,7 @@ export default function Dashboard() {
               className="btn btn-sm btn-ghost"
               onClick={handleExportData}
               title="Export 40K Historical Bars & Technical Indicators to CSV"
-              style={{ fontSize: '0.74rem', gap: 5, padding: '4px 8px', color: '#ffffff' }}
+              style={{ fontSize: '0.74rem', gap: 5, padding: '4px 8px' }}
             >
               <Download size={14} />
               <span>Export CSV</span>
@@ -691,498 +691,504 @@ export default function Dashboard() {
           />
         ) : (
         <div className="dashboard-content">
-          {/* Greeting */}
-          <div className="dash-greeting">
-            <div>
-              <h2>Welcome back, <span className="text-brand">{user?.username}</span> {user?.avatar}</h2>
-              <p>Institutional Order Flow &amp; AI Intelligence Dashboard.</p>
+          <div className="dash-top-strip">
+            {/* Greeting */}
+            <div className="dash-greeting">
+              <div>
+                <h2>Welcome back, <span className="text-brand">{user?.username}</span> {user?.avatar}</h2>
+                <p>Institutional Order Flow &amp; AI Intelligence Dashboard.</p>
+              </div>
+              <div className={`bias-badge ${MOCK_DAILY_TARGET.bias === 'BULLISH' ? 'buy' : 'sell'} big`}>
+                {MOCK_DAILY_TARGET.bias === 'BULLISH' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+                Session Bias: {MOCK_DAILY_TARGET.bias}
+              </div>
             </div>
-            <div className={`bias-badge ${MOCK_DAILY_TARGET.bias === 'BULLISH' ? 'buy' : 'sell'} big`}>
-              {MOCK_DAILY_TARGET.bias === 'BULLISH' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
-              Session Bias: {MOCK_DAILY_TARGET.bias}
+
+            {/* Stats Row */}
+            <div className="dash-stats">
+              <StatCard
+                label={`Live ${currentAsset}`}
+                value={currentPrice > 100 ? currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : currentPrice.toFixed(4)}
+                sub={`${currentChange >= 0 ? '+' : ''}${currentChange.toFixed(2)} (${currentPct >= 0 ? '+' : ''}${currentPct}%)`}
+                icon={TrendingUp}
+                color="var(--brand)"
+              />
+              <StatCard
+                label="Active Signals"
+                value={`${activeCount}`}
+                sub="Multi-engine algorithmic feed"
+                icon={Zap}
+                color="var(--signal-buy)"
+              />
+              <StatCard
+                label="Your Win Rate"
+                value={paperView.winRate}
+                sub={paperView.scopeNotice}
+                icon={Target}
+                color="var(--signal-neutral)"
+              />
+              <StatCard
+                label="Total Pips"
+                value={paperView.totalPips}
+                sub={paperView.pipsCoverageNotice || paperView.scopeNotice}
+                icon={Activity}
+                color="var(--gold)"
+              />
             </div>
           </div>
 
-          {/* Stats Row */}
-          <div className="dash-stats">
-            <StatCard
-              label={`Live ${currentAsset}`}
-              value={currentPrice > 100 ? currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : currentPrice.toFixed(4)}
-              sub={`${currentChange >= 0 ? '+' : ''}${currentChange.toFixed(2)} (${currentPct >= 0 ? '+' : ''}${currentPct}%)`}
-              icon={TrendingUp}
-              color="var(--brand)"
-            />
-            <StatCard
-              label="Active Signals"
-              value={`${activeCount}`}
-              sub="Multi-engine algorithmic feed"
-              icon={Zap}
-              color="var(--signal-buy)"
-            />
-            <StatCard
-              label="Your Win Rate"
-              value={paperView.winRate}
-              sub={paperView.scopeNotice}
-              icon={Target}
-              color="var(--signal-neutral)"
-            />
-            <StatCard
-              label="Total Pips"
-              value={paperView.totalPips}
-              sub={paperView.pipsCoverageNotice || paperView.scopeNotice}
-              icon={Activity}
-              color="var(--gold)"
-            />
-          </div>
-
-          {/* Chart + Feed Area */}
-          <div className={`dash-main-row ${chartFocusMode ? 'focus-chart' : ''}`}>
-            {/* Chart Wrap */}
-            <div className={`dash-chart-wrap ${isMaximized ? 'maximized' : ''}`}>
-              <div className="chart-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  {/* Active Engine Badge */}
-                  <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 7,
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid var(--border)',
-                    padding: '5px 12px',
-                    borderRadius: 6,
-                    fontSize: '0.78rem',
-                    fontWeight: 800,
-                    color: '#ffffff'
-                  }}>
-                    {activeEngine === 'smc_ultra' && <><Cpu size={14} color="var(--brand)" /> <span>SMC Ultra (Institutional)</span></>}
-                    {activeEngine === 'scalp' && <><Zap size={14} color="var(--signal-buy)" /> <span>Flow Scalper (M1/M5)</span></>}
-                    {activeEngine === 'day_trading' && <><Activity size={14} color="var(--signal-neutral)" /> <span>Intraday Day Trader</span></>}
-                    {activeEngine === 'swing_4h' && <><TrendingUp size={14} color="var(--gold)" /> <span>4H Macro Swing</span></>}
-                  </div>
-
-                  <select
-                    value={symbol}
-                    onChange={(e) => setSymbol(e.target.value)}
-                    style={{
-                      background: 'var(--bg-card)',
-                      color: 'var(--text-primary)',
+          <div className="dash-workspace">
+            {/* Chart + Feed Area */}
+            <div className={`dash-main-row ${chartFocusMode ? 'focus-chart' : ''}`}>
+              {/* Chart Wrap */}
+              <div className={`dash-chart-wrap ${isMaximized ? 'maximized' : ''}`}>
+                <div className="chart-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    {/* Active Engine Badge */}
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 7,
+                      background: 'var(--bg-elevated)',
                       border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      padding: '6px 12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      fontSize: '0.84rem',
-                      maxWidth: '260px'
-                    }}
-                  >
-                    <optgroup label="Commodities & Metals">
-                      <option value="XAUUSD">XAU/USD · Gold Spot</option>
-                      <option value="XAGUSD">XAG/USD · Silver Spot</option>
-                      <option value="XPTUSD">XPT/USD · Platinum Spot</option>
-                      <option value="USOIL">USOIL · WTI Crude Oil</option>
-                      <option value="BRENTOIL">BRENT · Brent Crude Oil</option>
-                    </optgroup>
-                    <optgroup label="Forex — Majors (7 Pairs)">
-                      <option value="EURUSD">EUR/USD · Euro / US Dollar</option>
-                      <option value="GBPUSD">GBP/USD · British Pound / USD</option>
-                      <option value="USDJPY">USD/JPY · US Dollar / Yen</option>
-                      <option value="AUDUSD">AUD/USD · Australian Dollar</option>
-                      <option value="USDCAD">USD/CAD · US Dollar / CAD</option>
-                      <option value="USDCHF">USD/CHF · US Dollar / Swiss Franc</option>
-                      <option value="NZDUSD">NZD/USD · New Zealand Dollar</option>
-                    </optgroup>
-                    <optgroup label="Forex — Euro Crosses">
-                      <option value="EURGBP">EUR/GBP · Euro / British Pound</option>
-                      <option value="EURJPY">EUR/JPY · Euro / Japanese Yen</option>
-                      <option value="EURAUD">EUR/AUD · Euro / Aussie</option>
-                      <option value="EURCAD">EUR/CAD · Euro / Canadian Dollar</option>
-                      <option value="EURCHF">EUR/CHF · Euro / Swiss Franc</option>
-                      <option value="EURNZD">EUR/NZD · Euro / New Zealand Dollar</option>
-                    </optgroup>
-                    <optgroup label="Forex — GBP Crosses">
-                      <option value="GBPJPY">GBP/JPY · British Pound / Yen</option>
-                      <option value="GBPAUD">GBP/AUD · Pound / Aussie</option>
-                      <option value="GBPCAD">GBP/CAD · Pound / Canadian Dollar</option>
-                      <option value="GBPCHF">GBP/CHF · Pound / Swiss Franc</option>
-                      <option value="GBPNZD">GBP/NZD · Pound / New Zealand Dollar</option>
-                    </optgroup>
-                    <optgroup label="Forex — Yen Crosses">
-                      <option value="AUDJPY">AUD/JPY · Aussie / Japanese Yen</option>
-                      <option value="CADJPY">CAD/JPY · Canadian Dollar / Yen</option>
-                      <option value="CHFJPY">CHF/JPY · Swiss Franc / Yen</option>
-                      <option value="NZDJPY">NZD/JPY · New Zealand Dollar / Yen</option>
-                    </optgroup>
-                    <optgroup label="Forex — Oceania & Other Crosses">
-                      <option value="AUDCAD">AUD/CAD · Aussie / Canadian Dollar</option>
-                      <option value="AUDCHF">AUD/CHF · Aussie / Swiss Franc</option>
-                      <option value="AUDNZD">AUD/NZD · Aussie / Kiwi Dollar</option>
-                      <option value="CADCHF">CAD/CHF · CAD / Swiss Franc</option>
-                      <option value="NZDCAD">NZD/CAD · Kiwi / Canadian Dollar</option>
-                      <option value="NZDCHF">NZD/CHF · Kiwi / Swiss Franc</option>
-                    </optgroup>
-                    <optgroup label="Forex — Emerging & Exotics">
-                      <option value="USDTRY">USD/TRY · US Dollar / Turkish Lira</option>
-                      <option value="USDZAR">USD/ZAR · US Dollar / South African Rand</option>
-                      <option value="USDMXN">USD/MXN · US Dollar / Mexican Peso</option>
-                      <option value="USDSGD">USD/SGD · US Dollar / Singapore Dollar</option>
-                      <option value="USDHKD">USD/HKD · US Dollar / Hong Kong Dollar</option>
-                      <option value="USDSEK">USD/SEK · US Dollar / Swedish Krona</option>
-                      <option value="USDNOK">USD/NOK · US Dollar / Norwegian Krone</option>
-                      <option value="USDCNH">USD/CNH · US Dollar / Chinese Yuan</option>
-                      <option value="EURTRY">EUR/TRY · Euro / Turkish Lira</option>
-                      <option value="USDINR">USD/INR · US Dollar / Indian Rupee</option>
-                    </optgroup>
-                    <optgroup label="Crypto — Layer 1 & Major Bluechips">
-                      <option value="BTCUSD">BTC/USD · Bitcoin</option>
-                      <option value="ETHUSD">ETH/USD · Ethereum</option>
-                      <option value="SOLUSD">SOL/USD · Solana</option>
-                      <option value="BNBUSD">BNB/USD · Binance Coin</option>
-                      <option value="XRPUSD">XRP/USD · Ripple</option>
-                      <option value="ADAUSD">ADA/USD · Cardano</option>
-                      <option value="AVAXUSD">AVAX/USD · Avalanche</option>
-                      <option value="SUIUSD">SUI/USD · Sui Network</option>
-                      <option value="NEARUSD">NEAR/USD · Near Protocol</option>
-                      <option value="APTUSD">APT/USD · Aptos</option>
-                      <option value="TONUSD">TON/USD · Toncoin</option>
-                      <option value="DOTUSD">DOT/USD · Polkadot</option>
-                      <option value="LTCUSD">LTC/USD · Litecoin</option>
-                      <option value="MATICUSD">MATIC/USD · Polygon</option>
-                      <option value="ATOMUSD">ATOM/USD · Cosmos</option>
-                      <option value="FTMUSD">FTM/USD · Fantom / Sonic</option>
-                      <option value="ALGOUSD">ALGO/USD · Algorand</option>
-                      <option value="ICPUSD">ICP/USD · Internet Computer</option>
-                      <option value="KASUSD">KAS/USD · Kaspa</option>
-                      <option value="SEIUSD">SEI/USD · Sei Network</option>
-                    </optgroup>
-                    <optgroup label="Crypto — Layer 2 & Scaling">
-                      <option value="ARBUSD">ARB/USD · Arbitrum</option>
-                      <option value="OPUSD">OP/USD · Optimism</option>
-                      <option value="STRKUSD">STRK/USD · Starknet</option>
-                      <option value="IMXUSD">IMX/USD · ImmutableX</option>
-                    </optgroup>
-                    <optgroup label="Crypto — DeFi & Infrastructure">
-                      <option value="LINKUSD">LINK/USD · Chainlink</option>
-                      <option value="UNIUSD">UNI/USD · Uniswap</option>
-                      <option value="AAVEUSD">AAVE/USD · Aave</option>
-                      <option value="MKRUSD">MKR/USD · Maker</option>
-                      <option value="INJUSD">INJ/USD · Injective</option>
-                      <option value="TIAUSD">TIA/USD · Celestia</option>
-                      <option value="RUNEUSD">RUNE/USD · THORChain</option>
-                      <option value="PENDLEUSD">PENDLE/USD · Pendle</option>
-                      <option value="JUPUSD">JUP/USD · Jupiter</option>
-                      <option value="ENAUSD">ENA/USD · Ethena</option>
-                      <option value="PYTHUSD">PYTH/USD · Pyth Network</option>
-                      <option value="ONDOUSD">ONDO/USD · Ondo Finance</option>
-                    </optgroup>
-                    <optgroup label="Crypto — AI & Data / DePIN">
-                      <option value="RENDERUSD">RENDER/USD · Render Token</option>
-                      <option value="TAOUSD">TAO/USD · Bittensor</option>
-                      <option value="FETUSD">FET/USD · Artificial Superintelligence</option>
-                      <option value="FILUSD">FIL/USD · Filecoin</option>
-                      <option value="WLDUSD">WLD/USD · Worldcoin</option>
-                      <option value="JASMYUSD">JASMY/USD · JasmyCoin</option>
-                      <option value="STXUSD">STX/USD · Stacks</option>
-                      <option value="ORDIUSD">ORDI/USD · Ordinals</option>
-                    </optgroup>
-                    <optgroup label="Crypto — Meme & High-Beta">
-                      <option value="DOGEUSD">DOGE/USD · Dogecoin</option>
-                      <option value="SHIBUSD">SHIB/USD · Shiba Inu</option>
-                      <option value="PEPEUSD">PEPE/USD · Pepe Token</option>
-                      <option value="WIFUSD">WIF/USD · dogwifhat</option>
-                      <option value="BONKUSD">BONK/USD · Bonk</option>
-                      <option value="FLOKIUSD">FLOKI/USD · Floki</option>
-                      <option value="NOTUSD">NOT/USD · Notcoin</option>
-                    </optgroup>
-                    <optgroup label="Major Global Indices">
-                      <option value="NAS100">NAS100 · Nasdaq 100</option>
-                      <option value="US30">US30 · Dow Jones 30</option>
-                      <option value="SPX500">SPX500 · S&amp;P 500</option>
-                      <option value="GER40">GER40 · DAX 40 Index</option>
-                    </optgroup>
-                  </select>
-                  <span className="live-dot" title="Live Streaming"></span>
-                </div>
+                      padding: '5px 12px',
+                      borderRadius: 6,
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      color: 'var(--text-primary)'
+                    }}>
+                      {activeEngine === 'smc_ultra' && <><Cpu size={14} color="var(--brand)" /> <span>SMC Ultra (Institutional)</span></>}
+                      {activeEngine === 'scalp' && <><Zap size={14} color="var(--signal-buy)" /> <span>Flow Scalper (M1/M5)</span></>}
+                      {activeEngine === 'day_trading' && <><Activity size={14} color="var(--signal-neutral)" /> <span>Intraday Day Trader</span></>}
+                      {activeEngine === 'swing_4h' && <><TrendingUp size={14} color="var(--gold)" /> <span>4H Macro Swing</span></>}
+                    </div>
 
-                {/* Right controls: Timeframe + Layout & Maximize */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                    {engineQuickTFs.map(lbl => {
-                      const tfObj = ALL_TIMEFRAMES.find(t => t.label === lbl);
-                      const isSelected = timeframe === tfObj?.val || timeframe === lbl;
-                      return (
-                        <button
-                          key={lbl}
-                          onClick={() => setTimeframe(tfObj ? tfObj.val : lbl)}
-                          className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`}
-                          style={{ padding: '4px 8px', fontSize: '0.74rem', minWidth: '32px' }}
-                        >
-                          {lbl}
-                        </button>
-                      );
-                    })}
-
-                    {/* TradingView-style Dropdown Selector for All 1s - 30D Timeframes */}
                     <select
-                      value={timeframe}
-                      onChange={(e) => setTimeframe(e.target.value)}
-                      title="Select TradingView Timeframe (1s to 30D)"
+                      value={symbol}
+                      onChange={(e) => setSymbol(e.target.value)}
                       style={{
                         background: 'var(--bg-card)',
-                        color: 'var(--brand)',
+                        color: 'var(--text-primary)',
                         border: '1px solid var(--border)',
                         borderRadius: '6px',
-                        padding: '4px 8px',
-                        fontSize: '0.74rem',
+                        padding: '6px 12px',
                         fontWeight: 700,
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        fontSize: '0.84rem',
+                        maxWidth: '260px'
                       }}
                     >
-                      <optgroup label="⚡ Seconds (Micro-Scalp)">
-                        <option value="1S">1s · 1 Second</option>
-                        <option value="3S">3s · 3 Seconds</option>
-                        <option value="5S">5s · 5 Seconds</option>
-                        <option value="10S">10s · 10 Seconds</option>
-                        <option value="30S">30s · 30 Seconds</option>
+                      <optgroup label="Commodities & Metals">
+                        <option value="XAUUSD">XAU/USD · Gold Spot</option>
+                        <option value="XAGUSD">XAG/USD · Silver Spot</option>
+                        <option value="XPTUSD">XPT/USD · Platinum Spot</option>
+                        <option value="USOIL">USOIL · WTI Crude Oil</option>
+                        <option value="BRENTOIL">BRENT · Brent Crude Oil</option>
                       </optgroup>
-                      <optgroup label="⏱️ Minutes (Intraday)">
-                        <option value="1">1m · 1 Minute</option>
-                        <option value="3">3m · 3 Minutes</option>
-                        <option value="5">5m · 5 Minutes</option>
-                        <option value="15">15m · 15 Minutes</option>
-                        <option value="30">30m · 30 Minutes</option>
-                        <option value="45">45m · 45 Minutes</option>
+                      <optgroup label="Forex — Majors (7 Pairs)">
+                        <option value="EURUSD">EUR/USD · Euro / US Dollar</option>
+                        <option value="GBPUSD">GBP/USD · British Pound / USD</option>
+                        <option value="USDJPY">USD/JPY · US Dollar / Yen</option>
+                        <option value="AUDUSD">AUD/USD · Australian Dollar</option>
+                        <option value="USDCAD">USD/CAD · US Dollar / CAD</option>
+                        <option value="USDCHF">USD/CHF · US Dollar / Swiss Franc</option>
+                        <option value="NZDUSD">NZD/USD · New Zealand Dollar</option>
                       </optgroup>
-                      <optgroup label="📈 Hours (Swing Structure)">
-                        <option value="60">1h · 1 Hour</option>
-                        <option value="120">2h · 2 Hours</option>
-                        <option value="180">3h · 3 Hours</option>
-                        <option value="240">4h · 4 Hours</option>
-                        <option value="720">12h · 12 Hours</option>
+                      <optgroup label="Forex — Euro Crosses">
+                        <option value="EURGBP">EUR/GBP · Euro / British Pound</option>
+                        <option value="EURJPY">EUR/JPY · Euro / Japanese Yen</option>
+                        <option value="EURAUD">EUR/AUD · Euro / Aussie</option>
+                        <option value="EURCAD">EUR/CAD · Euro / Canadian Dollar</option>
+                        <option value="EURCHF">EUR/CHF · Euro / Swiss Franc</option>
+                        <option value="EURNZD">EUR/NZD · Euro / New Zealand Dollar</option>
                       </optgroup>
-                      <optgroup label="📅 Days & Macro (1D - 30D)">
-                        <option value="D">1D · 1 Day</option>
-                        <option value="3D">3D · 3 Days</option>
-                        <option value="W">1W · 1 Week</option>
-                        <option value="M">30D · 1 Month</option>
+                      <optgroup label="Forex — GBP Crosses">
+                        <option value="GBPJPY">GBP/JPY · British Pound / Yen</option>
+                        <option value="GBPAUD">GBP/AUD · Pound / Aussie</option>
+                        <option value="GBPCAD">GBP/CAD · Pound / Canadian Dollar</option>
+                        <option value="GBPCHF">GBP/CHF · Pound / Swiss Franc</option>
+                        <option value="GBPNZD">GBP/NZD · Pound / New Zealand Dollar</option>
+                      </optgroup>
+                      <optgroup label="Forex — Yen Crosses">
+                        <option value="AUDJPY">AUD/JPY · Aussie / Japanese Yen</option>
+                        <option value="CADJPY">CAD/JPY · Canadian Dollar / Yen</option>
+                        <option value="CHFJPY">CHF/JPY · Swiss Franc / Yen</option>
+                        <option value="NZDJPY">NZD/JPY · New Zealand Dollar / Yen</option>
+                      </optgroup>
+                      <optgroup label="Forex — Oceania & Other Crosses">
+                        <option value="AUDCAD">AUD/CAD · Aussie / Canadian Dollar</option>
+                        <option value="AUDCHF">AUD/CHF · Aussie / Swiss Franc</option>
+                        <option value="AUDNZD">AUD/NZD · Aussie / Kiwi Dollar</option>
+                        <option value="CADCHF">CAD/CHF · CAD / Swiss Franc</option>
+                        <option value="NZDCAD">NZD/CAD · Kiwi / Canadian Dollar</option>
+                        <option value="NZDCHF">NZD/CHF · Kiwi / Swiss Franc</option>
+                      </optgroup>
+                      <optgroup label="Forex — Emerging & Exotics">
+                        <option value="USDTRY">USD/TRY · US Dollar / Turkish Lira</option>
+                        <option value="USDZAR">USD/ZAR · US Dollar / South African Rand</option>
+                        <option value="USDMXN">USD/MXN · US Dollar / Mexican Peso</option>
+                        <option value="USDSGD">USD/SGD · US Dollar / Singapore Dollar</option>
+                        <option value="USDHKD">USD/HKD · US Dollar / Hong Kong Dollar</option>
+                        <option value="USDSEK">USD/SEK · US Dollar / Swedish Krona</option>
+                        <option value="USDNOK">USD/NOK · US Dollar / Norwegian Krone</option>
+                        <option value="USDCNH">USD/CNH · US Dollar / Chinese Yuan</option>
+                        <option value="EURTRY">EUR/TRY · Euro / Turkish Lira</option>
+                        <option value="USDINR">USD/INR · US Dollar / Indian Rupee</option>
+                      </optgroup>
+                      <optgroup label="Crypto — Layer 1 & Major Bluechips">
+                        <option value="BTCUSD">BTC/USD · Bitcoin</option>
+                        <option value="ETHUSD">ETH/USD · Ethereum</option>
+                        <option value="SOLUSD">SOL/USD · Solana</option>
+                        <option value="BNBUSD">BNB/USD · Binance Coin</option>
+                        <option value="XRPUSD">XRP/USD · Ripple</option>
+                        <option value="ADAUSD">ADA/USD · Cardano</option>
+                        <option value="AVAXUSD">AVAX/USD · Avalanche</option>
+                        <option value="SUIUSD">SUI/USD · Sui Network</option>
+                        <option value="NEARUSD">NEAR/USD · Near Protocol</option>
+                        <option value="APTUSD">APT/USD · Aptos</option>
+                        <option value="TONUSD">TON/USD · Toncoin</option>
+                        <option value="DOTUSD">DOT/USD · Polkadot</option>
+                        <option value="LTCUSD">LTC/USD · Litecoin</option>
+                        <option value="MATICUSD">MATIC/USD · Polygon</option>
+                        <option value="ATOMUSD">ATOM/USD · Cosmos</option>
+                        <option value="FTMUSD">FTM/USD · Fantom / Sonic</option>
+                        <option value="ALGOUSD">ALGO/USD · Algorand</option>
+                        <option value="ICPUSD">ICP/USD · Internet Computer</option>
+                        <option value="KASUSD">KAS/USD · Kaspa</option>
+                        <option value="SEIUSD">SEI/USD · Sei Network</option>
+                      </optgroup>
+                      <optgroup label="Crypto — Layer 2 & Scaling">
+                        <option value="ARBUSD">ARB/USD · Arbitrum</option>
+                        <option value="OPUSD">OP/USD · Optimism</option>
+                        <option value="STRKUSD">STRK/USD · Starknet</option>
+                        <option value="IMXUSD">IMX/USD · ImmutableX</option>
+                      </optgroup>
+                      <optgroup label="Crypto — DeFi & Infrastructure">
+                        <option value="LINKUSD">LINK/USD · Chainlink</option>
+                        <option value="UNIUSD">UNI/USD · Uniswap</option>
+                        <option value="AAVEUSD">AAVE/USD · Aave</option>
+                        <option value="MKRUSD">MKR/USD · Maker</option>
+                        <option value="INJUSD">INJ/USD · Injective</option>
+                        <option value="TIAUSD">TIA/USD · Celestia</option>
+                        <option value="RUNEUSD">RUNE/USD · THORChain</option>
+                        <option value="PENDLEUSD">PENDLE/USD · Pendle</option>
+                        <option value="JUPUSD">JUP/USD · Jupiter</option>
+                        <option value="ENAUSD">ENA/USD · Ethena</option>
+                        <option value="PYTHUSD">PYTH/USD · Pyth Network</option>
+                        <option value="ONDOUSD">ONDO/USD · Ondo Finance</option>
+                      </optgroup>
+                      <optgroup label="Crypto — AI & Data / DePIN">
+                        <option value="RENDERUSD">RENDER/USD · Render Token</option>
+                        <option value="TAOUSD">TAO/USD · Bittensor</option>
+                        <option value="FETUSD">FET/USD · Artificial Superintelligence</option>
+                        <option value="FILUSD">FIL/USD · Filecoin</option>
+                        <option value="WLDUSD">WLD/USD · Worldcoin</option>
+                        <option value="JASMYUSD">JASMY/USD · JasmyCoin</option>
+                        <option value="STXUSD">STX/USD · Stacks</option>
+                        <option value="ORDIUSD">ORDI/USD · Ordinals</option>
+                      </optgroup>
+                      <optgroup label="Crypto — Meme & High-Beta">
+                        <option value="DOGEUSD">DOGE/USD · Dogecoin</option>
+                        <option value="SHIBUSD">SHIB/USD · Shiba Inu</option>
+                        <option value="PEPEUSD">PEPE/USD · Pepe Token</option>
+                        <option value="WIFUSD">WIF/USD · dogwifhat</option>
+                        <option value="BONKUSD">BONK/USD · Bonk</option>
+                        <option value="FLOKIUSD">FLOKI/USD · Floki</option>
+                        <option value="NOTUSD">NOT/USD · Notcoin</option>
+                      </optgroup>
+                      <optgroup label="Major Global Indices">
+                        <option value="NAS100">NAS100 · Nasdaq 100</option>
+                        <option value="US30">US30 · Dow Jones 30</option>
+                        <option value="SPX500">SPX500 · S&amp;P 500</option>
+                        <option value="GER40">GER40 · DAX 40 Index</option>
                       </optgroup>
                     </select>
+                    <span className="live-dot" title="Live Streaming"></span>
                   </div>
 
-                  <div className="chart-ctrl-divider"></div>
+                  {/* Right controls: Timeframe + Layout & Maximize */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                      {engineQuickTFs.map(lbl => {
+                        const tfObj = ALL_TIMEFRAMES.find(t => t.label === lbl);
+                        const isSelected = timeframe === tfObj?.val || timeframe === lbl;
+                        return (
+                          <button
+                            key={lbl}
+                            onClick={() => setTimeframe(tfObj ? tfObj.val : lbl)}
+                            className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`}
+                            style={{ padding: '4px 8px', fontSize: '0.74rem', minWidth: '32px' }}
+                          >
+                            {lbl}
+                          </button>
+                        );
+                      })}
 
-                  {/* Priority Chart Focus Toggle */}
-                  <button
-                    className={`btn btn-sm ${chartFocusMode ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setChartFocusMode(!chartFocusMode)}
-                    title={chartFocusMode ? "Split Layout (Show Feed)" : "Priority Chart Mode (Full Width)"}
-                    style={{ gap: 6, fontSize: '0.74rem' }}
-                  >
-                    <Columns size={13} />
-                    <span className="btn-label-hide-mobile">{chartFocusMode ? "Split View" : "Full Width"}</span>
-                  </button>
+                      {/* TradingView-style Dropdown Selector for All 1s - 30D Timeframes */}
+                      <select
+                        value={timeframe}
+                        onChange={(e) => setTimeframe(e.target.value)}
+                        title="Select TradingView Timeframe (1s to 30D)"
+                        style={{
+                          background: 'var(--bg-card)',
+                          color: 'var(--brand)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <optgroup label="⚡ Seconds (Micro-Scalp)">
+                          <option value="1S">1s · 1 Second</option>
+                          <option value="3S">3s · 3 Seconds</option>
+                          <option value="5S">5s · 5 Seconds</option>
+                          <option value="10S">10s · 10 Seconds</option>
+                          <option value="30S">30s · 30 Seconds</option>
+                        </optgroup>
+                        <optgroup label="⏱️ Minutes (Intraday)">
+                          <option value="1">1m · 1 Minute</option>
+                          <option value="3">3m · 3 Minutes</option>
+                          <option value="5">5m · 5 Minutes</option>
+                          <option value="15">15m · 15 Minutes</option>
+                          <option value="30">30m · 30 Minutes</option>
+                          <option value="45">45m · 45 Minutes</option>
+                        </optgroup>
+                        <optgroup label="📈 Hours (Swing Structure)">
+                          <option value="60">1h · 1 Hour</option>
+                          <option value="120">2h · 2 Hours</option>
+                          <option value="180">3h · 3 Hours</option>
+                          <option value="240">4h · 4 Hours</option>
+                          <option value="720">12h · 12 Hours</option>
+                        </optgroup>
+                        <optgroup label="📅 Days & Macro (1D - 30D)">
+                          <option value="D">1D · 1 Day</option>
+                          <option value="3D">3D · 3 Days</option>
+                          <option value="W">1W · 1 Week</option>
+                          <option value="M">30D · 1 Month</option>
+                        </optgroup>
+                      </select>
+                    </div>
 
-                  {/* Active AI Plan Banner if drawn */}
-                  {activePlan && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(233,185,73,0.12)', border: '1px solid #e9b949', padding: '3px 8px', borderRadius: 6, fontSize: '0.72rem', color: '#e9b949' }}>
-                      <span>🎯 Drawn: {activePlan.type} · TP {activePlan.target}</span>
-                      <button onClick={() => setActivePlan(null)} style={{ background: 'none', border: 'none', color: '#f0566b', cursor: 'pointer', display: 'flex', padding: 0 }} title="Clear Drawn Plan">
-                        <XCircle size={13} />
-                      </button>
+                    <div className="chart-ctrl-divider"></div>
+
+                    {/* Priority Chart Focus Toggle */}
+                    <button
+                      className={`btn btn-sm ${chartFocusMode ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => setChartFocusMode(!chartFocusMode)}
+                      title={chartFocusMode ? "Split Layout (Show Feed)" : "Priority Chart Mode (Full Width)"}
+                      style={{ gap: 6, fontSize: '0.74rem' }}
+                    >
+                      <Columns size={13} />
+                      <span className="btn-label-hide-mobile">{chartFocusMode ? "Split View" : "Full Width"}</span>
+                    </button>
+
+                    {/* Active AI Plan Banner if drawn */}
+                    {activePlan && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--signal-neutral-bg)', border: '1px solid var(--signal-neutral)', padding: '3px 8px', borderRadius: 6, fontSize: '0.72rem', color: 'var(--signal-neutral)' }}>
+                        <span>🎯 Drawn: {activePlan.type} · TP {activePlan.target}</span>
+                        <button onClick={() => setActivePlan(null)} style={{ background: 'none', border: 'none', color: 'var(--signal-sell)', cursor: 'pointer', display: 'flex', padding: 0 }} title="Clear Drawn Plan">
+                          <XCircle size={13} />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Maximize Fullscreen Terminal Mode */}
+                    <button
+                      className={`btn btn-sm ${isMaximized ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => setIsMaximized(!isMaximized)}
+                      title={isMaximized ? "Exit Fullscreen (ESC)" : "Maximize Chart (Full Screen Terminal)"}
+                      style={{ gap: 6, fontSize: '0.74rem' }}
+                    >
+                      {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                      <span>{isMaximized ? "Exit" : "Maximize"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Full TradingView Terminal Layout: Left Toolbar + Chart Center + Right Drawer + Icon Rail */}
+                <div className="tv-terminal-wrapper">
+                  {/* 1. Left Vertical Drawing Toolbar */}
+                  <TradingViewLeftToolbar
+                    activeTool={activeDrawingTool}
+                    onSelectTool={(toolId) => {
+                      setActiveDrawingTool(toolId);
+                    }}
+                    onClearDrawings={() => {
+                      window.dispatchEvent(new CustomEvent('trendlens_clear_drawings'));
+                    }}
+                  />
+
+                  {/* 2. Center Chart Workspace */}
+                  <div className="tv-center-workspace">
+                    {/* Chart Container: Dedicated Engine High-Resolution Canvas.
+                        Sizing is owned by Dashboard.css so the chart can fill
+                        the viewport; a hard-coded height here left a blank band. */}
+                    <div className="chart-container">
+                      <TrendLensUltraChart
+                        asset={currentAsset}
+                        initialPrice={currentPrice}
+                        category={assetData?.category || 'Metals'}
+                        timeframe={ALL_TIMEFRAMES.find(t => t.val === timeframe)?.label || timeframe}
+                        range={selectedRange}
+                        onRangeChange={handleRangeSelect}
+                        activeDrawingTool={activeDrawingTool}
+                        onSelectDrawingTool={setActiveDrawingTool}
+                        engineMode={chartEngine}
+                        activePlan={activePlan}
+                      />
+                    </div>
+
+                    {/* 3. Bottom Time Toolbar */}
+                    <div className="tv-bottom-timebar">
+                      <div className="tv-time-shortcuts">
+                        {['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'All'].map(range => (
+                          <button
+                            key={range}
+                            className={`tv-time-btn ${selectedRange === range ? 'active' : ''}`}
+                            onClick={() => handleRangeSelect(range)}
+                            title={`Switch Chart Range to ${range}`}
+                          >
+                            {range}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="tv-time-clock">
+                        <span style={{ color: 'var(--signal-buy, #089981)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--signal-buy, #089981)' }} />
+                          Market Open
+                        </span>
+                        <span>{utcClock}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. Right Collapsible Watchlist & Detail Drawer */}
+                  {showRightDrawer === 'watchlist' && (
+                    <TradingViewWatchlist
+                      prices={prices}
+                      selectedSymbol={symbol}
+                      onSelectSymbol={(newSym) => setSymbol(newSym)}
+                      onOpenBot={() => window.dispatchEvent(new CustomEvent('trendlens_toggle_bot_panel'))}
+                    />
+                  )}
+
+                  {showRightDrawer === 'coach' && (
+                    <div className="tv-side-drawer-container">
+                      <AiCoachChat
+                        currentAsset={currentAsset}
+                        currentPrice={currentPrice}
+                        category={assetData?.category || 'Metals'}
+                        onDrawPlan={(plan) => {
+                          setActivePlan(plan);
+                          setChartEngine('ultra');
+                        }}
+                      />
                     </div>
                   )}
 
-                  {/* Maximize Fullscreen Terminal Mode */}
-                  <button
-                    className={`btn btn-sm ${isMaximized ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setIsMaximized(!isMaximized)}
-                    title={isMaximized ? "Exit Fullscreen (ESC)" : "Maximize Chart (Full Screen Terminal)"}
-                    style={{ gap: 6, fontSize: '0.74rem' }}
-                  >
-                    {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-                    <span>{isMaximized ? "Exit" : "Maximize"}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Full TradingView Terminal Layout: Left Toolbar + Chart Center + Right Drawer + Icon Rail */}
-              <div className="tv-terminal-wrapper">
-                {/* 1. Left Vertical Drawing Toolbar */}
-                <TradingViewLeftToolbar
-                  activeTool={activeDrawingTool}
-                  onSelectTool={(toolId) => {
-                    setActiveDrawingTool(toolId);
-                  }}
-                  onClearDrawings={() => {
-                    window.dispatchEvent(new CustomEvent('trendlens_clear_drawings'));
-                  }}
-                />
-
-                {/* 2. Center Chart Workspace */}
-                <div className="tv-center-workspace">
-                  {/* Chart Container: Dedicated Engine High-Resolution Canvas */}
-                  <div className="chart-container" style={{ flex: 1, minHeight: '520px', height: '100%', background: 'var(--bg-primary, #131722)' }}>
-                    <TrendLensUltraChart
-                      asset={currentAsset}
-                      initialPrice={currentPrice}
-                      category={assetData?.category || 'Metals'}
-                      timeframe={ALL_TIMEFRAMES.find(t => t.val === timeframe)?.label || timeframe}
-                      range={selectedRange}
-                      onRangeChange={handleRangeSelect}
-                      activeDrawingTool={activeDrawingTool}
-                      onSelectDrawingTool={setActiveDrawingTool}
-                      engineMode={chartEngine}
-                      activePlan={activePlan}
-                    />
-                  </div>
-
-                  {/* 3. Bottom Time Toolbar */}
-                  <div className="tv-bottom-timebar">
-                    <div className="tv-time-shortcuts">
-                      {['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'All'].map(range => (
-                        <button
-                          key={range}
-                          className={`tv-time-btn ${selectedRange === range ? 'active' : ''}`}
-                          onClick={() => handleRangeSelect(range)}
-                          title={`Switch Chart Range to ${range}`}
-                        >
-                          {range}
-                        </button>
-                      ))}
+                  {showRightDrawer === 'signals' && (
+                    <div className="tv-side-drawer-container" style={{ padding: '12px' }}>
+                      <SignalFeed signals={signals} currentAsset={currentAsset} />
                     </div>
-                    <div className="tv-time-clock">
-                      <span style={{ color: 'var(--signal-buy, #089981)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--signal-buy, #089981)' }} />
-                        Market Open
-                      </span>
-                      <span>{utcClock}</span>
-                    </div>
-                  </div>
-                </div>
+                  )}
 
-                {/* 4. Right Collapsible Watchlist & Detail Drawer */}
-                {showRightDrawer === 'watchlist' && (
-                  <TradingViewWatchlist
-                    prices={prices}
-                    selectedSymbol={symbol}
-                    onSelectSymbol={(newSym) => setSymbol(newSym)}
-                    onOpenBot={() => window.dispatchEvent(new CustomEvent('trendlens_toggle_bot_panel'))}
-                  />
-                )}
-
-                {showRightDrawer === 'coach' && (
-                  <div className="tv-side-drawer-container">
-                    <AiCoachChat
-                      currentAsset={currentAsset}
-                      currentPrice={currentPrice}
-                      category={assetData?.category || 'Metals'}
-                      onDrawPlan={(plan) => {
-                        setActivePlan(plan);
-                        setChartEngine('ultra');
+                  {/* 5. Rightmost 44px Icon Rail */}
+                  <div className="tv-right-icon-rail">
+                    <button
+                      className={`tv-rail-btn ${showRightDrawer === 'watchlist' ? 'active' : ''}`}
+                      onClick={() => setShowRightDrawer(showRightDrawer === 'watchlist' ? null : 'watchlist')}
+                      title="Watchlist, Details & News"
+                    >
+                      <List size={16} />
+                    </button>
+                    <button
+                      className={`tv-rail-btn ${showRightDrawer === 'coach' ? 'active' : ''}`}
+                      onClick={() => setShowRightDrawer(showRightDrawer === 'coach' ? null : 'coach')}
+                      title="AI Trading Coach (Sinhala Narration)"
+                    >
+                      <Sparkles size={16} />
+                    </button>
+                    <button
+                      className={`tv-rail-btn ${showRightDrawer === 'signals' ? 'active' : ''}`}
+                      onClick={() => setShowRightDrawer(showRightDrawer === 'signals' ? null : 'signals')}
+                      title="Live Signal Feed"
+                    >
+                      <Zap size={16} />
+                    </button>
+                    <button
+                      className="tv-rail-btn"
+                      onClick={() => window.dispatchEvent(new CustomEvent('trendlens_toggle_bot_panel'))}
+                      title="10-Coin Institutional AI Bot"
+                    >
+                      <Cpu size={16} />
+                    </button>
+                    <div style={{ width: 20, height: 1, background: 'var(--border, #2a2e39)', margin: '4px 0' }} />
+                    <button
+                      className="tv-rail-btn"
+                      onClick={() => {
+                        const nextTheme = theme === 'tl-black-red' ? 'tl-dark' : 'tl-black-red';
+                        setTheme(nextTheme);
                       }}
-                    />
+                      title={`Toggle Theme: ${theme === 'tl-black-red' ? 'TradingView Dark' : 'Black & Red Pro'}`}
+                      style={{ fontSize: '0.90rem' }}
+                    >
+                      {theme === 'tl-black-red' ? '🔴' : '🌑'}
+                    </button>
+                    <button
+                      className={`tv-rail-btn ${isMaximized ? 'active' : ''}`}
+                      onClick={() => setIsMaximized(!isMaximized)}
+                      title={isMaximized ? "Exit Fullscreen (ESC)" : "Maximize Terminal"}
+                    >
+                      {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    </button>
                   </div>
-                )}
-
-                {showRightDrawer === 'signals' && (
-                  <div className="tv-side-drawer-container" style={{ padding: '12px' }}>
-                    <SignalFeed signals={signals} currentAsset={currentAsset} />
-                  </div>
-                )}
-
-                {/* 5. Rightmost 44px Icon Rail */}
-                <div className="tv-right-icon-rail">
-                  <button
-                    className={`tv-rail-btn ${showRightDrawer === 'watchlist' ? 'active' : ''}`}
-                    onClick={() => setShowRightDrawer(showRightDrawer === 'watchlist' ? null : 'watchlist')}
-                    title="Watchlist, Details & News"
-                  >
-                    <List size={16} />
-                  </button>
-                  <button
-                    className={`tv-rail-btn ${showRightDrawer === 'coach' ? 'active' : ''}`}
-                    onClick={() => setShowRightDrawer(showRightDrawer === 'coach' ? null : 'coach')}
-                    title="AI Trading Coach (Sinhala Narration)"
-                  >
-                    <Sparkles size={16} />
-                  </button>
-                  <button
-                    className={`tv-rail-btn ${showRightDrawer === 'signals' ? 'active' : ''}`}
-                    onClick={() => setShowRightDrawer(showRightDrawer === 'signals' ? null : 'signals')}
-                    title="Live Signal Feed"
-                  >
-                    <Zap size={16} />
-                  </button>
-                  <button
-                    className="tv-rail-btn"
-                    onClick={() => window.dispatchEvent(new CustomEvent('trendlens_toggle_bot_panel'))}
-                    title="10-Coin Institutional AI Bot"
-                  >
-                    <Cpu size={16} />
-                  </button>
-                  <div style={{ width: 20, height: 1, background: 'var(--border, #2a2e39)', margin: '4px 0' }} />
-                  <button
-                    className="tv-rail-btn"
-                    onClick={() => {
-                      const nextTheme = theme === 'tl-black-red' ? 'tl-dark' : 'tl-black-red';
-                      setTheme(nextTheme);
-                    }}
-                    title={`Toggle Theme: ${theme === 'tl-black-red' ? 'TradingView Dark' : 'Black & Red Pro'}`}
-                    style={{ fontSize: '0.90rem' }}
-                  >
-                    {theme === 'tl-black-red' ? '🔴' : '🌑'}
-                  </button>
-                  <button
-                    className={`tv-rail-btn ${isMaximized ? 'active' : ''}`}
-                    onClick={() => setIsMaximized(!isMaximized)}
-                    title={isMaximized ? "Exit Fullscreen (ESC)" : "Maximize Terminal"}
-                  >
-                    {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                  </button>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Bottom Row — Engine-Specific Specialized Analytics */}
-          <div className="dash-bottom-row">
-            {activeEngine === 'smc_ultra' && (
-              <>
-                <DailyTargetWidget asset={currentAsset} currentPrice={currentPrice} />
-                <OrderFlowPanel />
-                <div className="whale-alerts card">
-                  <div className="section-label" style={{ marginBottom: 12 }}>Institutional Whale Alerts ({currentAsset})</div>
-                  <div className="whale-alert-item">
-                    <div className="whale-msg" style={{ color: 'var(--signal-neutral)' }}>
-                      Unavailable — no Level-2 order book feed is connected, so no whale prints can be detected.
+            {/* Bottom Row — Engine-Specific Specialized Analytics */}
+            <div className="dash-bottom-row">
+              {activeEngine === 'smc_ultra' && (
+                <>
+                  <DailyTargetWidget asset={currentAsset} currentPrice={currentPrice} />
+                  <OrderFlowPanel />
+                  <div className="whale-alerts card">
+                    <div className="section-label" style={{ marginBottom: 12 }}>Institutional Whale Alerts ({currentAsset})</div>
+                    <div className="whale-alert-item">
+                      <div className="whale-msg" style={{ color: 'var(--signal-neutral)' }}>
+                        Unavailable — no Level-2 order book feed is connected, so no whale prints can be detected.
+                      </div>
                     </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
 
-            {activeEngine === 'scalp' && (
-              <>
-                <ScalpTapeReader currentPrice={currentPrice} asset={currentAsset} />
-                <OrderImbalanceMeter />
-                <ScalpStatsWidget />
-              </>
-            )}
+              {activeEngine === 'scalp' && (
+                <>
+                  <ScalpTapeReader currentPrice={currentPrice} asset={currentAsset} />
+                  <OrderImbalanceMeter />
+                  <ScalpStatsWidget />
+                </>
+              )}
 
-            {activeEngine === 'day_trading' && (
-              <>
-                <KillzoneScheduleWidget />
-                <DailyRangeVwapWidget currentPrice={currentPrice} asset={currentAsset} />
-                <DayConfluenceWidget />
-              </>
-            )}
+              {activeEngine === 'day_trading' && (
+                <>
+                  <KillzoneScheduleWidget />
+                  <DailyRangeVwapWidget currentPrice={currentPrice} asset={currentAsset} />
+                  <DayConfluenceWidget />
+                </>
+              )}
 
-            {activeEngine === 'swing_4h' && (
-              <>
-                <MacroAlignmentWidget symbol={bybitSymbol.ok ? bybitSymbol.symbol : 'BTCUSDT'} />
-                <SwingRiskRewardWidget currentPrice={currentPrice} />
-                <CotWhaleAccumulationWidget />
-              </>
-            )}
+              {activeEngine === 'swing_4h' && (
+                <>
+                  <MacroAlignmentWidget symbol={bybitSymbol.ok ? bybitSymbol.symbol : 'BTCUSDT'} />
+                  <SwingRiskRewardWidget currentPrice={currentPrice} />
+                  <CotWhaleAccumulationWidget />
+                </>
+              )}
+            </div>
           </div>
         </div>
         )}
