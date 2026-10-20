@@ -12,6 +12,8 @@ import {
 import './Navbar.css';
 
 const THEMES = [
+  { key: 'mono-dark',    label: 'Black & White OLED', icon: '◼' },
+  { key: 'mono-light',   label: 'Premium Light',     icon: '◻' },
   { key: 'tl-dark',      label: 'TradingView Dark', icon: '🌑' },
   { key: 'tl-black-red', label: 'Black & Red Pro',  icon: '🔴' },
   { key: 'tl-navy',      label: 'Midnight Navy',    icon: '🌊' },

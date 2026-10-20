@@ -1,0 +1,520 @@
+/* ==========================================================================
+   TRENDLENS PRO — BLACK & WHITE HYBRID PRO DESIGN SYSTEM
+   --------------------------------------------------------------------------
+   A scoped, opt-in design foundation. Nothing here changes the existing
+   application: the legacy themes (tl-dark, tl-black-red, tl-navy, tl-matrix,
+   tl-amber, tl-light) keep every value they have today.
+
+   HOW IT WORKS
+   ------------
+   1. THEMES   `[data-theme="mono-dark"]` and `[data-theme="mono-light"]`
+                re-declare every custom property the application already uses
+                (see the full list in src/index.css). Because every existing
+                component reads its colours from those variables, switching to
+                a mono theme re-skins the whole app with zero component
+                changes. The blocks below are imported AFTER index.css, so they
+                win the cascade for the mono themes only.
+   2. PRIMITIVES  `.bw-*` classes are the new reusable building blocks.
+                They are prefixed so they can never collide with an existing
+                selector, and they are used opt-in by the later UI phases.
+   3. NO BLUR OVER CANVAS. Glass surfaces use a light blur; the chart canvas
+                and anything directly above it never receives a backdrop
+                filter, so the live canvas stays sharp and cheap.
+
+   NOTE: `mono-theme.css` was not present in the repository when this file was
+   written, so this system is built from the approved Black & White spec.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. OLED DARK — the flagship theme
+   -------------------------------------------------------------------------- */
+[data-theme="mono-dark"] {
+  /* Surfaces — true OLED black, then charcoal panels */
+  --bg-primary: #000000;
+  --bg-secondary: #050506;
+  --bg-card: #08080a;
+  --bg-elevated: #0e0e11;
+  --bg-hover: #16161a;
+
+  /* Hairlines and borders — crisp 1px, never heavy */
+  --border: rgba(255, 255, 255, 0.09);
+  --border-glow: rgba(255, 255, 255, 0.18);
+  --border-hover: rgba(255, 255, 255, 0.16);
+
+  /* Typography — near-white primary */
+  --text-primary: #f4f5f7;
+  --text-secondary: #9a9ca4;
+  --text-muted: #63656e;
+  --text-accent: #ffffff;
+
+  /* Selection accent — white/grey only, never a colour fill */
+  --brand: #ffffff;
+  --brand-dim: #d7d8dc;
+  --brand-glow: rgba(255, 255, 255, 0.14);
+  --brand-glow2: rgba(255, 255, 255, 0.05);
+
+  /* Market semantics — green and red ONLY for meaningful trading states */
+  --signal-buy: #00c896;
+  --signal-buy-bg: rgba(0, 200, 150, 0.12);
+  --signal-sell: #ff3b5c;
+  --signal-sell-bg: rgba(255, 59, 92, 0.12);
+  --signal-neutral: #e5a50a;
+  --signal-neutral-bg: rgba(229, 165, 10, 0.12);
+
+  /* Legacy semantic aliases kept neutral so nothing reads as a colour accent */
+  --gold: #e5e6e9;
+  --silver: #a9abb2;
+  --bronze: #7d7f87;
+
+  /* Depth — restrained */
+  --shadow-card: 0 8px 26px rgba(0, 0, 0, 0.72);
+  --shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  --shadow-buy: 0 0 0 1px rgba(0, 200, 150, 0.4);
+  --shadow-sell: 0 0 0 1px rgba(255, 59, 92, 0.4);
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-heading: 'Geist', 'Outfit', sans-serif;
+  --font-body: 'Geist', 'Inter', sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
+  --font-display: 'Geist', 'Outfit', sans-serif;
+
+  /* Chrome metrics */
+  --topnav-h: 48px;
+  --sidebar-w: 220px;
+
+  /* Design-system scale */
+  --bw-space-1: 4px;
+  --bw-space-2: 8px;
+  --bw-space-3: 12px;
+  --bw-space-4: 16px;
+  --bw-space-5: 24px;
+  --bw-space-6: 32px;
+
+  --bw-text-display: 30px;
+  --bw-text-title: 20px;
+  --bw-text-section: 13px;
+  --bw-text-body: 13px;
+  --bw-text-label: 11px;
+  --bw-text-num: 12px;
+
+  --bw-radius-input: 4px;
+  --bw-radius-card: 6px;
+  --bw-radius-panel: 8px;
+  --bw-radius-modal: 12px;
+
+  --bw-glass: rgba(255, 255, 255, 0.03);
+  --bw-glass-strong: rgba(255, 255, 255, 0.055);
+  --bw-blur: 8px;
+
+  --bw-focus: 0 0 0 2px rgba(255, 255, 255, 0.55);
+  --bw-row-h: 34px;
+  --bw-control-h: 28px;
+}
+
+/* --------------------------------------------------------------------------
+   2. PREMIUM LIGHT
+   -------------------------------------------------------------------------- */
+[data-theme="mono-light"] {
+  --bg-primary: #f6f6f7;
+  --bg-secondary: #ececee;
+  --bg-card: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: #ededef;
+
+  --border: rgba(0, 0, 0, 0.1);
+  --border-glow: rgba(0, 0, 0, 0.2);
+  --border-hover: rgba(0, 0, 0, 0.18);
+
+  --text-primary: #0a0a0c;
+  --text-secondary: #5c5e66;
+  --text-muted: #8a8c94;
+  --text-accent: #0a0a0c;
+
+  --brand: #0a0a0c;
+  --brand-dim: #2c2e34;
+  --brand-glow: rgba(0, 0, 0, 0.1);
+  --brand-glow2: rgba(0, 0, 0, 0.04);
+
+  --signal-buy: #009e77;
+  --signal-buy-bg: rgba(0, 158, 119, 0.1);
+  --signal-sell: #d92b4b;
+  --signal-sell-bg: rgba(217, 43, 75, 0.1);
+  --signal-neutral: #b4790a;
+  --signal-neutral-bg: rgba(180, 121, 10, 0.1);
+
+  --gold: #1c1e24;
+  --silver: #5c5e66;
+  --bronze: #8a8c94;
+
+  --shadow-card: 0 6px 22px rgba(0, 0, 0, 0.08);
+  --shadow-glow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+  --shadow-buy: 0 0 0 1px rgba(0, 158, 119, 0.35);
+  --shadow-sell: 0 0 0 1px rgba(217, 43, 75, 0.35);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  --font-heading: 'Geist', 'Outfit', sans-serif;
+  --font-body: 'Geist', 'Inter', sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
+  --font-display: 'Geist', 'Outfit', sans-serif;
+
+  --topnav-h: 48px;
+  --sidebar-w: 220px;
+
+  --bw-space-1: 4px;
+  --bw-space-2: 8px;
+  --bw-space-3: 12px;
+  --bw-space-4: 16px;
+  --bw-space-5: 24px;
+  --bw-space-6: 32px;
+
+  --bw-text-display: 30px;
+  --bw-text-title: 20px;
+  --bw-text-section: 13px;
+  --bw-text-body: 13px;
+  --bw-text-label: 11px;
+  --bw-text-num: 12px;
+
+  --bw-radius-input: 4px;
+  --bw-radius-card: 6px;
+  --bw-radius-panel: 8px;
+  --bw-radius-modal: 12px;
+
+  --bw-glass: rgba(255, 255, 255, 0.72);
+  --bw-glass-strong: rgba(255, 255, 255, 0.88);
+  --bw-blur: 8px;
+
+  --bw-focus: 0 0 0 2px rgba(0, 0, 0, 0.45);
+  --bw-row-h: 34px;
+  --bw-control-h: 28px;
+}
+
+/* --------------------------------------------------------------------------
+   3. TYPOGRAPHY PRIMITIVES
+   -------------------------------------------------------------------------- */
+.bw-display {
+  font-family: var(--font-display);
+  font-size: var(--bw-text-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+.bw-title {
+  font-family: var(--font-heading);
+  font-size: var(--bw-text-title);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.bw-section {
+  font-family: var(--font-heading);
+  font-size: var(--bw-text-section);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.bw-label {
+  font-family: var(--font-body);
+  font-size: var(--bw-text-label);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.bw-body { font-size: var(--bw-text-body); color: var(--text-secondary); }
+
+/* Financial numbers — always mono, always tabular so columns align */
+.bw-num {
+  font-family: var(--font-mono);
+  font-size: var(--bw-text-num);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'zero' 1;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.bw-num--up { color: var(--signal-buy); }
+.bw-num--down { color: var(--signal-sell); }
+.bw-num--muted { color: var(--text-muted); }
+
+/* --------------------------------------------------------------------------
+   4. SURFACES
+   -------------------------------------------------------------------------- */
+.bw-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--bw-radius-card);
+  padding: var(--bw-space-4);
+}
+.bw-panel {
+  background: var(--bw-glass);
+  border: 1px solid var(--border);
+  border-radius: var(--bw-radius-panel);
+  backdrop-filter: blur(var(--bw-blur)) saturate(115%);
+  -webkit-backdrop-filter: blur(var(--bw-blur)) saturate(115%);
+}
+.bw-panel--strong { background: var(--bw-glass-strong); }
+/* Never place a blurred surface over a live canvas. */
+.bw-panel--flat { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--bg-card); }
+
+/* --------------------------------------------------------------------------
+   5. CONTROLS
+   -------------------------------------------------------------------------- */
+.bw-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--bw-control-h);
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--bw-radius-input);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+.bw-btn:hover { background: var(--bg-hover); border-color: var(--border-hover); }
+.bw-btn:focus-visible { outline: none; box-shadow: var(--bw-focus); }
+.bw-btn[disabled],
+.bw-btn:disabled { opacity: 0.4; pointer-events: none; }
+.bw-btn--primary {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border-color: var(--text-primary);
+  font-weight: 650;
+}
+.bw-btn--primary:hover { background: var(--brand-dim); border-color: var(--brand-dim); }
+.bw-btn--active {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+.bw-btn--sm { height: 24px; padding: 0 8px; font-size: 11px; }
+.bw-btn--icon { width: var(--bw-control-h); padding: 0; }
+
+.bw-input,
+.bw-select {
+  height: var(--bw-control-h);
+  width: 100%;
+  padding: 0 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--bw-radius-input);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+.bw-input::placeholder { color: var(--text-muted); }
+.bw-input:focus-visible,
+.bw-select:focus-visible {
+  outline: none;
+  border-color: var(--border-hover);
+  box-shadow: var(--bw-focus);
+}
+
+/* --------------------------------------------------------------------------
+   6. TABS
+   -------------------------------------------------------------------------- */
+.bw-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+}
+.bw-tab {
+  position: relative;
+  height: 30px;
+  padding: 0 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  transition: color 0.14s ease;
+}
+.bw-tab:hover { color: var(--text-secondary); }
+.bw-tab:focus-visible { outline: none; box-shadow: var(--bw-focus); border-radius: var(--bw-radius-input); }
+.bw-tab[aria-selected='true'],
+.bw-tab.is-active { color: var(--text-primary); }
+.bw-tab[aria-selected='true']::after,
+.bw-tab.is-active::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--text-primary);
+  border-radius: 1px;
+}
+
+/* --------------------------------------------------------------------------
+   7. TABLES
+   -------------------------------------------------------------------------- */
+.bw-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.bw-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 28px;
+  padding: 0 8px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+}
+.bw-table tbody td {
+  height: var(--bw-row-h);
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.bw-table tbody tr:hover td { background: var(--bg-hover); }
+.bw-table td.num,
+.bw-table th.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* --------------------------------------------------------------------------
+   8. BADGES AND STATUS
+   -------------------------------------------------------------------------- */
+.bw-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--bw-radius-input);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.bw-badge--up { color: var(--signal-buy); border-color: rgba(0, 200, 150, 0.32); background: var(--signal-buy-bg); }
+.bw-badge--down { color: var(--signal-sell); border-color: rgba(255, 59, 92, 0.32); background: var(--signal-sell-bg); }
+.bw-badge--warn { color: var(--signal-neutral); border-color: rgba(229, 165, 10, 0.32); background: var(--signal-neutral-bg); }
+.bw-badge--select { color: var(--text-primary); border-color: var(--border-hover); background: var(--bg-hover); }
+
+/* --------------------------------------------------------------------------
+   9. STATS
+   -------------------------------------------------------------------------- */
+.bw-stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--bw-radius-card);
+  padding: var(--bw-space-3) var(--bw-space-4);
+}
+.bw-stat__label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.bw-stat__value {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.bw-stat__hint { margin-top: 2px; font-size: 11px; color: var(--text-muted); }
+
+/* --------------------------------------------------------------------------
+   10. WORKSPACE FOUNDATIONS (consumed by the later layout phase)
+   -------------------------------------------------------------------------- */
+.bw-workspace {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) var(--bw-right-w, 320px);
+  min-height: 0;
+  height: 100%;
+}
+.bw-workspace[data-right='closed'] { grid-template-columns: 44px minmax(0, 1fr) 0; }
+.bw-workspace__rail { min-width: 0; }
+.bw-workspace__main { min-width: 0; display: flex; flex-direction: column; }
+.bw-workspace__side {
+  min-width: 0;
+  overflow: hidden auto;
+  border-left: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   11. RESPONSIVE FOUNDATIONS
+   -------------------------------------------------------------------------- */
+@media (max-width: 1599px) {
+  [data-theme='mono-dark'], [data-theme='mono-light'] { --bw-right-w: 300px; }
+}
+@media (max-width: 1279px) {
+  .bw-workspace { grid-template-columns: 44px minmax(0, 1fr) 0; }
+  .bw-workspace__side {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: min(360px, 92vw);
+    z-index: 30;
+    box-shadow: var(--shadow-card);
+  }
+}
+@media (max-width: 767px) {
+  .bw-workspace { grid-template-columns: 36px minmax(0, 1fr) 0; }
+}
+
+/* --------------------------------------------------------------------------
+   12. ACCESSIBILITY
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .bw-btn,
+  .bw-tab,
+  .bw-table tbody tr:hover td { transition: none; }
+}
+.bw-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

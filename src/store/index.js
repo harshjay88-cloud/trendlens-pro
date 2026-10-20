@@ -9,9 +9,28 @@ import {
 import { classifyResult, normalizePnl, resultCounterDelta } from '../utils/paperAccounting.js';
 
 // ── Theme Store ──────────────────────────────────────────
-const THEMES = ['tl-dark', 'tl-black-red', 'tl-navy', 'tl-matrix', 'tl-amber', 'tl-light'];
+const THEMES = [
+  // Black & White Hybrid Pro (the flagship design system)
+  'mono-dark',
+  'mono-light',
+  // Legacy themes - kept so an existing stored preference always resolves
+  'tl-dark',
+  'tl-black-red',
+  'tl-navy',
+  'tl-matrix',
+  'tl-amber',
+  'tl-light',
+];
+const DEFAULT_THEME = 'mono-dark';
 const getStoredTheme = () => {
-  try { return localStorage.getItem('tl_theme') || 'tl-dark'; } catch { return 'tl-dark'; }
+  try {
+    const saved = localStorage.getItem('tl_theme');
+    // An unknown stored value falls back to the default instead of leaving
+    // the document with a theme that has no tokens.
+    return saved && THEMES.includes(saved) ? saved : DEFAULT_THEME;
+  } catch {
+    return DEFAULT_THEME;
+  }
 };
 
 export const useThemeStore = create((set) => ({
