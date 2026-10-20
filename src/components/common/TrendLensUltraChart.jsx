@@ -24,6 +24,7 @@ import {
   validateMarketSymbol,
 } from '../../services/marketDataService.js';
 import { generateSimulationCandles } from '../../services/simulationData.js';
+import { buildChartMarketState } from '../../utils/chartMarketState.js';
 import { useTradingModeStore, TRADING_MODES, MODE_LABELS, MODE_DESCRIPTIONS } from '../../store/tradingModeStore.js';
 import { resolveBybitSymbol } from '../../config/tradingMode.js';
 import TrailingStopModal from '../modals/TrailingStopModal.jsx';
@@ -755,7 +756,7 @@ export default function TrendLensUltraChart({
   const [showPlaybookModal, setShowPlaybookModal] = useState(false);
   const [checklist, setChecklist] = useState({ mtf: true, killzone: true, sweep: true, rr: true });
   const [mtfStrictFilter, setMtfStrictFilter] = useState(true);
-  const [macroBias, setMacroBias] = useState('BULLISH');
+  const [macroBias, setMacroBias] = useState('NEUTRAL');
   const [isLive, setIsLive] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [currentPx, setCurrentPx] = useState(initialPrice);
@@ -879,6 +880,9 @@ export default function TrendLensUltraChart({
     marks: [],
     prints: [],
     cmeLevels: {},
+    rangeLevels: null,
+    depthFeedAvailable: false,
+    tapeFeedAvailable: false,
     lastTick: 0,
     lastBar: 0,
     price: initialPrice,
@@ -1025,197 +1029,27 @@ export default function TrendLensUltraChart({
         useMarketStore.getState().updatePrice(asset, finalPx);
       }
 
-      const highs = s.bars.map(b => b.h);
-      const lows = s.bars.map(b => b.l);
-      const maxH = Math.max(...highs);
-      const minL = Math.min(...lows);
-      const span = Math.max(0.0001, maxH - minL);
+      // ── Market-derived chart state ──────────────────────────────────────
+      // Everything below is computed from the real candles that were just
+      // loaded. Nothing is invented:
+      //  - no depth feed is connected, so there are no liquidity walls;
+      //  - no trade-tape feed is connected, so there are no order-flow prints;
+      //  - no verified analysis result exists yet, so there is NO trade
+      //    bracket, NO confluence pillars and NO BUY/SELL direction.
+      // Loading candles is not an analysis: a trade may only be created by a
+      // verified analysis result, never because a candle series arrived.
+      const marketState = buildChartMarketState({ bars: s.bars, finalPx, decimals });
 
-      // CME levels (VAH, POC, VAL, nPOC) relative to real price range
-      s.cmeLevels = {
-        vah: +(minL + span * 0.70).toFixed(decimals),
-        poc: +(minL + span * 0.50).toFixed(decimals),
-        val: +(minL + span * 0.30).toFixed(decimals),
-        nPoc: +(minL + span * 0.15).toFixed(decimals),
-      };
-
-      // Liquidity Walls (bands)
-      s.walls = Array.from({ length: 14 }, () => ({
-        p: +(minL + Math.random() * span).toFixed(decimals),
-        s: Math.random(),
-        ph: Math.random() * 6
-      }));
-
-      // Single Active Institutional Trade Setup (Eliminates crowded/close signals)
+      s.rangeLevels = marketState.rangeLevels;
+      s.cmeLevels = marketState.rangeLevels || {};
+      s.walls = marketState.walls;
+      s.depthFeedAvailable = marketState.depthFeedAvailable;
+      s.prints = marketState.prints;
+      s.tapeFeedAvailable = marketState.tapeFeedAvailable;
       s.marks = [];
       s.activeTrade = null;
-      const markLabel = engineMode === 'scalper' ? 'SCALP' : 'ULTRA';
-
-      // Dynamically calculate trend from recent 18 candles of this timeframe
-      const recentBars = s.bars.slice(-18);
-      const recentFast = recentBars.slice(-6).reduce((acc, bar) => acc + bar.c, 0) / 6;
-      const recentSlow = recentBars.reduce((acc, bar) => acc + bar.c, 0) / recentBars.length;
-      const isBull = recentFast >= recentSlow;
-      setMacroBias(isBull ? 'BULLISH' : 'BEARISH');
-
-      const entryBarIdx = Math.max(1, s.bars.length - 2);
-      const entry = s.bars[entryBarIdx].c;
-      // Institutional SL Buffer: Scaled strictly according to the timeframe!
-      const pipScale = tfConfig.pipScale || 1.0;
-      const minSlBuffer = Math.max(tickSize * 3, (entry * 0.0018) * pipScale);
-
-      if (isBull) {
-        const sl = +(entry - minSlBuffer).toFixed(decimals);
-        const risk = +(entry - sl).toFixed(decimals);
-        const tp1 = +(entry + risk * 1.85).toFixed(decimals);
-        const tp2 = +(entry + risk * 3.1).toFixed(decimals);
-        const riskPips = +(risk * pipMultiplier).toFixed(1);
-        const rewardPips = +(risk * 1.85 * pipMultiplier).toFixed(1);
-
-        const defaultBullPillars = {
-          mss: { name: 'Market Structure Shift (MSS/BOS)', ok: true, detail: 'Displacement Body breaks Swing High' },
-          fvg: { name: 'ST01 Fair Value Gap (Imbalance)', ok: true, detail: 'Bullish Imbalance Mitigation Zone Retested' },
-          sweep: { name: 'SMC Liquidity Pool Sweep', ok: true, detail: 'Session Liquidity Sweep Purged & Absorbed' },
-          orderFlow: { name: 'Level-2 Bookmap Wall Defense', ok: true, detail: 'Institutional Bid Wall Defended' },
-          mtf: { name: 'Multi-Timeframe Trend Shield', ok: true, detail: `Aligned with ${tfConfig.category} Momentum` },
-          rsi: { name: 'RSI Momentum Curvature', ok: true, detail: 'RSI Curling Upwards into Flow' }
-        };
-
-        const trade = {
-          i: entryBarIdx,
-          buy: true,
-          entry,
-          sl,
-          tp1,
-          tp2,
-          riskPips,
-          rewardPips,
-          score: Math.min(98, 91 + Math.round(Math.random() * 6)),
-          status: 'ACTIVE',
-          a: 1,
-          label: `${markLabel} BUY 🎯`,
-          reason: `${tfConfig.label} Liq Sweep + MSS Reversal (6/6 Confirmed)`,
-          pillars: defaultBullPillars,
-          confirmedCount: 6
-        };
-        s.activeTrade = trade;
-        s.marks = [trade];
-        setActivePillars(defaultBullPillars);
-
-        if (demoAccount.isAutoBotActive && !demoAccount.openPosition) {
-          openDemoTrade({
-            asset,
-            buy: true,
-            entry: trade.entry,
-            sl: trade.sl,
-            tp1: trade.tp1,
-            score: trade.score,
-            reason: trade.reason,
-            lotSize: 1.0,
-            pipMultiplier
-          });
-        }
-
-        try {
-          const created = addSignal({
-            asset,
-            marketCategory: category,
-            direction: 'BUY',
-            engine: engineMode === 'scalper' ? 'MagicScalper' : 'WhaleAOF',
-            timeframe,
-            entry: trade.entry,
-            stopLoss: trade.sl,
-            targets: { tp1: trade.tp1, tp2: trade.tp2, tp3: trade.tp2 },
-            status: 'active',
-            accuracy: trade.score,
-            reason: `${tfConfig.label} Asian Liq Sweep + MSS Reversal (6/6 Confirmed)`,
-            riskPips: trade.riskPips,
-            rewardPips: trade.rewardPips,
-            indicators: ['ULT', 'ST01', 'ICT', 'LIQ', 'DOM']
-          });
-          activeSigIdRef.current = created?.id;
-        } catch {}
-      } else {
-        const sl = +(entry + minSlBuffer).toFixed(decimals);
-        const risk = +(sl - entry).toFixed(decimals);
-        const tp1 = +(entry - risk * 1.85).toFixed(decimals);
-        const tp2 = +(entry - risk * 3.1).toFixed(decimals);
-        const riskPips = +(risk * pipMultiplier).toFixed(1);
-        const rewardPips = +(risk * 1.85 * pipMultiplier).toFixed(1);
-
-        const defaultBearPillars = {
-          mss: { name: 'Market Structure Shift (MSS/BOS)', ok: true, detail: 'Displacement Body breaks Swing Low' },
-          fvg: { name: 'ST01 Fair Value Gap (Imbalance)', ok: true, detail: 'Bearish Imbalance Mitigation Zone Retested' },
-          sweep: { name: 'SMC Liquidity Pool Sweep', ok: true, detail: 'Session High Purged & Wick Rejected' },
-          orderFlow: { name: 'Level-2 Bookmap Wall Defense', ok: true, detail: 'Institutional Ask Wall Defended' },
-          mtf: { name: 'Multi-Timeframe Trend Shield', ok: true, detail: `Aligned with ${tfConfig.category} Momentum` },
-          rsi: { name: 'RSI Momentum Curvature', ok: true, detail: 'RSI Curling Downwards out of Overbought' }
-        };
-
-        const trade = {
-          i: entryBarIdx,
-          buy: false,
-          entry,
-          sl,
-          tp1,
-          tp2,
-          riskPips,
-          rewardPips,
-          score: Math.min(98, 90 + Math.round(Math.random() * 7)),
-          status: 'ACTIVE',
-          a: 1,
-          label: `${markLabel} SELL 🎯`,
-          reason: `${tfConfig.label} High Rejection + FVG Mitigation (6/6 Confirmed)`,
-          pillars: defaultBearPillars,
-          confirmedCount: 6
-        };
-        s.activeTrade = trade;
-        s.marks = [trade];
-        setActivePillars(defaultBearPillars);
-
-        if (demoAccount.isAutoBotActive && !demoAccount.openPosition) {
-          openDemoTrade({
-            asset,
-            buy: false,
-            entry: trade.entry,
-            sl: trade.sl,
-            tp1: trade.tp1,
-            score: trade.score,
-            reason: trade.reason,
-            lotSize: 1.0,
-            pipMultiplier
-          });
-        }
-
-        try {
-          const created = addSignal({
-            asset,
-            marketCategory: category,
-            direction: 'SELL',
-            engine: engineMode === 'scalper' ? 'MagicScalper' : 'WhaleAOF',
-            timeframe,
-            entry: trade.entry,
-            stopLoss: trade.sl,
-            targets: { tp1: trade.tp1, tp2: trade.tp2, tp3: trade.tp2 },
-            status: 'active',
-            accuracy: trade.score,
-            reason: `${tfConfig.label} High Rejection + FVG Mitigation (6/6 Confirmed)`,
-            riskPips: trade.riskPips,
-            rewardPips: trade.rewardPips,
-            indicators: ['ULT', 'ST01', 'ICT', 'LIQ', 'DOM']
-          });
-          activeSigIdRef.current = created?.id;
-        } catch {}
-      }
-
-      // Big prints placed realistically at key swing highs & lows of this timeframe
-      const printIdx1 = Math.max(2, Math.floor(s.bars.length - tfConfig.barsCount * 0.65));
-      const printIdx2 = Math.max(2, Math.floor(s.bars.length - tfConfig.barsCount * 0.28));
-      const volRange = Math.max(0.001, (finalPx * 0.0015));
-      s.prints = [
-        { i: printIdx1, p: s.bars[printIdx1].l + volRange * 0.2, q: 0.8, buy: true, a: 1, size: 2450 },
-        { i: printIdx2, p: s.bars[printIdx2].h - volRange * 0.2, q: 0.6, buy: false, a: 1, size: 1820 }
-      ];
+      setActivePillars(null);
+      setMacroBias(marketState.trendBias);
 
       setToastNotice(isReal
         ? `🟢 Real Market Feed: ${asset} (${s.bars.length} Bybit ${tfConfig.label} Klines synced with TradingView)`
@@ -1697,14 +1531,23 @@ export default function TrendLensUltraChart({
       }
 
       // 2. [LIQ] Liquidity Heatmap Bands (Inferno Colormap)
+      // Requires a resting-order depth feed. None is connected, so no wall
+      // levels are drawn and the panel states their absence.
       if (chips.LIQ) {
-        for (const wl of s.walls) {
-          const yy = y(wl.p);
-          if (yy < 4 || yy > chartH - 4) continue;
-          const strength = Math.max(0, Math.min(1, wl.s + Math.sin(t * 0.9 + wl.ph) * 0.14));
-          ctx.globalAlpha = 0.16 + strength * 0.45;
-          ctx.fillStyle = inferno(0.25 + strength * 0.75);
-          ctx.fillRect(0, yy - 1 - strength * 2.5, chartW, 2 + strength * 5);
+        if (s.depthFeedAvailable) {
+          for (const wl of s.walls) {
+            const yy = y(wl.p);
+            if (yy < 4 || yy > chartH - 4) continue;
+            const strength = Math.max(0, Math.min(1, wl.s + Math.sin(t * 0.9 + wl.ph) * 0.14));
+            ctx.globalAlpha = 0.16 + strength * 0.45;
+            ctx.fillStyle = inferno(0.25 + strength * 0.75);
+            ctx.fillRect(0, yy - 1 - strength * 2.5, chartW, 2 + strength * 5);
+          }
+        } else {
+          ctx.font = '600 8.5px Azeret Mono, monospace';
+          ctx.fillStyle = '#8592a6';
+          ctx.textAlign = 'center';
+          ctx.fillText('LIQUIDITY HEATMAP UNAVAILABLE — NO DEPTH FEED CONNECTED', chartW / 2, 18);
         }
         ctx.globalAlpha = 1;
       }
@@ -1758,14 +1601,16 @@ export default function TrendLensUltraChart({
         }
       }
 
-      // 5. [CME] CME Futures Key Levels (VAH, POC, VAL, nPOC)
+      // 5. [CME] Approximate key levels derived from the visible price range.
+      // These are fixed fractions of the loaded range — they are NOT CME
+      // value-area measurements and are labelled accordingly.
       if (chips.CME && s.cmeLevels) {
-        const { vah, poc, val, nPoc } = s.cmeLevels;
+        const { rangeHigh70, rangeMid50, rangeLow30, rangeDeep15 } = s.cmeLevels;
         const levels = [
-          { label: 'CME VAH', p: vah, col: '#f2a33a' },
-          { label: 'CME POC', p: poc, col: '#e9b949' },
-          { label: 'CME VAL', p: val, col: '#2fd39a' },
-          { label: 'nPOC Magnet', p: nPoc, col: '#7aa7ff' },
+          { label: 'RANGE 70%', p: rangeHigh70, col: '#f2a33a' },
+          { label: 'RANGE 50%', p: rangeMid50, col: '#e9b949' },
+          { label: 'RANGE 30%', p: rangeLow30, col: '#2fd39a' },
+          { label: 'RANGE 15%', p: rangeDeep15, col: '#7aa7ff' },
         ];
 
         levels.forEach(lv => {
@@ -1975,7 +1820,9 @@ export default function TrendLensUltraChart({
         });
       }
 
-      // 7. [BP / AOF] Whale Big Prints Order Flow Bubbles
+      // 7. [BP / AOF] Order-flow prints.
+      // Requires a public trade tape. None is connected, so no prints exist
+      // and the overlay states their absence.
       if (chips.BP) {
         for (const p of s.prints) {
           const x = getBarX(p.i);
@@ -1997,6 +1844,12 @@ export default function TrendLensUltraChart({
           ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'center';
           ctx.fillText(`${p.size}L`, x, yP + 3);
+        }
+        if (!s.tapeFeedAvailable) {
+          ctx.font = '600 8.5px Azeret Mono, monospace';
+          ctx.fillStyle = '#8592a6';
+          ctx.textAlign = 'center';
+          ctx.fillText('ORDER-FLOW PRINTS UNAVAILABLE — NO TRADE TAPE CONNECTED', chartW / 2, 32);
         }
         ctx.globalAlpha = 1;
       }
@@ -3504,17 +3357,17 @@ export default function TrendLensUltraChart({
               onClick={() => {
                 const nextState = !mtfStrictFilter;
                 setMtfStrictFilter(nextState);
-                setToastNotice(nextState ? `🛡️ MTF Shield: ON (${macroBias} Trend Only)` : '⚪ MTF Shield: PAUSED');
+                setToastNotice(nextState ? `🛡️ Trend filter: ON (${macroBias} only)` : '⚪ Trend filter: PAUSED');
                 setTimeout(() => setToastNotice(null), 2500);
               }}
-              title="80%+ Win Rate Filter: Automatically blocks counter-trend trades"
+              title="Trend filter: blocks counter-trend signals (single timeframe, mean of last 6 closes vs last 18)"
               style={{
-                borderColor: macroBias === 'BULLISH' ? '#2fd39a' : '#ff3366',
-                color: macroBias === 'BULLISH' ? '#2fd39a' : '#ff3366',
+                borderColor: macroBias === 'BULLISH' ? '#2fd39a' : macroBias === 'BEARISH' ? '#ff3366' : '#8592a6',
+                color: macroBias === 'BULLISH' ? '#2fd39a' : macroBias === 'BEARISH' ? '#ff3366' : '#8592a6',
                 fontWeight: 600
               }}
             >
-              🛡️ MTF: {macroBias} {macroBias === 'BULLISH' ? '▲' : '▼'}
+              🛡️ TREND: {macroBias} {macroBias === 'BULLISH' ? '▲' : macroBias === 'BEARISH' ? '▼' : '—'}
             </button>
           </div>
 
@@ -3804,11 +3657,11 @@ export default function TrendLensUltraChart({
               <span>Confluence rules: STRICT (anti-chop)</span>
             </div>
             <div className="ultra-hud-badge" style={{
-              color: macroBias === 'BULLISH' ? '#2fd39a' : '#ff3366',
-              border: `1px solid ${macroBias === 'BULLISH' ? 'rgba(47, 211, 154, 0.45)' : 'rgba(255, 51, 102, 0.45)'}`
+              color: macroBias === 'BULLISH' ? '#2fd39a' : macroBias === 'BEARISH' ? '#ff3366' : '#8592a6',
+              border: `1px solid ${macroBias === 'BULLISH' ? 'rgba(47, 211, 154, 0.45)' : macroBias === 'BEARISH' ? 'rgba(255, 51, 102, 0.45)' : 'rgba(133, 146, 166, 0.45)'}`
             }}>
               <TrendingUp size={11} />
-              <span>MTF Shield: {macroBias} {macroBias === 'BULLISH' ? '▲ (BUY TREND)' : '▼ (SELL TREND)'}</span>
+              <span>Trend Bias (6 vs 18 bars): {macroBias}</span>
             </div>
             <div className="ultra-hud-badge" style={{ color: '#e9b949', border: '1px solid rgba(233, 185, 73, 0.45)' }}>
               <Clock size={11} />
