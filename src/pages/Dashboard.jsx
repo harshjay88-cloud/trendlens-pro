@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from '../components/common/Navbar.jsx';
 import Sidebar from '../components/common/Sidebar.jsx';
 import { useAuthStore, useSignalStore, useThemeStore, useDemoAccountStore } from '../store/index.js';
 import { useMarketStore } from '../store/marketStore.js';
 import { MOCK_DAILY_TARGET } from '../utils/mockData.js';
+import { buildPaperMetricsView } from '../utils/paperMetricsView.js';
 import { fetchBybitKlines, resolveBybitInterval, resolveBybitSymbol } from '../services/bybitService.js';
 import {
   TrendingUp, TrendingDown, Zap, Target, Activity,
@@ -200,15 +201,34 @@ export default function Dashboard() {
     return () => clearInterval(iv);
   }, []);
 
-  // Performance figures are measured from the real trade journal, or shown
-  // as unavailable when nothing has been closed yet.
-  const journalTrades = demoAccount?.trades || [];
-  const measuredWinRate = journalTrades.length
-    ? `${Math.round((journalTrades.filter((t) => (t.pnlDollars || 0) > 0).length / journalTrades.length) * 100)}%`
-    : '—';
-  const totalPips = journalTrades.length
-    ? +journalTrades.reduce((s, t) => s + (t.pips || 0), 0).toFixed(1)
-    : null;
+  // Journal-derived performance comes from the shared, authoritative metrics
+  // module. The journal retains at most 50 records, so these figures describe
+  // the RETAINED JOURNAL and are never presented as an all-time record.
+  const paperView = useMemo(
+    () =>
+      buildPaperMetricsView({
+        trades: demoAccount?.trades || [],
+        account: {
+          balance: demoAccount?.balance,
+          unrealizedPnL: demoAccount?.unrealizedPnL,
+        },
+        counters: {
+          winCount: demoAccount?.winCount,
+          lossCount: demoAccount?.lossCount,
+          breakevenCount: demoAccount?.breakevenCount,
+          realizedPnL: demoAccount?.realizedPnL,
+        },
+      }),
+    [
+      demoAccount?.trades,
+      demoAccount?.balance,
+      demoAccount?.unrealizedPnL,
+      demoAccount?.winCount,
+      demoAccount?.lossCount,
+      demoAccount?.breakevenCount,
+      demoAccount?.realizedPnL,
+    ]
+  );
 
   // Latest measured confluence strength across the signal list, if any.
   const latestConfluence = signals.length && typeof signals[0].confluence?.score === 'number'
@@ -701,15 +721,15 @@ export default function Dashboard() {
             />
             <StatCard
               label="Your Win Rate"
-              value={measuredWinRate}
-              sub={measuredWinRate === '—' ? 'No closed trades measured yet' : 'Measured from your trade journal'}
+              value={paperView.winRate}
+              sub={paperView.scopeNotice}
               icon={Target}
               color="var(--signal-neutral)"
             />
             <StatCard
               label="Total Pips"
-              value={totalPips === null ? '—' : `${totalPips >= 0 ? '+' : ''}${totalPips}`}
-              sub={totalPips === null ? 'No closed trades measured yet' : 'Measured from your trade journal'}
+              value={paperView.totalPips}
+              sub={paperView.pipsCoverageNotice || paperView.scopeNotice}
               icon={Activity}
               color="var(--gold)"
             />

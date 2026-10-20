@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Navbar from '../components/common/Navbar.jsx';
 import Sidebar from '../components/common/Sidebar.jsx';
 import { useAuthStore, useDemoAccountStore } from '../store/index.js';
+import { buildPaperMetricsView } from '../utils/paperMetricsView.js';
 import { Edit3, Trophy, Target, Activity, TrendingUp, Zap, Shield } from 'lucide-react';
 import './Profile.css';
 
 const ASSET_COLORS = ['var(--brand)', 'var(--signal-buy)', 'var(--signal-neutral)', 'var(--gold)'];
 
-function StatBadge({ label, val, color, icon: Icon }) {
+function StatBadge({ label, val, color, icon: Icon, title }) {
   return (
-    <div className="profile-stat-card card">
+    <div className="profile-stat-card card" title={title}>
       <div className="psc-icon" style={{ '--ic': color }}><Icon size={18} /></div>
       <div className="psc-val" style={{ color }}>{val}</div>
       <div className="psc-label">{label}</div>
@@ -25,31 +26,37 @@ export default function Profile() {
   const TABS = ['Stats','Settings'];
 
   /**
-   * Every figure below is measured from the real trade journal. Nothing is
-   * asserted when no trade has been closed yet.
+   * Every figure below comes from the shared, authoritative metrics module.
+   * The journal retains at most 50 records, so these figures describe the
+   * RETAINED JOURNAL and are never presented as an all-time record.
    */
-  const trades = demoAccount?.trades || [];
-  const wins = trades.filter((t) => (t.pnlDollars || 0) > 0).length;
-  const measured = {
-    winRate: trades.length ? `${Math.round((wins / trades.length) * 100)}%` : null,
-    totalSignals: trades.length,
-    pips: trades.length ? +trades.reduce((s, t) => s + (t.pips || 0), 0).toFixed(1) : null,
-    streak: null,
-  };
+  const paperView = useMemo(
+    () =>
+      buildPaperMetricsView({
+        trades: demoAccount?.trades || [],
+        account: {
+          balance: demoAccount?.balance,
+          unrealizedPnL: demoAccount?.unrealizedPnL,
+        },
+        counters: {
+          winCount: demoAccount?.winCount,
+          lossCount: demoAccount?.lossCount,
+          breakevenCount: demoAccount?.breakevenCount,
+          realizedPnL: demoAccount?.realizedPnL,
+        },
+      }),
+    [
+      demoAccount?.trades,
+      demoAccount?.balance,
+      demoAccount?.unrealizedPnL,
+      demoAccount?.winCount,
+      demoAccount?.lossCount,
+      demoAccount?.breakevenCount,
+      demoAccount?.realizedPnL,
+    ]
+  );
 
-  const byAsset = {};
-  trades.forEach((t) => {
-    if (!byAsset[t.asset]) byAsset[t.asset] = { wins: 0, total: 0 };
-    byAsset[t.asset].total += 1;
-    if ((t.pnlDollars || 0) > 0) byAsset[t.asset].wins += 1;
-  });
-  const assetPerformance = Object.entries(byAsset)
-    .map(([label, v], idx) => ({
-      label,
-      val: Math.round((v.wins / v.total) * 100),
-      color: ASSET_COLORS[idx % ASSET_COLORS.length],
-    }))
-    .sort((a, b) => b.val - a.val);
+  const assetPerformance = paperView.perAsset;
 
   if (!user) return null;
 
@@ -71,19 +78,33 @@ export default function Profile() {
                 <span className="badge badge-neutral">Demo account</span>
                 <span className="badge badge-brand">{user.isDemoAuth ? 'Local demo session' : 'Session'}</span>
                 <span className="badge badge-neutral">
-                  {trades.length} closed trade{trades.length === 1 ? '' : 's'}
+                  {paperView.totalClosedTrades} closed trade{paperView.totalClosedTrades === 1 ? '' : 's'}
                 </span>
               </div>
             </div>
             <button className="btn btn-ghost btn-sm profile-edit"><Edit3 size={14} /> Edit Profile</button>
           </div>
 
-          {/* Stats Grid — measured from the real trade journal */}
+          {/* Stats Grid — measured from the shared retained-journal metrics */}
           <div className="profile-stats-grid">
-            <StatBadge label="Win Rate"      val={measured.winRate ?? '—'}        color="var(--signal-buy)"    icon={Target} />
-            <StatBadge label="Total Signals" val={measured.totalSignals}          color="var(--brand)"         icon={Zap} />
-            <StatBadge label="Total Pips"    val={measured.pips === null ? '—' : `${measured.pips >= 0 ? '+' : ''}${measured.pips}`} color="var(--gold)" icon={TrendingUp} />
-            <StatBadge label="Win Streak"    val={measured.streak === null ? '—' : `${measured.streak} days`} color="var(--signal-neutral)" icon={Activity} />
+            <StatBadge label="Win Rate"      val={paperView.winRate}            color="var(--signal-buy)"    icon={Target} />
+            <StatBadge label="Closed Trades" val={paperView.totalClosedTrades}  color="var(--brand)"         icon={Zap} />
+            <StatBadge label="Total Pips"    val={paperView.totalPips}          color="var(--gold)"          icon={TrendingUp} />
+            <StatBadge
+              label="Win Streak"
+              val={paperView.currentStreak.value}
+              color="var(--signal-neutral)"
+              icon={Activity}
+              title={paperView.currentStreak.note || undefined}
+            />
+          </div>
+
+          {/* Scope + data-integrity notice */}
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+            {paperView.scopeNotice}
+            {paperView.pipsCoverageNotice ? ` · ${paperView.pipsCoverageNotice}` : ''}
+            {paperView.integrityNotice ? ` · ${paperView.integrityNotice}` : ''}
+            {paperView.currentStreak.note ? ` · ${paperView.currentStreak.note}` : ''}
           </div>
 
           {/* Tabs */}
@@ -97,16 +118,20 @@ export default function Profile() {
               <div className="perf-bars">
                 {assetPerformance.length === 0 && (
                   <div style={{ color: 'var(--signal-neutral)', fontSize: '0.85rem' }}>
-                    No closed trades yet — performance by asset is measured from your trade journal.
+                    No closed trades yet — performance by asset is measured from your retained trade journal.
                   </div>
                 )}
                 {assetPerformance.map(a => (
                   <div key={a.label} className="perf-bar-row">
                     <span className="perf-label">{a.label}</span>
-                    <div className="progress-bar perf-bar-track">
-                      <div className="progress-fill" style={{ width: a.val + '%', background: a.color }}></div>
-                    </div>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: a.color, fontSize: '0.85rem', minWidth: 40, textAlign: 'right' }}>{a.val}%</span>
+                    {a.winRate === 'N/A' ? (
+                      <div className="progress-bar perf-bar-track"></div>
+                    ) : (
+                      <div className="progress-bar perf-bar-track">
+                        <div className="progress-fill" style={{ width: a.winRate, background: ASSET_COLORS[0] }}></div>
+                      </div>
+                    )}
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: a.winRate === 'N/A' ? 'var(--text-muted)' : ASSET_COLORS[0], fontSize: '0.85rem', minWidth: 40, textAlign: 'right' }}>{a.winRate}</span>
                   </div>
                 ))}
               </div>
