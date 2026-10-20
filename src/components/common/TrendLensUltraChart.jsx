@@ -25,6 +25,13 @@ import {
 } from '../../services/marketDataService.js';
 import { generateSimulationCandles } from '../../services/simulationData.js';
 import { buildChartMarketState } from '../../utils/chartMarketState.js';
+import {
+  CANDLE_OUTCOME,
+  applyCandleUpdate,
+  buildScanKey,
+  shouldTriggerScan,
+  toChartBar,
+} from '../../utils/candleSeries.js';
 import { useTradingModeStore, TRADING_MODES, MODE_LABELS, MODE_DESCRIPTIONS } from '../../store/tradingModeStore.js';
 import { resolveBybitSymbol } from '../../config/tradingMode.js';
 import TrailingStopModal from '../modals/TrailingStopModal.jsx';
@@ -521,6 +528,9 @@ export default function TrendLensUltraChart({
    */
   const livePriceRef = useRef(null);
 
+  /** The price before the most recent market data update. */
+  const prevPriceRef = useRef(null);
+
   /**
    * Current trading session derived from the real UTC clock.
    * The killzone windows are the standard UTC boundaries.
@@ -883,6 +893,10 @@ export default function TrendLensUltraChart({
     rangeLevels: null,
     depthFeedAvailable: false,
     tapeFeedAvailable: false,
+    activeSubscriptionKey: null,
+    lastScannedCandleKey: null,
+    lastScannedBarTime: null,
+    pendingClosedCandle: null,
     lastTick: 0,
     lastBar: 0,
     price: initialPrice,
@@ -943,41 +957,65 @@ export default function TrendLensUltraChart({
 
     let disposed = false;
 
+    // The chart state object identity never changes, so it is captured here
+    // and reused by the cleanup function.
+    const chartState = stateRef.current;
+
+    // Identifies the subscription that currently owns the candle series. A
+    // frame that arrives from a previous symbol/timeframe subscription is
+    // rejected so two subscriptions can never mix in one series.
+    const subscriptionKey = `${resolved.symbol}|${intervalCheck.interval}`;
+
     const feed = createRealtimeCandleFeed({
       symbol: resolved.symbol,
       interval: intervalCheck.interval,
       onCandles: (incoming) => {
         if (disposed) return;
+        const s = stateRef.current;
+
+        // Guard against a stale subscription writing into a new series.
+        if (s.activeSubscriptionKey !== subscriptionKey) return;
+
         const latest = incoming[incoming.length - 1];
         if (!latest) return;
 
-        // The websocket candle is the authority for the live price.
-        livePriceRef.current = latest.close;
+        // ── Single-writer candle merge ────────────────────────────────────
+        // The market data feed is the ONLY writer of the candle series.
+        // A candle with a known start time updates in place; a genuinely
+        // newer candle is appended exactly once; a late frame is ignored.
+        const bar = toChartBar({
+          time: latest.time,
+          open: latest.open,
+          high: latest.high,
+          low: latest.low,
+          close: latest.close,
+          volume: latest.volume,
+          confirmed: latest.confirmed,
+        });
 
-        // Keep the forming bar in sync with the exchange.
-        const s = stateRef.current;
-        if (s.bars.length) {
-          const bar = s.bars[s.bars.length - 1];
-          if (bar.t === latest.time) {
-            bar.o = latest.open;
-            bar.h = latest.high;
-            bar.l = latest.l;
-            bar.c = latest.close;
-            bar.v = latest.volume;
-          } else if (latest.time > bar.t) {
-            // A new candle has started.
-            s.bars.push({
-              o: latest.open,
-              h: latest.high,
-              l: latest.l,
-              c: latest.close,
-              v: latest.volume,
-              t: latest.time,
-            });
-            if (s.bars.length > 400) s.bars.shift();
-          }
-          s.price = latest.close;
+        if (!bar) return;
+
+        const merged = applyCandleUpdate(s.bars, bar);
+        if (merged.outcome === CANDLE_OUTCOME.IGNORED) {
+          // A late frame for an older candle. It must not move the current
+          // price, the displayed quote or the market store.
+          return;
         }
+        s.bars = merged.bars;
+        if (s.bars.length > 600) {
+          const cut = s.bars.length - 450;
+          s.bars = s.bars.slice(cut);
+          if (s.activeTrade) s.activeTrade.i -= cut;
+          s.marks.forEach(m => { m.i -= cut; });
+          s.prints.forEach(p => { p.i -= cut; });
+        }
+        s.price = latest.close;
+
+        // The websocket candle is the authority for the live price.
+        // The previous price is kept so the price-direction indicator can
+        // still be derived without the tick writing into a candle.
+        prevPriceRef.current = livePriceRef.current;
+        livePriceRef.current = latest.close;
 
         setCurrentPx(latest.close);
         useMarketStore.getState().updatePrice(asset, latest.close, null, null, null, true);
@@ -985,6 +1023,23 @@ export default function TrendLensUltraChart({
         setChartDataSource('bybit');
         setFeedStatus(FEED_STATUS.LIVE);
         setFeedLastUpdate(Date.now());
+
+        // ── Candle-close event ────────────────────────────────────────────
+        // Analysis is scheduled only by a CONFIRMED candle, and never twice
+        // for the same symbol / timeframe / candle.
+        const scanKey = buildScanKey(resolved.symbol, intervalCheck.interval, latest.time);
+        if (
+          shouldTriggerScan({
+            lastScanKey: s.lastScannedCandleKey,
+            symbol: resolved.symbol,
+            interval: intervalCheck.interval,
+            candleTime: latest.time,
+            confirmed: latest.confirmed,
+          })
+        ) {
+          s.lastScannedCandleKey = scanKey;
+          s.pendingClosedCandle = { time: latest.time, key: scanKey };
+        }
       },
       onStatus: (nextStatus) => {
         if (disposed) return;
@@ -997,12 +1052,25 @@ export default function TrendLensUltraChart({
       },
     });
 
+    // This subscription now owns the candle series. Any frame from a previous
+    // symbol/timeframe subscription is rejected.
+    stateRef.current.activeSubscriptionKey = subscriptionKey;
+    stateRef.current.lastScannedCandleKey = null;
+    stateRef.current.lastScannedBarTime = null;
+    stateRef.current.pendingClosedCandle = null;
+
     feed.start();
 
     return () => {
       disposed = true;
       feed.stop();
       livePriceRef.current = null;
+      if (chartState.activeSubscriptionKey === subscriptionKey) {
+        chartState.activeSubscriptionKey = null;
+        chartState.pendingClosedCandle = null;
+        chartState.lastScannedCandleKey = null;
+        chartState.lastScannedBarTime = null;
+      }
     };
   }, [asset, timeframe, dataMode]);
 
@@ -1149,6 +1217,9 @@ export default function TrendLensUltraChart({
         c: k.close,
         v: k.volume,
         t: k.time,
+        // The exchange tells us whether this candle has closed. The flag is
+        // preserved so a forming candle is never treated as a closed one.
+        confirmed: k.confirmed === true,
       }));
 
       const lastBar = parsed[parsed.length - 1];
@@ -2449,8 +2520,6 @@ export default function TrendLensUltraChart({
     const updateTick = () => {
       const s = stateRef.current;
       if (!s.bars.length) return;
-      const b = s.bars[s.bars.length - 1];
-      const prev = b.c;
 
       // No real price → no movement. The chart never invents price action.
       const realPrice = livePriceRef.current;
@@ -2458,12 +2527,13 @@ export default function TrendLensUltraChart({
 
       const newClose = +realPrice.toFixed(decimals);
 
-      b.c = newClose;
-      b.h = Math.max(b.h, newClose);
-      b.l = Math.min(b.l, newClose);
+      // The candle series is written ONLY by the market data feed. This tick
+      // reads the latest exchange price for the indicator, the paper P&L and
+      // the SL/TP monitor, but it never writes OHLCV into a bar.
+      const prev = prevPriceRef.current;
 
       setCurrentPx(newClose);
-      setPxDirection(newClose > prev ? 'up' : newClose < prev ? 'dn' : '');
+      setPxDirection(prev === null || prev === undefined ? '' : newClose > prev ? 'up' : newClose < prev ? 'dn' : '');
 
       // No order-flow feed is connected, so the delta is reported as absent
       // rather than accumulated from invented prints.
@@ -2524,23 +2594,17 @@ export default function TrendLensUltraChart({
       // whale bubble is painted on the chart.
     };
 
-    // New Candlestick bar trigger based on timeframe speed
-    const addNewBar = () => {
+    /**
+     * Auto-scan.
+     *
+     * This runs when the market data feed reports a CONFIRMED (closed)
+     * candle. It never creates a candle: the candle series is written only by
+     * the market data feed. The analysed bar is the candle that just closed,
+     * so a forming candle is never treated as a confirmed one.
+     */
+    const runAutoScanOnClosedCandle = (closedCandleTime) => {
       const s = stateRef.current;
       if (!s.bars.length) return;
-      const c = s.bars[s.bars.length - 1].c;
-      s.bars.push({ o: c, h: c, l: c, c });
-
-      // Manage cooldown after previous trade completion
-      if (s.tradeCooldown > 0) {
-        s.tradeCooldown--;
-      }
-      if (s.clearTradeTimer > 0) {
-        s.clearTradeTimer--;
-        if (s.clearTradeTimer === 0 && s.activeTrade && s.activeTrade.status !== 'ACTIVE') {
-          s.activeTrade = null;
-        }
-      }
 
       // PROFESSIONAL RULE: If an active trade is in play, do NOT trigger any overlapping signals!
       if (s.activeTrade && s.activeTrade.status === 'ACTIVE') {
@@ -2552,54 +2616,75 @@ export default function TrendLensUltraChart({
         return;
       }
 
-      const k = s.bars.length - 2;
-      if (k >= 12) {
-        const sig = evaluateInstitutionalSignal(s.bars, k, engineMode, s.walls, tickSize, decimals, pipMultiplier);
+      // Analyse the candle that just closed. If it is not in the series yet
+      // (for example a very fast timeframe), fall back to the last bar that
+      // is already closed.
+      let k = s.bars.findIndex((b) => b.t === closedCandleTime);
+      if (k < 0) {
+        k = -1;
+        for (let i = s.bars.length - 1; i >= 0; i--) {
+          if (s.bars[i].confirmed) { k = i; break; }
+        }
+      }
+      if (k < 0 || k < 12) return;
+      if (!s.bars[k] || s.bars[k].confirmed !== true) return;
 
-        if (sig) {
-          // Strict MTF Trend Filter (8/10 Win Rate Rule #1)
-          if (mtfStrictFilter) {
-            if (macroBias === 'BULLISH' && !sig.buy) return;
-            if (macroBias === 'BEARISH' && sig.buy) return;
-          }
+      // Never analyse the same bar twice, and never analyse a bar older than
+      // the last one that was analysed. A late confirmation for an earlier
+      // candle therefore cannot produce a second analysis of it.
+      if (s.lastScannedBarTime && s.bars[k].t <= s.lastScannedBarTime) return;
+      s.lastScannedBarTime = s.bars[k].t;
 
-          const markLabel = engineMode === 'scalper' ? 'SCALP' : 'ULTRA';
-          const newTrade = {
-            i: k,
+      const sig = evaluateInstitutionalSignal(s.bars, k, engineMode, s.walls, tickSize, decimals, pipMultiplier);
+
+      if (sig) {
+        // Strict MTF Trend Filter (8/10 Win Rate Rule #1)
+        if (mtfStrictFilter) {
+          if (macroBias === 'BULLISH' && !sig.buy) return;
+          if (macroBias === 'BEARISH' && sig.buy) return;
+        }
+
+        const markLabel = engineMode === 'scalper' ? 'SCALP' : 'ULTRA';
+        const newTrade = {
+          i: k,
+          buy: sig.buy,
+          entry: s.bars[k].c,
+          sl: sig.sl,
+          tp1: sig.tp1,
+          tp2: sig.tp2,
+          riskPips: sig.riskPips,
+          rewardPips: sig.rewardPips,
+          score: sig.score,
+          status: 'ACTIVE',
+          a: 0,
+          label: `${markLabel} ${sig.buy ? 'BUY' : 'SELL'} 🎯`,
+          reason: sig.reason,
+          pillars: sig.pillars,
+          confirmedCount: sig.confirmedCount
+        };
+
+        s.activeTrade = newTrade;
+        s.marks = [newTrade];
+        setActivePillars(sig.pillars);
+
+        if (demoAccount.isAutoBotActive && !demoAccount.openPosition) {
+          openDemoTrade({
+            asset,
             buy: sig.buy,
-            entry: s.bars[k].c,
-            sl: sig.sl,
-            tp1: sig.tp1,
-            tp2: sig.tp2,
-            riskPips: sig.riskPips,
-            rewardPips: sig.rewardPips,
-            score: sig.score,
-            status: 'ACTIVE',
-            a: 0,
-            label: `${markLabel} ${sig.buy ? 'BUY' : 'SELL'} 🎯`,
-            reason: sig.reason,
-            pillars: sig.pillars,
-            confirmedCount: sig.confirmedCount
-          };
+            entry: newTrade.entry,
+            sl: newTrade.sl,
+            tp1: newTrade.tp1,
+            score: newTrade.score,
+            reason: newTrade.reason,
+            lotSize: 1.0,
+            pipMultiplier
+          });
+        }
 
-          s.activeTrade = newTrade;
-          s.marks = [newTrade];
-          setActivePillars(sig.pillars);
-
-          if (demoAccount.isAutoBotActive && !demoAccount.openPosition) {
-            openDemoTrade({
-              asset,
-              buy: sig.buy,
-              entry: newTrade.entry,
-              sl: newTrade.sl,
-              tp1: newTrade.tp1,
-              score: newTrade.score,
-              reason: newTrade.reason,
-              lotSize: 1.0,
-              pipMultiplier
-            });
-          }
-
+        // A signal is only published to the signal store while automated
+        // trading is enabled. With the auto-bot OFF the chart still shows the
+        // analysis, but nothing is written to the signal list.
+        if (demoAccount.isAutoBotActive) {
           try {
             const created = addSignal({
               asset,
@@ -2619,10 +2704,30 @@ export default function TrendLensUltraChart({
             });
             activeSigIdRef.current = created?.id;
           } catch {}
+        }
 
-          if (soundEnabled) playSignalChime(sig.buy);
-          setToastNotice(`🎯 Institutional Signal Confirmed: ${newTrade.label} [${sig.score}%] · TP: ${fmt(sig.tp1)} | SL: ${fmt(sig.sl)}`);
-          setTimeout(() => setToastNotice(null), 3500);
+        if (soundEnabled) playSignalChime(sig.buy);
+        setToastNotice(`🎯 Institutional Signal Confirmed: ${newTrade.label} [${sig.score}%] · TP: ${fmt(sig.tp1)} | SL: ${fmt(sig.sl)}`);
+        setTimeout(() => setToastNotice(null), 3500);
+      }
+    };
+
+    /**
+     * Timer bookkeeping only: cooldowns and series memory maintenance.
+     * NO candle is created here. Candles only ever come from the market data
+     * feed, so waiting for a timeframe boundary can never fabricate a bar.
+     */
+    const tickCounters = () => {
+      const s = stateRef.current;
+
+      // Manage cooldown after previous trade completion
+      if (s.tradeCooldown > 0) {
+        s.tradeCooldown--;
+      }
+      if (s.clearTradeTimer > 0) {
+        s.clearTradeTimer--;
+        if (s.clearTradeTimer === 0 && s.activeTrade && s.activeTrade.status !== 'ACTIVE') {
+          s.activeTrade = null;
         }
       }
 
@@ -2647,8 +2752,15 @@ export default function TrendLensUltraChart({
           lastTickTime = now;
         }
         if (now - lastBarTime > tfConfig.newBarInterval) {
-          addNewBar();
+          tickCounters();
           lastBarTime = now;
+        }
+        // Run a pending analysis that was scheduled by a real, confirmed
+        // candle close. It can never fire because a timer elapsed.
+        const pending = stateRef.current.pendingClosedCandle;
+        if (pending) {
+          stateRef.current.pendingClosedCandle = null;
+          runAutoScanOnClosedCandle(pending.time);
         }
         stateRef.current.marks.forEach(m => { if (m.a < 1) m.a += 0.05; });
         stateRef.current.prints.forEach(p => { if (p.a < 1) p.a += 0.05; });
