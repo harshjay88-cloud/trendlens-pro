@@ -571,7 +571,7 @@ export default function TrendLensBotPanel({
               <div style={{ background: 'rgba(0,0,0,0.4)', padding: '6px', borderRadius: '5px', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.58rem', color: '#8592a6' }}>Wins / Losses</div>
                 <b style={{ color: '#fff', fontSize: '0.80rem' }}>
-                  {demoAccount.winCount}W / {demoAccount.lossCount}L
+                  {demoAccount.winCount}W / {demoAccount.lossCount}L / {demoAccount.breakevenCount || 0}BE
                 </b>
               </div>
               <div style={{ background: 'rgba(0,0,0,0.4)', padding: '6px', borderRadius: '5px', textAlign: 'center' }}>
@@ -875,8 +875,16 @@ export default function TrendLensBotPanel({
                         borderRadius: '3px',
                         fontSize: '0.62rem',
                         fontWeight: 700,
-                        background: tr.result === 'WIN' ? 'rgba(0, 230, 118, 0.18)' : 'rgba(255, 51, 102, 0.18)',
-                        color: tr.result === 'WIN' ? '#00e676' : '#ff3366'
+                        background: tr.result === 'WIN'
+                          ? 'rgba(0, 230, 118, 0.18)'
+                          : tr.result === 'BREAKEVEN'
+                            ? 'rgba(233, 185, 73, 0.18)'
+                            : 'rgba(255, 51, 102, 0.18)',
+                        color: tr.result === 'WIN'
+                          ? '#00e676'
+                          : tr.result === 'BREAKEVEN'
+                            ? '#e9b949'
+                            : '#ff3366'
                       }}>
                         {tr.result}
                       </span>

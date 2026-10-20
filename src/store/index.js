@@ -6,6 +6,7 @@ import {
   isSameAsset,
   isValidExitPrice,
 } from '../utils/paperPositionSafety.js';
+import { classifyResult, normalizePnl, resultCounterDelta } from '../utils/paperAccounting.js';
 
 // ── Theme Store ──────────────────────────────────────────
 const THEMES = ['tl-dark', 'tl-black-red', 'tl-navy', 'tl-matrix', 'tl-amber', 'tl-light'];
@@ -143,6 +144,9 @@ const getStoredDemoAccount = () => {
     unrealizedPnL: 0,
     winCount: 0,
     lossCount: 0,
+    // Break-even closes. Additive: accounts stored before this field existed
+    // simply report zero.
+    breakevenCount: 0,
     // The journal starts empty. No historical trades are fabricated.
     trades: [],
     // Scenario trades produced by the simulator. They are never booked into
@@ -192,6 +196,20 @@ export const useDemoAccountStore = create((set, get) => ({
         return state; // no change at all
       }
 
+      // The entry price must be a real number. A position with a broken
+      // entry price would produce a broken P&L on close, so it is refused
+      // here rather than corrupting the account later.
+      const entry = normalizePnl(tradeData.entry);
+      if (!entry.ok || entry.value <= 0) {
+        outcome = {
+          ok: false,
+          code: 'INVALID_ENTRY_PRICE',
+          message: 'The entry price is not a valid positive number, so no position was opened.',
+          position: null,
+        };
+        return state;
+      }
+
       const pos = {
         // A stable, unique identity for this position. A bracket or an action
         // that references a different id is refused.
@@ -199,7 +217,7 @@ export const useDemoAccountStore = create((set, get) => ({
         asset: tradeData.asset || 'XAU/USD',
         type: tradeData.direction || (tradeData.buy ? 'BUY' : 'SELL'),
         lotSize: tradeData.lotSize || 1.0,
-        entryPrice: tradeData.entry,
+        entryPrice: entry.value,
         sl: tradeData.sl,
         tp: tradeData.tp1,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -258,6 +276,10 @@ export const useDemoAccountStore = create((set, get) => ({
     } else {
       pnlDollars = +(pips * 10 * pos.lotSize).toFixed(2);
     }
+
+    // A P&L that cannot be calculated must never be written into the account:
+    // a NaN would corrupt balance, equity and realised P&L.
+    if (!Number.isFinite(pnlDollars)) return;
 
     const prevDD = pos.maxDrawdownPips || 0;
     const prevRunup = pos.maxRunupPips || 0;
@@ -322,7 +344,22 @@ export const useDemoAccountStore = create((set, get) => ({
       } else {
         pnlDollars = +(pips * 10 * pos.lotSize).toFixed(2);
       }
-      const isWin = pnlDollars >= 0;
+      // Classification uses the same rounded value that is booked into the
+      // balance. A booked P&L of exactly 0.00 is a break-even: it is neither a
+      // win nor a loss, and it increments neither counter.
+      // A P&L that cannot be classified (a broken legacy entry price, for
+      // example) is refused: the position stays open and nothing is booked.
+      const result = classifyResult(pnlDollars);
+      if (!result) {
+        outcome = {
+          ok: false,
+          code: 'INVALID_PNL',
+          message: 'The resulting P&L could not be calculated, so the position was left open and nothing was booked.',
+          trade: null,
+        };
+        return state;
+      }
+      const delta = resultCounterDelta(result);
 
       const elapsedSecs = Math.max(1, Math.floor((Date.now() - (pos.timestamp || Date.now())) / 1000));
       const mins = Math.floor(elapsedSecs / 60);
@@ -340,7 +377,7 @@ export const useDemoAccountStore = create((set, get) => ({
         sl: pos.sl,
         pips,
         pnlDollars,
-        result: isWin ? 'WIN' : 'LOSS',
+        result,
         reason,
         time: pos.time,
         closeTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -361,8 +398,9 @@ export const useDemoAccountStore = create((set, get) => ({
         equity: newBalance,
         realizedPnL: +(currentAcc.realizedPnL + pnlDollars).toFixed(2),
         unrealizedPnL: 0,
-        winCount: currentAcc.winCount + (isWin ? 1 : 0),
-        lossCount: currentAcc.lossCount + (isWin ? 0 : 1),
+        winCount: currentAcc.winCount + delta.wins,
+        lossCount: currentAcc.lossCount + delta.losses,
+        breakevenCount: (currentAcc.breakevenCount || 0) + delta.breakEvens,
         trades: [closedTrade, ...currentAcc.trades].slice(0, 50),
         openPosition: null
       };
@@ -375,38 +413,131 @@ export const useDemoAccountStore = create((set, get) => ({
     return outcome;
   },
 
-  // Update orderId on open position and top closed trade when Bybit order response arrives
-  updateOpenTradeOrderId: (orderId) => {
+  /**
+   * Attach an exchange order id to the paper position it belongs to.
+   *
+   * SAFETY:
+   *  - a stable `positionId` is REQUIRED; without it nothing is changed;
+   *  - the id is only written to the open position whose id matches, so an
+   *    acknowledgement for position A can never touch position B;
+   *  - the journal is never written here. A journal row inherits the order id
+   *    when its own position is closed, so a late acknowledgement can never
+   *    corrupt an unrelated trade;
+   *  - an acknowledgement that arrives after the position has closed is
+   *    refused and reported;
+   *  - no order id is ever generated here.
+   *
+   * @returns {{ ok: boolean, code: string, message: string }}
+   */
+  updateOpenTradeOrderId: (orderId, positionId) => {
+    let outcome = null;
+
     set(state => {
       const currentAcc = state.account;
-      let updated = false;
-      let nextOpenPos = currentAcc.openPosition;
-      if (nextOpenPos) {
-        nextOpenPos = { ...nextOpenPos, exchangeOrderId: orderId };
-        updated = true;
+      const pos = currentAcc.openPosition;
+
+      if (!orderId) {
+        outcome = {
+          ok: false,
+          code: 'ORDER_ID_MISSING',
+          message: 'No order id was supplied, so nothing was attached.',
+        };
+        return state;
       }
-      let nextTrades = currentAcc.trades;
-      if (nextTrades && nextTrades.length > 0) {
-        nextTrades = nextTrades.map((tr, idx) => idx === 0 ? { ...tr, exchangeOrderId: orderId } : tr);
-        updated = true;
+
+      if (!positionId) {
+        outcome = {
+          ok: false,
+          code: 'POSITION_ID_REQUIRED',
+          message: 'An order acknowledgement must name the position it belongs to.',
+        };
+        return state;
       }
-      if (!updated) return state;
+
+      if (!pos) {
+        outcome = {
+          ok: false,
+          code: 'POSITION_NOT_OPEN',
+          message: 'The position this order belongs to is no longer open. The acknowledgement was not attached to any trade.',
+        };
+        return state;
+      }
+
+      if (pos.id !== positionId) {
+        outcome = {
+          ok: false,
+          code: SAFETY_CODES.POSITION_MISMATCH,
+          message: `This order belongs to position ${positionId}, but position ${pos.id} is open. Nothing was changed.`,
+        };
+        return state;
+      }
+
       const nextAcc = {
         ...currentAcc,
-        openPosition: nextOpenPos,
-        trades: nextTrades
+        openPosition: { ...pos, exchangeOrderId: orderId },
       };
       try { localStorage.setItem('tl_demo_account', JSON.stringify(nextAcc)); } catch {}
+      outcome = {
+        ok: true,
+        code: SAFETY_CODES.OK,
+        message: 'Order id attached to the matching position.',
+        positionId: pos.id,
+      };
       return { account: nextAcc };
     });
+
+    return outcome;
   },
 
-  // Add single executed trade dynamically
+  /**
+   * Add a single executed paper trade.
+   *
+   * The result is classified from the trade's own recorded P&L so a
+   * break-even is never booked as a win. A trade whose id is already in the
+   * journal is refused, so the realized P&L can never be booked twice.
+   */
   addSingleExecutedTrade: (closedTrade) => {
+    let outcome = null;
+
     set(state => {
       const currentAcc = state.account;
-      const isWin = closedTrade.result === 'WIN';
-      const pnlDollars = closedTrade.pnlDollars;
+
+      if (!closedTrade) {
+        outcome = { ok: false, code: 'INVALID_TRADE', message: 'No trade was supplied.' };
+        return state;
+      }
+
+      if (closedTrade.id && currentAcc.trades.some((t) => t.id === closedTrade.id)) {
+        outcome = {
+          ok: false,
+          code: 'TRADE_ALREADY_JOURNALLED',
+          message: 'This trade is already in the journal. Its P&L was not booked again.',
+        };
+        return state;
+      }
+
+      const pnl = normalizePnl(closedTrade.pnlDollars);
+      if (!pnl.ok) {
+        outcome = {
+          ok: false,
+          code: 'INVALID_PNL',
+          message: `The trade's P&L is not a valid finite amount (${pnl.reason}), so it was not booked.`,
+          trade: null,
+        };
+        return state;
+      }
+      const pnlDollars = pnl.value;
+      const result = classifyResult(pnlDollars);
+      if (!result) {
+        outcome = {
+          ok: false,
+          code: 'INVALID_PNL',
+          message: "The trade's P&L could not be classified, so it was not booked.",
+          trade: null,
+        };
+        return state;
+      }
+      const delta = resultCounterDelta(result);
       const newBalance = +(currentAcc.balance + pnlDollars).toFixed(2);
       const nextAcc = {
         ...currentAcc,
@@ -414,14 +545,18 @@ export const useDemoAccountStore = create((set, get) => ({
         equity: newBalance,
         realizedPnL: +(currentAcc.realizedPnL + pnlDollars).toFixed(2),
         unrealizedPnL: 0,
-        winCount: currentAcc.winCount + (isWin ? 1 : 0),
-        lossCount: currentAcc.lossCount + (isWin ? 0 : 1),
-        trades: [closedTrade, ...currentAcc.trades].slice(0, 50),
+        winCount: currentAcc.winCount + delta.wins,
+        lossCount: currentAcc.lossCount + delta.losses,
+        breakevenCount: (currentAcc.breakevenCount || 0) + delta.breakEvens,
+        trades: [{ ...closedTrade, result }, ...currentAcc.trades].slice(0, 50),
         openPosition: null
       };
       try { localStorage.setItem('tl_demo_account', JSON.stringify(nextAcc)); } catch {}
+      outcome = { ok: true, code: SAFETY_CODES.OK, message: 'Trade booked.', trade: closedTrade };
       return { account: nextAcc };
     });
+
+    return outcome;
   },
 
   // Reset Demo Account to clean $10,000 state

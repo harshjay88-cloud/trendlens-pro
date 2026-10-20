@@ -3316,7 +3316,16 @@ export default function TrendLensUltraChart({
                 text: `🟢 Bybit Demo acknowledged order ${res.orderId} [${coin.name} ${isBuy ? 'BUY' : 'SELL'} ${orderSettings.leverage}x] TP:${tpPx} SL:${slPx}`
               });
               if (updateOpenTradeOrderId) {
-                updateOpenTradeOrderId(res.orderId);
+                // The acknowledgement must name the position it belongs to.
+                // The store refuses it if that position is no longer open or
+                // if a different position is open.
+                const attached = updateOpenTradeOrderId(res.orderId, opened.position.id);
+                if (!attached.ok) {
+                  setBybitLiveStatus({
+                    success: false,
+                    text: `⚠️ Bybit Demo acknowledged order ${res.orderId}, but it was not attached to the paper position: ${attached.message}`,
+                  });
+                }
               }
               refreshBybitPositions();
             } else {
@@ -5055,7 +5064,7 @@ export default function TrendLensUltraChart({
                   : 0}%
               </div>
               <div style={{ fontSize: '0.70rem', color: '#8592a6', marginTop: 2 }}>
-                {demoAccount.winCount} Wins / {demoAccount.lossCount} Losses
+                {demoAccount.winCount} Wins / {demoAccount.lossCount} Losses / {demoAccount.breakevenCount || 0} Break-evens
               </div>
             </div>
 
