@@ -4,7 +4,11 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/trendlens-pro/',
+  // Production keeps the /trendlens-pro/ project sub-path. A preview
+  // deployment can override it with PREVIEW_BASE so the same bundle is
+  // served from a different base URL. Unset (the production case) is
+  // unchanged.
+  base: process.env.PREVIEW_BASE || '/trendlens-pro/',
   server: {
     proxy: {
       // The frontend never talks to Bybit directly for authenticated calls.

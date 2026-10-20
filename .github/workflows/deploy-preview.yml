@@ -1,0 +1,67 @@
+name: Deploy UI Branch Preview
+
+# Isolated preview deployment for the UI development branch.
+#
+# The production website is deployed by deploy.yml from master and is never
+# touched here: this workflow does not use the github-pages environment and
+# does not write to the production Pages site. It publishes a separate
+# preview URL for the development branch only.
+#
+# Setup (one time, by a repository admin):
+#   1. Create a Cloudflare Pages project (or use an existing one) and note
+#      its name, e.g. "trendlens-pro-preview".
+#   2. Add repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+#   3. Add repository variable PREVIEW_DEPLOY_ENABLED = "true" and, if the
+#      project is not served from the domain root, PREVIEW_BASE (e.g.
+#      "/trendlens-pro-preview/").
+#
+# Until PREVIEW_DEPLOY_ENABLED is set, this workflow is inert.
+
+on:
+  push:
+    branches:
+      - feature/ui-black-white-redesign
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: 'preview-ui-black-white-redesign'
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy-preview:
+    if: ${{ vars.PREVIEW_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ui-preview
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build preview bundle
+        run: npm run build
+        env:
+          PREVIEW_BASE: ${{ vars.PREVIEW_BASE || '/' }}
+
+      - name: Deploy preview to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy dist
+            --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || 'trendlens-pro-preview' }}
+            --branch=feature/ui-black-white-redesign
