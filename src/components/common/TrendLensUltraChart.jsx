@@ -25,6 +25,7 @@ import {
 } from '../../services/marketDataService.js';
 import { generateSimulationCandles } from '../../services/simulationData.js';
 import { isSameAsset } from '../../utils/paperPositionSafety.js';
+import { buildPaperMetricsView } from '../../utils/paperMetricsView.js';
 import { buildChartMarketState } from '../../utils/chartMarketState.js';
 import {
   CANDLE_OUTCOME,
@@ -770,6 +771,38 @@ export default function TrendLensUltraChart({
   const [checklist, setChecklist] = useState({ mtf: true, killzone: true, sweep: true, rr: true });
   const [mtfStrictFilter, setMtfStrictFilter] = useState(true);
   const [macroBias, setMacroBias] = useState('NEUTRAL');
+
+  /**
+   * Retained-journal performance comes from the shared, authoritative metrics
+   * module — the same calculation the Dashboard, the Profile and the Bot Panel
+   * use.
+   *
+   * The account's LIFETIME counters and its account-level P&L are a DIFFERENT
+   * population and stay sourced from the account state. The bot runner's
+   * session results are a THIRD population and are never mixed in.
+   *
+   * The memo intentionally excludes the unrealised P&L, so these journal
+   * figures are not recomputed on every price tick.
+   */
+  const paperView = useMemo(
+    () =>
+      buildPaperMetricsView({
+        trades: demoAccount.trades || [],
+        counters: {
+          winCount: demoAccount.winCount,
+          lossCount: demoAccount.lossCount,
+          breakevenCount: demoAccount.breakevenCount,
+          realizedPnL: demoAccount.realizedPnL,
+        },
+      }),
+    [
+      demoAccount.trades,
+      demoAccount.winCount,
+      demoAccount.lossCount,
+      demoAccount.breakevenCount,
+      demoAccount.realizedPnL,
+    ]
+  );
   const [isLive, setIsLive] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [currentPx, setCurrentPx] = useState(initialPrice);
@@ -2671,7 +2704,7 @@ export default function TrendLensUltraChart({
       const sig = evaluateInstitutionalSignal(s.bars, k, engineMode, s.walls, tickSize, decimals, pipMultiplier);
 
       if (sig) {
-        // Strict MTF Trend Filter (8/10 Win Rate Rule #1)
+        // Strict MTF Trend Filter
         if (mtfStrictFilter) {
           if (macroBias === 'BULLISH' && !sig.buy) return;
           if (macroBias === 'BEARISH' && sig.buy) return;
@@ -4343,9 +4376,9 @@ export default function TrendLensUltraChart({
               fontWeight: 700
             }}
             onClick={() => setShowPlaybookModal(true)}
-            title="Institutional 8/10 (80%+) Win Rate Confluence System & MTF Radar"
+              title="Institutional Confluence System & MTF Radar"
           >
-            🏆 8/10 Win Rate Playbook
+                🏆 Confluence Playbook
           </button>
           <button
             type="button"
@@ -4366,16 +4399,16 @@ export default function TrendLensUltraChart({
         </div>
       </div>
 
-      {/* 8/10 Win Rate Institutional Playbook & MTF Radar Modal */}
+        {/* Confluence Institutional Playbook & MTF Radar Modal */}
       {showPlaybookModal && (
         <div className="ultra-modal-backdrop" onClick={() => setShowPlaybookModal(false)}>
           <div className="ultra-modal-box" style={{ maxWidth: '620px' }} onClick={(e) => e.stopPropagation()}>
             <div className="ultra-modal-header">
               <div className="ultra-modal-title-group">
                 <span className="ultra-modal-badge" style={{ background: '#2fd39a', color: '#0a0d13' }}>
-                  80%+ WIN RATE
+                  CONFLUENCE SYSTEM
                 </span>
-                <span className="ultra-modal-name">🏆 10 න් 8 ක් Win කරගන්නා Institutional Playbook එක</span>
+                <span className="ultra-modal-name">🏆 Institutional Confluence Playbook එක</span>
               </div>
               <button
                 type="button"
@@ -4419,7 +4452,7 @@ export default function TrendLensUltraChart({
               {/* 5 Golden Rules */}
               <div>
                 <div className="ultra-modal-section-title">
-                  <TrendingUp size={14} /> 80%+ Win Rate එකක් පවත්වා ගැනීමේ රන් නීති 5 (The 5 Golden Rules)
+                  <TrendingUp size={14} /> Win Rate එකක් පවත්වා ගැනීමේ රන් නීති 5 (The 5 Golden Rules)
                 </div>
                 <div className="ultra-modal-rule-box">
                   <div className="ultra-modal-rule-item buy">
@@ -5042,12 +5075,16 @@ export default function TrendLensUltraChart({
               borderRadius: '10px',
               padding: '14px 18px'
             }}>
-              <div style={{ fontSize: '0.72rem', color: '#8592a6', fontWeight: 600, textTransform: 'uppercase' }}>Net Realized Profit</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: demoAccount.realizedPnL >= 0 ? '#00e676' : '#ff3366', marginTop: 4 }}>
+              <div style={{ fontSize: '0.72rem', color: '#8592a6', fontWeight: 600, textTransform: 'uppercase' }}>Net Realized P&amp;L (Account)</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: demoAccount.realizedPnL > 0 ? '#00e676' : demoAccount.realizedPnL < 0 ? '#ff3366' : '#8592a6', marginTop: 4 }}>
                 {demoAccount.realizedPnL >= 0 ? '+' : ''}${demoAccount.realizedPnL.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
-              <div style={{ fontSize: '0.70rem', color: demoAccount.realizedPnL >= 0 ? '#00e676' : '#ff3366', marginTop: 2 }}>
-                {demoAccount.realizedPnL >= 0 ? 'Profitable Growth' : 'Preserved Drawdown'}
+              <div style={{ fontSize: '0.70rem', color: demoAccount.realizedPnL > 0 ? '#00e676' : demoAccount.realizedPnL < 0 ? '#ff3366' : '#8592a6', marginTop: 2 }}>
+                {demoAccount.realizedPnL > 0
+                  ? 'Net Positive (account lifetime)'
+                  : demoAccount.realizedPnL < 0
+                    ? 'Net Negative (account lifetime)'
+                    : 'Break-even (account lifetime)'}
               </div>
             </div>
 
@@ -5057,15 +5094,22 @@ export default function TrendLensUltraChart({
               borderRadius: '10px',
               padding: '14px 18px'
             }}>
-              <div style={{ fontSize: '0.72rem', color: '#8592a6', fontWeight: 600, textTransform: 'uppercase' }}>Win Rate (Hit Ratio)</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#00e676', marginTop: 4 }}>
-                {(demoAccount.winCount + demoAccount.lossCount) > 0
-                  ? (((demoAccount.winCount) / (demoAccount.winCount + demoAccount.lossCount)) * 100).toFixed(0)
-                  : 0}%
+              <div style={{ fontSize: '0.72rem', color: '#8592a6', fontWeight: 600, textTransform: 'uppercase' }}>Win Rate (Retained Journal)</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: paperView.winRate === 'N/A' ? '#8592a6' : '#00e676', marginTop: 4 }}>
+                {paperView.winRate}
               </div>
               <div style={{ fontSize: '0.70rem', color: '#8592a6', marginTop: 2 }}>
-                {demoAccount.winCount} Wins / {demoAccount.lossCount} Losses / {demoAccount.breakevenCount || 0} Break-evens
+                {paperView.metrics.totalClosedTrades} recorded trade{paperView.metrics.totalClosedTrades === 1 ? '' : 's'} · not all-time
               </div>
+              <div style={{ fontSize: '0.70rem', color: '#8592a6', marginTop: 2 }}>
+                Lifetime account: {demoAccount.winCount}W / {demoAccount.lossCount}L / {demoAccount.breakevenCount || 0}BE
+              </div>
+              {(paperView.scopeNotice || paperView.integrityNotice) && (
+                <div style={{ fontSize: '0.66rem', color: '#8592a6', marginTop: 2, lineHeight: 1.4 }}>
+                  {paperView.scopeNotice}
+                  {paperView.integrityNotice ? ` · ${paperView.integrityNotice}` : ''}
+                </div>
+              )}
             </div>
 
             <div style={{

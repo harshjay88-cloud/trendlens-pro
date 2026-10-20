@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Cpu, Zap, Maximize2, Sliders } from 'lucide-react';
 import { useTradingModeStore, MODE_LABELS } from '../../store/tradingModeStore.js';
 import { findTickerPrice, isSameAsset } from '../../utils/paperPositionSafety.js';
+import { buildPaperMetricsView } from '../../utils/paperMetricsView.js';
 
 export default function TrendLensBotPanel({
   demoAccount,
@@ -37,11 +38,36 @@ export default function TrendLensBotPanel({
   const [panelTab, setPanelTab] = useState('risk');
   const tradingMode = useTradingModeStore();
 
-  // Measured from the real trade journal — never a default constant.
-  const journalTrades = demoAccount.trades || [];
-  const grossProfit = journalTrades.reduce((sum, t) => (t.pnlDollars > 0 ? sum + t.pnlDollars : sum), 0);
-  const grossLoss = journalTrades.reduce((sum, t) => (t.pnlDollars < 0 ? sum + Math.abs(t.pnlDollars) : sum), 0);
-  const profitFactor = grossLoss > 0 ? `${(grossProfit / grossLoss).toFixed(2)}x` : grossProfit > 0 ? '∞' : null;
+  /**
+   * Retained-journal performance comes from the shared, authoritative metrics
+   * module — the same calculation the Dashboard and the Profile use.
+   *
+   * The account's LIFETIME counters (W / L / BE) and its account-level P&L
+   * are a DIFFERENT population and stay separate: they are read directly from
+   * the account state and are never recomputed or overwritten here.
+   *
+   * The memo deliberately does not depend on the unrealised P&L, so the
+   * journal metrics are not recomputed on every price tick.
+   */
+  const paperView = useMemo(
+    () =>
+      buildPaperMetricsView({
+        trades: demoAccount.trades || [],
+        counters: {
+          winCount: demoAccount.winCount,
+          lossCount: demoAccount.lossCount,
+          breakevenCount: demoAccount.breakevenCount,
+          realizedPnL: demoAccount.realizedPnL,
+        },
+      }),
+    [
+      demoAccount.trades,
+      demoAccount.winCount,
+      demoAccount.lossCount,
+      demoAccount.breakevenCount,
+      demoAccount.realizedPnL,
+    ]
+  );
 
   useEffect(() => {
     if (panelTab === 'coins' && Object.keys(liveTickerMap).length === 0 && onRefreshTickers) {
@@ -163,19 +189,24 @@ export default function TrendLensBotPanel({
             </b>
           </div>
           <div className="ultra-bot-stat-box">
-            <span>Win Rate</span>
+            <span>Win Rate (Journal)</span>
             <b style={{ color: '#00e676' }}>
-              {(demoAccount.winCount + demoAccount.lossCount) > 0
-                ? (((demoAccount.winCount) / (demoAccount.winCount + demoAccount.lossCount)) * 100).toFixed(0)
-                : 0}%
+              {paperView.winRate}
             </b>
           </div>
           <div className="ultra-bot-stat-box">
-            <span>Realized PnL</span>
+            <span>Realized PnL (Account)</span>
             <b style={{ color: demoAccount.realizedPnL >= 0 ? '#00e676' : '#ff3366' }}>
               {demoAccount.realizedPnL >= 0 ? '+' : ''}${demoAccount.realizedPnL.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </b>
           </div>
+        </div>
+
+        {/* Scope + data-integrity notice for the journal-derived figures */}
+        <div style={{ fontSize: '0.60rem', color: '#8592a6', marginTop: 4, lineHeight: 1.45 }}>
+          {paperView.scopeNotice}
+          {paperView.pipsCoverageNotice ? ` · ${paperView.pipsCoverageNotice}` : ''}
+          {paperView.integrityNotice ? ` · ${paperView.integrityNotice}` : ''}
         </div>
 
         {/* Quick Bybit Status & Settings Banner */}
@@ -346,7 +377,7 @@ export default function TrendLensBotPanel({
               transition: 'all 0.15s ease'
             }}
           >
-            🏆 Win Rate (80%)
+                🏆 Win Rate
           </button>
           <button
             type="button"
@@ -527,7 +558,7 @@ export default function TrendLensBotPanel({
           </div>
         )}
 
-        {/* TAB 2: Institutional 80%+ Win Rate Playbook */}
+        {/* TAB 2: Institutional Win Rate Playbook */}
         {panelTab === 'winrate' && (
           <div style={{
             background: 'rgba(18, 23, 34, 0.75)',
@@ -542,7 +573,7 @@ export default function TrendLensBotPanel({
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: '1.1rem' }}>🏆</span>
                 <div>
-                  <b style={{ color: '#00e676', fontSize: '0.78rem' }}>80%+ WIN RATE PLAYBOOK</b>
+                  <b style={{ color: '#00e676', fontSize: '0.78rem' }}>WIN RATE PLAYBOOK</b>
                   <div style={{ fontSize: '0.62rem', color: '#8592a6' }}>Institutional Confluence Matrix</div>
                 </div>
               </div>
@@ -555,36 +586,40 @@ export default function TrendLensBotPanel({
                 fontWeight: 800,
                 fontSize: '0.70rem'
               }}>
-                8/10 TARGET
+                CONFLUENCE SYSTEM
               </span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
               <div style={{ background: 'rgba(0,0,0,0.4)', padding: '6px', borderRadius: '5px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.58rem', color: '#8592a6' }}>Current Win Rate</div>
+                <div style={{ fontSize: '0.58rem', color: '#8592a6' }}>Win Rate (Journal)</div>
                 <b style={{ color: '#00e676', fontSize: '0.90rem' }}>
-                  {(demoAccount.winCount + demoAccount.lossCount) > 0
-                    ? (((demoAccount.winCount) / (demoAccount.winCount + demoAccount.lossCount)) * 100).toFixed(0)
-                    : '—'}
+                  {paperView.winRate}
                 </b>
               </div>
               <div style={{ background: 'rgba(0,0,0,0.4)', padding: '6px', borderRadius: '5px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.58rem', color: '#8592a6' }}>Wins / Losses</div>
+                <div style={{ fontSize: '0.58rem', color: '#8592a6' }}>Wins / Losses (Lifetime)</div>
                 <b style={{ color: '#fff', fontSize: '0.80rem' }}>
                   {demoAccount.winCount}W / {demoAccount.lossCount}L / {demoAccount.breakevenCount || 0}BE
                 </b>
               </div>
               <div style={{ background: 'rgba(0,0,0,0.4)', padding: '6px', borderRadius: '5px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.58rem', color: '#8592a6' }}>Profit Factor</div>
-                <b style={{ color: '#00D4FF', fontSize: '0.80rem' }}>{profitFactor ?? '—'}</b>
+                <div style={{ fontSize: '0.58rem', color: '#8592a6' }}>Profit Factor (Journal)</div>
+                <b style={{ color: '#00D4FF', fontSize: '0.80rem' }}>{paperView.profitFactor}</b>
               </div>
             </div>
 
             <div style={{ fontSize: '0.64rem', color: '#c3cad6', lineHeight: 1.5, background: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '5px' }}>
-              <b style={{ color: '#00e676' }}>📌 80%+ Win Rate පවත්වා ගැනීමේ රන් නීති:</b><br/>
+              <b style={{ color: '#00e676' }}>📌 Trade entry rules:</b><br/>
               1. <b>Strict MTF Filter:</b> 4H Macro Trend දිශාවට පමණක් Trade ගන්න.<br/>
               2. <b>Liquidity Sweep:</b> Session High/Low sweep වූ පසු පමණක් Reverse වන්න.<br/>
               3. <b>1:2 R:R Ratio:</b> Stop Loss 1% වන විට Take Profit 2.4% ක් තබාගන්න.
+            </div>
+
+            <div style={{ fontSize: '0.60rem', color: '#8592a6', lineHeight: 1.45 }}>
+              {paperView.scopeNotice}
+              {paperView.pipsCoverageNotice ? ` · ${paperView.pipsCoverageNotice}` : ''}
+              {paperView.integrityNotice ? ` · ${paperView.integrityNotice}` : ''}
             </div>
           </div>
         )}
