@@ -24,6 +24,7 @@ import {
   validateMarketSymbol,
 } from '../../services/marketDataService.js';
 import { generateSimulationCandles } from '../../services/simulationData.js';
+import { isSameAsset } from '../../utils/paperPositionSafety.js';
 import { buildChartMarketState } from '../../utils/chartMarketState.js';
 import {
   CANDLE_OUTCOME,
@@ -506,6 +507,8 @@ export default function TrendLensUltraChart({
     coinResults: []
   });
   const runnerCancelRef = useRef(false);
+  /** Guards against a second concurrent 10-coin runner. */
+  const runnerActiveRef = useRef(false);
 
   const tradingMode = useTradingModeStore();
 
@@ -2544,8 +2547,22 @@ export default function TrendLensUltraChart({
       // Real-time Demo Account & Bot Tick PnL Tracking (only if position belongs to current chart asset)
       updateTickPnL(newClose, pipMultiplier, asset);
 
-      // Monitor active institutional trade SL/TP levels in real-time
-      if (s.activeTrade && s.activeTrade.status === 'ACTIVE' && (!s.activeTrade.asset || s.activeTrade.asset === asset)) {
+      // Monitor active institutional trade SL/TP levels in real-time.
+      // SAFETY: the bracket must identify BOTH the instrument and the exact
+      // position it belongs to. An asset match alone is not proof of
+      // identity: a stale bracket from an earlier trade of the SAME
+      // instrument must never close a newer position. When the identity
+      // cannot be established the position is left open.
+      const openPos = demoAccount?.openPosition;
+      if (
+        s.activeTrade &&
+        s.activeTrade.status === 'ACTIVE' &&
+        s.activeTrade.asset &&
+        s.activeTrade.positionId &&
+        openPos &&
+        openPos.id === s.activeTrade.positionId &&
+        isSameAsset(s.activeTrade.asset, asset)
+      ) {
         const tr = s.activeTrade;
         if ((tr.buy && newClose >= tr.tp1) || (!tr.buy && newClose <= tr.tp1)) {
           tr.status = 'TP1_HIT';
@@ -2553,7 +2570,15 @@ export default function TrendLensUltraChart({
           tr.exitPips = +tr.rewardPips;
           tr.exitBarIdx = s.bars.length - 1;
           tr.closeTime = Date.now();
-          closeDemoTrade(tr.tp1, 'TP1 Hit ✅', pipMultiplier);
+          const closed = closeDemoTrade(tr.tp1, 'TP1 Hit ✅', pipMultiplier, {
+            asset: tr.asset,
+            positionId: tr.positionId,
+          });
+          if (!closed.ok) {
+            setToastNotice(`⛔ ${closed.message}`);
+            setTimeout(() => setToastNotice(null), 4200);
+            return;
+          }
           if (activeSigIdRef.current) {
             try {
               updateSignal(activeSigIdRef.current, { status: 'tp1_hit', result: 'win', pips: +tr.rewardPips });
@@ -2570,7 +2595,15 @@ export default function TrendLensUltraChart({
           tr.exitPips = -tr.riskPips;
           tr.exitBarIdx = s.bars.length - 1;
           tr.closeTime = Date.now();
-          closeDemoTrade(tr.sl, 'SL Hit 🛡️', pipMultiplier);
+          const closed = closeDemoTrade(tr.sl, 'SL Hit 🛡️', pipMultiplier, {
+            asset: tr.asset,
+            positionId: tr.positionId,
+          });
+          if (!closed.ok) {
+            setToastNotice(`⛔ ${closed.message}`);
+            setTimeout(() => setToastNotice(null), 4200);
+            return;
+          }
           if (activeSigIdRef.current) {
             try {
               updateSignal(activeSigIdRef.current, { status: 'stopped', result: 'loss', pips: -tr.riskPips });
@@ -2648,6 +2681,9 @@ export default function TrendLensUltraChart({
         const newTrade = {
           i: k,
           buy: sig.buy,
+          // The bracket identifies its instrument. A bracket without an
+          // instrument identity is never allowed to close a position.
+          asset,
           entry: s.bars[k].c,
           sl: sig.sl,
           tp1: sig.tp1,
@@ -2668,7 +2704,7 @@ export default function TrendLensUltraChart({
         setActivePillars(sig.pillars);
 
         if (demoAccount.isAutoBotActive && !demoAccount.openPosition) {
-          openDemoTrade({
+          const opened = openDemoTrade({
             asset,
             buy: sig.buy,
             entry: newTrade.entry,
@@ -2679,6 +2715,16 @@ export default function TrendLensUltraChart({
             lotSize: 1.0,
             pipMultiplier
           });
+          if (!opened.ok) {
+            // The request was refused. Nothing was opened and nothing is
+            // reported as an executed trade.
+            setToastNotice(`⛔ ${opened.message}`);
+            setTimeout(() => setToastNotice(null), 4200);
+          } else {
+            // Link the bracket to the position it opened. Only a bracket
+            // that carries this exact position id may close it.
+            newTrade.positionId = opened.position.id;
+          }
         }
 
         // A signal is only published to the signal store while automated
@@ -2813,6 +2859,9 @@ export default function TrendLensUltraChart({
     const trade = {
       i: k,
       buy: sig.buy,
+      // The bracket identifies its instrument. A bracket without an
+      // instrument identity is never allowed to close a position.
+      asset,
       entry: s.bars[k].c,
       sl: sig.sl,
       tp1: sig.tp1,
@@ -2834,7 +2883,7 @@ export default function TrendLensUltraChart({
     setActivePillars(sig.pillars);
 
     if (demoAccount.isAutoBotActive && !demoAccount.openPosition) {
-      openDemoTrade({
+      const opened = openDemoTrade({
         asset,
         buy: sig.buy,
         entry: trade.entry,
@@ -2845,6 +2894,14 @@ export default function TrendLensUltraChart({
         lotSize: 1.0,
         pipMultiplier
       });
+      if (!opened.ok) {
+        setToastNotice(`⛔ ${opened.message}`);
+        setTimeout(() => setToastNotice(null), 4200);
+      } else {
+        // Link the bracket to the position it opened. Only a bracket that
+        // carries this exact position id may close it.
+        trade.positionId = opened.position.id;
+      }
     }
 
     try {
@@ -2960,15 +3017,57 @@ export default function TrendLensUltraChart({
       poll();
     });
 
+  /**
+   * Recover the runner after an unexpected failure: the active guard is
+   * released so a new run can be started, and the failure is reported.
+   * No exit price is ever invented here.
+   */
+  const handleRunnerError = (err) => {
+    runnerActiveRef.current = false;
+    setLiveRunner(prev => ({
+      ...prev,
+      active: false,
+      phase: 'error',
+      statusText: `⛔ Runner stopped: ${err?.message || 'unexpected error'}. Any open position was left untouched.`,
+    }));
+    setToastNotice(`⛔ Runner stopped: ${err?.message || 'unexpected error'}. Any open position was left untouched.`);
+    setTimeout(() => setToastNotice(null), 5000);
+  };
+
   const startLive10TradeBotRun = async () => {
+    // A second Start must never launch a concurrent runner.
+    if (runnerActiveRef.current) {
+      setLiveRunner(prev => ({
+        ...prev,
+        statusText: '⛔ A 10-coin run is already active. Stop it before starting another one.',
+      }));
+      setToastNotice('⛔ A 10-coin run is already active. Stop it before starting another one.');
+      setTimeout(() => setToastNotice(null), 4200);
+      return;
+    }
+    runnerActiveRef.current = true;
     runnerCancelRef.current = false;
 
     // Ensure bot panel is visible
     handleToggleBotTester(true);
 
-    // Reset any stale demo open position
-    if (demoAccount?.openPosition) {
-      closeDemoTrade(currentPx, 'Reset for New 10-Coin Run', pipMultiplier);
+    // An existing open paper position is NEVER closed automatically so that a
+    // new run can start. It is preserved exactly as it is — balance, equity,
+    // journal and win/loss counters are untouched — and the run is blocked
+    // with a clear status. The user closes it explicitly, and then a new run
+    // may start.
+    const existingPosition = demoAccount?.openPosition;
+    if (existingPosition) {
+      runnerActiveRef.current = false;
+      setLiveRunner(prev => ({
+        ...prev,
+        active: false,
+        phase: 'blocked',
+        statusText: `⛔ EXISTING_POSITION_OPEN — a ${existingPosition.asset} paper position is open and was preserved. Close it explicitly before starting a new run.`,
+      }));
+      setToastNotice(`⛔ EXISTING_POSITION_OPEN — the ${existingPosition.asset} position is open and was preserved. Close it explicitly, then start the run.`);
+      setTimeout(() => setToastNotice(null), 5200);
+      return;
     }
 
     setLiveRunner({
@@ -3031,6 +3130,7 @@ export default function TrendLensUltraChart({
         const totalLosses = resolved.length - totalWins;
         const totalPnl = resolved.reduce((s, r) => s + (r.pnlDollars || 0), 0);
         const winRate = resolved.length ? Math.round((totalWins / resolved.length) * 100) : null;
+        runnerActiveRef.current = false;
         setLiveRunner(prev => ({
           ...prev,
           active: false,
@@ -3093,7 +3193,7 @@ export default function TrendLensUltraChart({
           statusText: `⏸️ ${coin.name}: WAIT — ${analysis.reason}`,
         }));
         currentTradeIdx++;
-        setTimeout(() => { if (!runnerCancelRef.current) executeNextTrade(); }, 600);
+        setTimeout(() => { if (!runnerCancelRef.current) executeNextTrade().catch(handleRunnerError); }, 600);
         return;
       }
       const isBuy = analysis.direction === 'BUY';
@@ -3149,7 +3249,9 @@ export default function TrendLensUltraChart({
 
       // Open the PAPER position. No exchange order ID exists until the Bybit
       // Demo API acknowledges one — nothing is invented locally.
-      openDemoTrade({
+      // SAFETY: an existing open position is never overwritten. The `force`
+      // bypass has been removed; a rejected request stops the run.
+      const opened = openDemoTrade({
         asset: tradeCoin,
         buy: isBuy,
         entry: entryPx,
@@ -3162,9 +3264,28 @@ export default function TrendLensUltraChart({
         leverage: orderSettings.leverage,
         pipMultiplier: coinPipMult,
         exchangeOrderId: null,
-        exchange: null,
-        force: true
+        exchange: null
       });
+
+      if (!opened.ok) {
+        // The position was not opened. The run stops here — it never continues
+        // into another instrument while a position is unresolved.
+        runnerActiveRef.current = false;
+        setLiveRunner(prev => ({
+          ...prev,
+          active: false,
+          phase: 'blocked',
+          statusText: `⛔ ${tradeCoin}: ${opened.message}`,
+        }));
+        setBybitLiveStatus({ success: false, text: `⛔ ${coin.name}: no paper position opened — ${opened.message}` });
+        setToastNotice(`⛔ ${opened.message}`);
+        setTimeout(() => setToastNotice(null), 5000);
+        return;
+      }
+
+      // Link the chart bracket to the position it opened. Only a bracket that
+      // carries this exact position id may close it.
+      tradeSetup.positionId = opened.position.id;
 
       // Dispatch a Bybit DEMO order — only when every gate is open:
       // BYBIT DEMO mode + automated trading enabled + explicit consent, and the
@@ -3239,12 +3360,20 @@ export default function TrendLensUltraChart({
       });
 
       if (!outcome.resolved) {
+        // The position did not reach an exit level. It is PRESERVED exactly
+        // as it is: no fabricated exit price, no continuation into another
+        // instrument, and the run is paused with a clear status.
+        runnerActiveRef.current = false;
+        sessionResults.push({ tradeCoin, isBuy, resolved: false, isWin: false, pnlDollars: null, pips: null });
         setLiveRunner(prev => ({
           ...prev,
-          phase: 'scanning',
-          statusText: `⏳ [${tradeCoin}] Still open — no exit level reached yet (${outcome.reason}).`
+          active: false,
+          phase: 'unresolved',
+          statusText: `⏸️ Paused: [${tradeCoin}] is still open — no exit level reached (${outcome.reason}). The position is preserved; close it before starting another run.`,
         }));
-        sessionResults.push({ tradeCoin, isBuy, resolved: false, pnlDollars: null, pips: null });
+        setToastNotice(`⏸️ [${tradeCoin}] is still open — the run is paused and the position is preserved.`);
+        setTimeout(() => setToastNotice(null), 5000);
+        return;
       } else {
         const pnlDollarsSim = +(
           ((outcome.isWin ? outcome.exitPrice - entryPx : entryPx - outcome.exitPrice) / entryPx) *
@@ -3260,12 +3389,22 @@ export default function TrendLensUltraChart({
           currentRunup: outcome.isWin ? Math.abs(outcome.pips) : 0
         }));
 
-        // Book the trade at the price the market actually reached.
-        closeDemoTrade(
+        // Book the trade at the price the market actually reached. The exit
+        // price belongs to this instrument, and the position's own asset is
+        // declared so the store can verify it.
+        const closed = closeDemoTrade(
           outcome.exitPrice,
           outcome.isWin ? 'TP Hit (live price)' : 'SL Hit (live price)',
-          coinPipMult
+          coinPipMult,
+          { asset: tradeCoin, positionId: opened.position.id }
         );
+        if (!closed.ok) {
+          sessionResults.push({ tradeCoin, isBuy, resolved: false, isWin: false, pnlDollars: null, pips: null });
+          setLiveRunner(prev => ({ ...prev, phase: 'blocked', statusText: `⛔ ${tradeCoin}: ${closed.message}` }));
+          setToastNotice(`⛔ ${closed.message}`);
+          setTimeout(() => setToastNotice(null), 5000);
+          return;
+        }
 
         sessionResults.push({
           tradeCoin,
@@ -3288,14 +3427,16 @@ export default function TrendLensUltraChart({
       setTimeout(() => {
         if (runnerCancelRef.current) return;
         currentTradeIdx++;
-        executeNextTrade();
+        executeNextTrade().catch(handleRunnerError);
       }, 800);
     };
 
-    executeNextTrade();
+    executeNextTrade().catch(handleRunnerError);
   };
+
   const stopLiveSequentialBotTest = () => {
     runnerCancelRef.current = true;
+    runnerActiveRef.current = false;
     setLiveRunner(prev => ({ ...prev, active: false, statusText: '⏹️ Live Bot Runner Paused.' }));
     setToastNotice('⏹️ Live Bot Runner Paused by user.');
   };

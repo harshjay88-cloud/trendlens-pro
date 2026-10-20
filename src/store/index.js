@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 import { MOCK_SIGNALS } from '../utils/mockData.js';
+import {
+  SAFETY_CODES,
+  canClosePosition,
+  isSameAsset,
+  isValidExitPrice,
+} from '../utils/paperPositionSafety.js';
 
 // ── Theme Store ──────────────────────────────────────────
 const THEMES = ['tl-dark', 'tl-black-red', 'tl-navy', 'tl-matrix', 'tl-amber', 'tl-light'];
@@ -122,6 +128,8 @@ export const useSignalStore = create((set, get) => ({
 }));
 
 // ── Demo / Paper Trading Account Store ────────────────────
+let positionCounter = 0;
+
 const getStoredDemoAccount = () => {
   try {
     const data = localStorage.getItem('tl_demo_account');
@@ -157,14 +165,37 @@ export const useDemoAccountStore = create((set, get) => ({
     });
   },
 
-  // Open position from real signal with trajectory tracking
+  /**
+   * Open a paper position.
+   *
+   * SAFETY: an open position is NEVER overwritten. The `force` flag that
+   * previously bypassed this guard has been removed — a request that arrives
+   * while a position is open is rejected and nothing about the account
+   * changes (balance, equity, openPosition, unrealizedPnL, journal and the
+   * win/loss counters are all left untouched).
+   *
+   * @returns {{ ok: boolean, code: string, message: string, position: object|null }}
+   */
   openDemoTrade: (tradeData) => {
+    let outcome = null;
+
     set(state => {
       const currentAcc = state.account;
-      if (currentAcc.openPosition && !tradeData.force) return state; // Only 1 active trade at a time unless forced
+
+      if (currentAcc.openPosition) {
+        outcome = {
+          ok: false,
+          code: SAFETY_CODES.POSITION_EXISTS,
+          message: `A ${currentAcc.openPosition.asset} paper position is already open. Close it before opening another one.`,
+          position: currentAcc.openPosition,
+        };
+        return state; // no change at all
+      }
 
       const pos = {
-        id: 'pos_' + Date.now(),
+        // A stable, unique identity for this position. A bracket or an action
+        // that references a different id is refused.
+        id: 'pos_' + Date.now() + '_' + (++positionCounter),
         asset: tradeData.asset || 'XAU/USD',
         type: tradeData.direction || (tradeData.buy ? 'BUY' : 'SELL'),
         lotSize: tradeData.lotSize || 1.0,
@@ -190,11 +221,17 @@ export const useDemoAccountStore = create((set, get) => ({
 
       const nextAcc = {
         ...currentAcc,
-        openPosition: pos
+        openPosition: pos,
+        // A genuinely new position starts with no unrealised P&L.
+        unrealizedPnL: 0,
+        equity: currentAcc.balance
       };
       try { localStorage.setItem('tl_demo_account', JSON.stringify(nextAcc)); } catch {}
+      outcome = { ok: true, code: SAFETY_CODES.OK, message: 'Paper position opened.', position: pos };
       return { account: nextAcc };
     });
+
+    return outcome;
   },
 
   // Update unrealized PnL and live drawdown / runup based on live tick price
@@ -202,8 +239,11 @@ export const useDemoAccountStore = create((set, get) => ({
     const { account } = get();
     if (!account.openPosition) return;
     const pos = account.openPosition;
-    // Guard against cross-asset price pollution (e.g. XAU/USD tick price hitting a BTC/DOGE bot trade)
-    if (forAsset && pos.asset && pos.asset !== forAsset) return;
+    // Guard against cross-asset price pollution (e.g. an XAU/USD tick price
+    // hitting a BTC/DOGE bot trade). The instrument identity must match.
+    if (forAsset && pos.asset && !isSameAsset(pos.asset, forAsset)) return;
+    // A missing or malformed price never produces a P&L update.
+    if (!isValidExitPrice(currentPrice)) return;
 
     const effPipMultiplier = pos.pipMultiplier || pipMultiplier || 10;
     const isBuy = pos.type === 'BUY';
@@ -242,13 +282,35 @@ export const useDemoAccountStore = create((set, get) => ({
     }));
   },
 
-  // Close position (either manually, TP hit, or SL hit) with recorded duration & drawdown
-  closeDemoTrade: (exitPrice, reason = 'TP1_HIT', pipMultiplier = null) => {
+  /**
+   * Close the open paper position.
+   *
+   * SAFETY: the exit price must belong to the position's own instrument.
+   * `options.asset` declares which instrument the price belongs to. When it
+   * does not match, when it is missing, or when the price is not a usable
+   * market price, the position is left OPEN and the refusal is reported.
+   *
+   * @returns {{ ok: boolean, code: string, message: string, trade: object|null }}
+   */
+  closeDemoTrade: (exitPrice, reason = 'TP1_HIT', pipMultiplier = null, options = {}) => {
+    let outcome = null;
+
     set(state => {
       const currentAcc = state.account;
-      if (!currentAcc.openPosition) return state;
-
       const pos = currentAcc.openPosition;
+
+      const verdict = canClosePosition({
+        position: pos,
+        exitPrice,
+        exitAsset: options.asset,
+        positionId: options.positionId,
+      });
+
+      if (!verdict.allowed) {
+        outcome = { ok: false, code: verdict.code, message: verdict.message, trade: null };
+        return state; // the position is left exactly as it was
+      }
+
       const effPipMultiplier = pipMultiplier || pos.pipMultiplier || 10;
       const isBuy = pos.type === 'BUY';
       const diff = isBuy ? (exitPrice - pos.entryPrice) : (pos.entryPrice - exitPrice);
@@ -306,8 +368,11 @@ export const useDemoAccountStore = create((set, get) => ({
       };
 
       try { localStorage.setItem('tl_demo_account', JSON.stringify(nextAcc)); } catch {}
+      outcome = { ok: true, code: SAFETY_CODES.OK, message: 'Paper position closed.', trade: closedTrade };
       return { account: nextAcc };
     });
+
+    return outcome;
   },
 
   // Update orderId on open position and top closed trade when Bybit order response arrives

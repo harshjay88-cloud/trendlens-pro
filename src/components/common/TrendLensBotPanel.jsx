@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Cpu, Zap, Maximize2, Sliders } from 'lucide-react';
 import { useTradingModeStore, MODE_LABELS } from '../../store/tradingModeStore.js';
+import { findTickerPrice, isSameAsset } from '../../utils/paperPositionSafety.js';
 
 export default function TrendLensBotPanel({
   demoAccount,
@@ -264,7 +265,23 @@ export default function TrendLensBotPanel({
               <button
                 type="button"
                 onClick={() => {
-                  closeDemoTrade(currentPx, 'Manual Close', pipMultiplier);
+                  // SAFETY: the position is closed with a price that belongs to
+                  // its own instrument. The chart's current price is only used
+                  // when it is the same instrument.
+                  const position = demoAccount.openPosition;
+                  const ownPrice = findTickerPrice(liveTickerMap, position?.asset);
+                  const closePrice = ownPrice ?? (isSameAsset(position?.asset, asset) ? currentPx : null);
+                  if (!closePrice) {
+                    setToastNotice(`⛔ The open ${position?.asset} position cannot be priced from the market feed right now, so it was left open.`);
+                    setTimeout(() => setToastNotice(null), 4200);
+                    return;
+                  }
+                  const closed = closeDemoTrade(closePrice, 'Manual Close', pipMultiplier, { asset: position?.asset });
+                  if (!closed.ok) {
+                    setToastNotice(`⛔ ${closed.message}`);
+                    setTimeout(() => setToastNotice(null), 4200);
+                    return;
+                  }
                   setToastNotice('✅ Active Demo Position Closed!');
                   setTimeout(() => setToastNotice(null), 2500);
                 }}

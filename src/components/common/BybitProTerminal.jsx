@@ -23,6 +23,7 @@ export default function BybitProTerminal({
   const [orderType, setOrderType] = useState('Market');
   const [leverage, setLeverage] = useState(10);
   const [marginInput, setMarginInput] = useState(200);
+  const [terminalStatus, setTerminalStatus] = useState(null);
 
   const curData = prices[asset] || { price: 82061.40, changePct: 0.60, high: 83155.00, low: 81475.10 };
   const currentPrice = typeof curData.price === 'number' ? curData.price : 82061.40;
@@ -42,7 +43,9 @@ export default function BybitProTerminal({
     const isBuy = buy;
     const slP = isBuy ? currentPrice * 0.992 : currentPrice * 1.008;
     const tpP = isBuy ? currentPrice * 1.020 : currentPrice * 0.980;
-    openDemoTrade({
+    // SAFETY: an existing open position is never overwritten. The `force`
+    // bypass has been removed.
+    const opened = openDemoTrade({
       asset,
       buy: isBuy,
       entry: currentPrice,
@@ -53,9 +56,14 @@ export default function BybitProTerminal({
       lotSize: 1.0,
       marginUsdt: marginInput,
       leverage,
-      pipMultiplier: currentPrice > 100 ? 10 : 10000,
-      force: true
+      pipMultiplier: currentPrice > 100 ? 10 : 10000
     });
+
+    if (!opened.ok) {
+      setTerminalStatus({ success: false, text: `⛔ ${opened.message}` });
+      return;
+    }
+    setTerminalStatus({ success: true, text: `✅ Paper ${isBuy ? 'long' : 'short'} opened on ${asset} @ ${currentPrice}.` });
   };
 
   return (
@@ -303,6 +311,19 @@ export default function BybitProTerminal({
                 Short (Demo)
               </button>
             </div>
+
+            {terminalStatus && (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: '0.68rem',
+                  color: terminalStatus.success ? '#089981' : '#f23645',
+                  fontWeight: 700,
+                }}
+              >
+                {terminalStatus.text}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -335,7 +356,14 @@ export default function BybitProTerminal({
             {account.openPosition && (
               <button
                 className="bybit-close-all-btn"
-                onClick={() => closeDemoTrade(currentPrice, 'Manual Terminal Close')}
+                onClick={() => {
+                  const closed = closeDemoTrade(currentPrice, 'Manual Terminal Close', null, { asset });
+                  setTerminalStatus(
+                    closed.ok
+                      ? { success: true, text: `✅ Paper position closed at ${currentPrice}.` }
+                      : { success: false, text: `⛔ ${closed.message}` }
+                  );
+                }}
               >
                 Close Position
               </button>
@@ -377,7 +405,14 @@ export default function BybitProTerminal({
                   <td>
                     <button
                       className="bybit-close-all-btn"
-                      onClick={() => closeDemoTrade(currentPrice, 'Market Close')}
+                      onClick={() => {
+                        const closed = closeDemoTrade(currentPrice, 'Market Close', null, { asset });
+                        setTerminalStatus(
+                          closed.ok
+                            ? { success: true, text: `✅ Paper position closed at ${currentPrice}.` }
+                            : { success: false, text: `⛔ ${closed.message}` }
+                        );
+                      }}
                     >
                       Market Close
                     </button>
