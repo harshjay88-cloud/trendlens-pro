@@ -500,6 +500,7 @@ export default function TrendLensUltraChart({
     setShowBotTester(nextVal);
     try { localStorage.setItem('tl_show_bot_tester', String(nextVal)); } catch {}
   };
+  const [tradeJourneyMode, setTradeJourneyMode] = useState('minimized');
   const [isBotFullscreen, setIsBotFullscreen] = useState(false);
   const [showBybitModal, setShowBybitModal] = useState(false);
   const [showTrailingModal, setShowTrailingModal] = useState(false);
@@ -3649,98 +3650,150 @@ export default function TrendLensUltraChart({
             )}
           </div>
 
-          {/* Live Floating Trade Journey & Drawdown Monitor on Chart */}
-          {demoAccount.openPosition && (demoAccount.openPosition.asset === asset) && (
-            <div style={{
-              position: 'absolute',
-              top: 48,
-              left: 20,
-              background: 'rgba(10, 13, 19, 0.94)',
-              backdropFilter: 'blur(12px)',
-              border: `1px solid ${demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366'}`,
-              borderRadius: '10px',
-              padding: '10px 14px',
-              zIndex: 15,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.7)',
-              fontSize: '0.74rem',
-              maxWidth: 380,
-              fontFamily: 'var(--font-mono, monospace)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: demoAccount.openPosition.type === 'BUY' ? '#00e676' : '#ff3366' }}>
-                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366' }} />
-                  <span>{demoAccount.openPosition.type} 1.0L ({demoAccount.openPosition.asset})</span>
-                </div>
-                <div style={{ color: '#8592a6', fontSize: '0.70rem' }}>
-                  ⏱️ Run Time: <b style={{ color: '#e8ecf3' }}>{Math.floor((demoAccount.openPosition.secondsElapsed || 0) / 60)}m {((demoAccount.openPosition.secondsElapsed || 0) % 60).toString().padStart(2, '0')}s</b>
-                </div>
+          {/* Live Floating Trade Journey & Drawdown Monitor on Chart (Unobtrusive & Collapsible) */}
+          {demoAccount.openPosition && (demoAccount.openPosition.asset === asset) && tradeJourneyMode !== 'hidden' && (
+            tradeJourneyMode === 'minimized' ? (
+              <div
+                onClick={() => setTradeJourneyMode('expanded')}
+                style={{
+                  position: 'absolute',
+                  bottom: 12,
+                  left: 14,
+                  background: 'rgba(10, 13, 19, 0.95)',
+                  backdropFilter: 'blur(10px)',
+                  border: `1px solid ${demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366'}`,
+                  borderRadius: '16px',
+                  padding: '4px 12px',
+                  zIndex: 15,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: '0.70rem',
+                  fontFamily: 'var(--font-mono, monospace)',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.6)'
+                }}
+                title="Click to expand Live Trade Journey & Drawdown Monitor"
+              >
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366' }} />
+                <b style={{ color: demoAccount.openPosition.type === 'BUY' ? '#00e676' : '#ff3366' }}>
+                  {demoAccount.openPosition.type} 1.0L ({demoAccount.openPosition.asset})
+                </b>
+                <span style={{ color: demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366', fontWeight: 800 }}>
+                  {demoAccount.unrealizedPnL >= 0 ? '+' : ''}${demoAccount.unrealizedPnL.toFixed(2)}
+                </span>
+                <span style={{ color: '#8592a6', fontSize: '0.65rem' }}>[ ↗ Expand ]</span>
               </div>
+            ) : (
+              <div style={{
+                position: 'absolute',
+                bottom: 14,
+                left: 14,
+                background: 'rgba(10, 13, 19, 0.95)',
+                backdropFilter: 'blur(12px)',
+                border: `1px solid ${demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366'}`,
+                borderRadius: '10px',
+                padding: '8px 12px',
+                zIndex: 15,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 5,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.7)',
+                fontSize: '0.74rem',
+                maxWidth: 360,
+                fontFamily: 'var(--font-mono, monospace)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: demoAccount.openPosition.type === 'BUY' ? '#00e676' : '#ff3366' }}>
+                    <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366' }} />
+                    <span>{demoAccount.openPosition.type} 1.0L ({demoAccount.openPosition.asset})</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ color: '#8592a6', fontSize: '0.70rem' }}>
+                      ⏱️ {Math.floor((demoAccount.openPosition.secondsElapsed || 0) / 60)}m {((demoAccount.openPosition.secondsElapsed || 0) % 60).toString().padStart(2, '0')}s
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setTradeJourneyMode('minimized')}
+                      title="Minimize to small badge"
+                      style={{ background: 'transparent', border: 'none', color: '#8592a6', cursor: 'pointer', fontSize: '0.8rem', padding: '0 4px', fontWeight: 800 }}
+                    >
+                      _
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTradeJourneyMode('hidden')}
+                      title="Hide monitor from chart"
+                      style={{ background: 'transparent', border: 'none', color: '#8592a6', cursor: 'pointer', fontSize: '0.8rem', padding: '0 4px', fontWeight: 800 }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
 
-              {/* Price targets & current status */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.70rem', color: '#8592a6' }}>
-                <span>Entry: <b style={{ color: '#e9b949' }}>{fmt(demoAccount.openPosition.entryPrice)}</b></span>
-                <span>Current: <b style={{ color: '#fff' }}>{fmt(currentPx)}</b></span>
-                <span>TP: <b style={{ color: '#00e676' }}>{fmt(demoAccount.openPosition.tp)}</b></span>
-              </div>
+                {/* Price targets & current status */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.70rem', color: '#8592a6' }}>
+                  <span>Entry: <b style={{ color: '#e9b949' }}>{fmt(demoAccount.openPosition.entryPrice)}</b></span>
+                  <span>Current: <b style={{ color: '#fff' }}>{fmt(currentPx)}</b></span>
+                  <span>TP: <b style={{ color: '#00e676' }}>{fmt(demoAccount.openPosition.tp)}</b></span>
+                </div>
 
-              {/* Live Journey Metrics: Loss Side vs Win Side */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, background: 'rgba(255,255,255,0.04)', padding: '6px 8px', borderRadius: '6px' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.62rem', color: '#8592a6', display: 'block' }}>Loss Side (Max DD)</span>
-                  <b style={{ color: '#ff3366', fontSize: '0.75rem' }}>{demoAccount.openPosition.maxDrawdownPips || 0}p</b>
+                {/* Live Journey Metrics: Loss Side vs Win Side */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, background: 'rgba(255,255,255,0.04)', padding: '6px 8px', borderRadius: '6px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.62rem', color: '#8592a6', display: 'block' }}>Loss Side (Max DD)</span>
+                    <b style={{ color: '#ff3366', fontSize: '0.75rem' }}>{demoAccount.openPosition.maxDrawdownPips || 0}p</b>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.62rem', color: '#8592a6', display: 'block' }}>Win Side Peak</span>
+                    <b style={{ color: '#00e676', fontSize: '0.75rem' }}>+{demoAccount.openPosition.maxRunupPips || 0}p</b>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.62rem', color: '#8592a6', display: 'block' }}>Live Floating</span>
+                    <b style={{ color: demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366', fontSize: '0.78rem' }}>
+                      {demoAccount.unrealizedPnL >= 0 ? '+' : ''}${demoAccount.unrealizedPnL.toFixed(2)}
+                    </b>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.62rem', color: '#8592a6', display: 'block' }}>Win Side Peak</span>
-                  <b style={{ color: '#00e676', fontSize: '0.75rem' }}>+{demoAccount.openPosition.maxRunupPips || 0}p</b>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.62rem', color: '#8592a6', display: 'block' }}>Live Floating</span>
-                  <b style={{ color: demoAccount.unrealizedPnL >= 0 ? '#00e676' : '#ff3366', fontSize: '0.78rem' }}>
-                    {demoAccount.unrealizedPnL >= 0 ? '+' : ''}${demoAccount.unrealizedPnL.toFixed(2)}
-                  </b>
-                </div>
-              </div>
 
-              {/* Visual Trajectory Progress Bar between SL and TP */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#8592a6', marginBottom: 2 }}>
-                  <span style={{ color: '#ff3366' }}>🛑 SL: {fmt(demoAccount.openPosition.sl)}</span>
-                  <span style={{ color: '#00e676' }}>🎯 TP: {fmt(demoAccount.openPosition.tp)}</span>
-                </div>
-                <div style={{
-                  height: 6,
-                  background: 'rgba(255, 51, 102, 0.25)',
-                  borderRadius: 3,
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}>
+                {/* Visual Trajectory Progress Bar between SL and TP */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#8592a6', marginBottom: 2 }}>
+                    <span style={{ color: '#ff3366' }}>🛑 SL: {fmt(demoAccount.openPosition.sl)}</span>
+                    <span style={{ color: '#00e676' }}>🎯 TP: {fmt(demoAccount.openPosition.tp)}</span>
+                  </div>
                   <div style={{
-                    position: 'absolute',
-                    left: '50%',
-                    top: 0,
-                    bottom: 0,
-                    width: demoAccount.unrealizedPnL >= 0
-                      ? `${Math.min(50, Math.max(0, (demoAccount.unrealizedPnL / 1200) * 50))}%`
-                      : 0,
-                    background: '#00e676'
-                  }} />
-                  <div style={{
-                    position: 'absolute',
-                    right: '50%',
-                    top: 0,
-                    bottom: 0,
-                    width: demoAccount.unrealizedPnL < 0
-                      ? `${Math.min(50, Math.max(0, (Math.abs(demoAccount.unrealizedPnL) / 600) * 50))}%`
-                      : 0,
-                    background: '#ff3366'
-                  }} />
-                  <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 2, background: '#e9b949' }} />
+                    height: 6,
+                    background: 'rgba(255, 51, 102, 0.25)',
+                    borderRadius: 3,
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: 0,
+                      bottom: 0,
+                      width: demoAccount.unrealizedPnL >= 0
+                        ? `${Math.min(50, Math.max(0, (demoAccount.unrealizedPnL / 1200) * 50))}%`
+                        : 0,
+                      background: '#00e676'
+                    }} />
+                    <div style={{
+                      position: 'absolute',
+                      right: '50%',
+                      top: 0,
+                      bottom: 0,
+                      width: demoAccount.unrealizedPnL < 0
+                        ? `${Math.min(50, Math.max(0, (Math.abs(demoAccount.unrealizedPnL) / 600) * 50))}%`
+                        : 0,
+                      background: '#ff3366'
+                    }} />
+                    <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 2, background: '#e9b949' }} />
+                  </div>
                 </div>
               </div>
-            </div>
+            )
           )}
 
           <canvas ref={canvasRef} />
@@ -3908,25 +3961,29 @@ export default function TrendLensUltraChart({
             title="Open AI Auto-Trading Bot Panel (Margin, Leverage & 10-Coin Matrix)"
             style={{
               position: 'absolute',
-              right: 14,
-              top: 14,
+              right: 0,
+              top: '42%',
+              transform: 'translateY(-50%)',
               zIndex: 35,
-              background: 'linear-gradient(135deg, #00e676, #00b0ff)',
+              background: 'linear-gradient(180deg, #00e676, #00b0ff)',
               color: '#0a0d13',
               border: 'none',
-              borderRadius: '20px',
-              padding: '8px 16px',
-              fontSize: '0.80rem',
+              borderRadius: '8px 0 0 8px',
+              padding: '14px 7px',
+              fontSize: '0.72rem',
               fontWeight: 900,
               cursor: 'pointer',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               gap: 8,
-              boxShadow: '0 0 20px rgba(0, 230, 118, 0.6)'
+              boxShadow: '-4px 0 20px rgba(0, 230, 118, 0.45)',
+              writingMode: 'vertical-rl',
+              textOrientation: 'mixed',
+              letterSpacing: '1px'
             }}
           >
-            <span>🤖 OPEN BOT PANEL</span>
-            <span style={{ background: '#0a0d13', color: '#00e676', padding: '2px 6px', borderRadius: '8px', fontSize: '0.66rem', fontWeight: 800 }}>80% WIN RATE</span>
+            <span>🤖 TRADING BOT</span>
           </button>
         )}
       </div>

@@ -186,7 +186,18 @@ export default function ManualProStudio({
     };
   }, [symbol, timeframe]);
 
-  // Realistic Market Klines (Matches screenshot structure exactly: 81,640 up to 82,240 with Order Block sweeps)
+  // Reset pan and zoom transform when switching symbols so candles are immediately centered
+  useEffect(() => {
+    if (chartTransformRef.current) {
+      chartTransformRef.current.panX = 0;
+      chartTransformRef.current.panY = 0;
+      chartTransformRef.current.zoomLevel = 1.0;
+      chartTransformRef.current.priceScaleY = 1.0;
+    }
+    setRealKlines([]);
+  }, [symbol, asset]);
+
+  // Realistic Market Klines dynamically scaled to active asset currentPrice
   const rawBars = useMemo(() => {
     if (realKlines && realKlines.length >= 40) {
       return realKlines;
@@ -197,19 +208,11 @@ export default function ManualProStudio({
     const nowMs = Date.now();
     const intervalMs = 60000;
 
-    // Pattern engineered to match TradingView screenshot structure:
-    // Left: high spike ~82,200 -> dump to 81,720 -> consolidation -> rally to 82,160 supply block -> reject to 81,880 demand block -> current 81,945
-    const baseP = 81850;
-    const walk = [
-      82180, 82220, 82190, 82120, 82040, 81960, 81880, 81820, 81760, 81730,
-      81780, 81820, 81860, 81840, 81890, 81850, 81830, 81800, 81770, 81740,
-      81710, 81680, 81750, 81800, 81820, 81790, 81760, 81740, 81720, 81750,
-      81810, 81850, 81880, 81920, 81890, 81840, 81810, 81760, 81740, 81720,
-      81700, 81660, 81720, 81780, 81820, 81860, 81900, 81950, 81920, 81880,
-      81840, 81810, 81790, 81830, 81870, 81920, 81960, 82010, 82050, 82080,
-      82120, 82160, 82140, 82080, 82020, 81980, 81940, 81910, 81890, 81870,
-      81890, 81930, 81960, 81940, 81920, 81945
-    ];
+    // Use current price of active asset as baseline
+    const baseP = typeof currentPrice === 'number' && currentPrice > 0 ? currentPrice : 81850;
+    // Volatility fraction proportional to asset type
+    const vol = baseP > 10000 ? 0.003 : (baseP > 1000 ? 0.002 : (baseP > 20 ? 0.005 : 0.0008));
+    const stepSize = baseP * vol;
 
     // Deterministic pseudo-random number generator so bars do NOT flicker on every state update
     const pseudoRand = (seed) => {
@@ -217,27 +220,42 @@ export default function ManualProStudio({
       return x - Math.floor(x);
     };
 
+    // Realistic wave pattern percentage offsets
+    const wavePct = [
+      0.004, 0.0045, 0.0042, 0.0033, 0.0023, 0.0013, 0.0003, -0.0004, -0.0011, -0.0015,
+      -0.0009, -0.0004, 0.0001, -0.0001, 0.0005, 0.0000, -0.0002, -0.0006, -0.0010, -0.0013,
+      -0.0017, -0.0021, -0.0012, -0.0006, -0.0004, -0.0007, -0.0011, -0.0013, -0.0016, -0.0012,
+      -0.0005, 0.0000, 0.0004, 0.0009, 0.0005, -0.0001, -0.0005, -0.0011, -0.0013, -0.0016,
+      -0.0018, -0.0023, -0.0016, -0.0009, -0.0004, 0.0001, 0.0006, 0.0012, 0.0009, 0.0004,
+      -0.0001, -0.0005, -0.0007, -0.0002, 0.0002, 0.0009, 0.0013, 0.0020, 0.0024, 0.0028,
+      0.0033, 0.0038, 0.0035, 0.0028, 0.0021, 0.0016, 0.0011, 0.0007, 0.0005, 0.0002,
+      0.0005, 0.0010, 0.0013, 0.0011, 0.0008, 0.0000
+    ];
+
     const extendedWalk = [];
     for (let i = 0; i < barsCount; i++) {
-      const idx = Math.floor((i / barsCount) * walk.length);
-      const noise = (pseudoRand(i * 13) - 0.5) * 22;
-      extendedWalk.push((walk[idx] || 81945) + noise);
+      const idx = Math.floor((i / barsCount) * wavePct.length);
+      const noise = (pseudoRand(i * 13) - 0.5) * (stepSize * 0.4);
+      const targetP = baseP * (1 + (wavePct[idx] || 0)) + noise;
+      extendedWalk.push(targetP);
     }
-    extendedWalk[barsCount - 1] = currentPrice;
+    extendedWalk[barsCount - 1] = baseP;
+
+    const precision = baseP < 2 ? 4 : (baseP < 50 ? 3 : 2);
 
     for (let i = 0; i < barsCount; i++) {
-      const c = +extendedWalk[i].toFixed(2);
-      const o = +(i === 0 ? c - 18 : extendedWalk[i - 1]).toFixed(2);
-      const wickH = pseudoRand(i * 17) * 30 + 5;
-      const wickL = pseudoRand(i * 19) * 30 + 5;
-      const h = +(Math.max(o, c) + wickH).toFixed(2);
-      const l = +(Math.min(o, c) - wickL).toFixed(2);
+      const c = +extendedWalk[i].toFixed(precision);
+      const o = +(i === 0 ? c - stepSize * 0.3 : extendedWalk[i - 1]).toFixed(precision);
+      const wickH = (pseudoRand(i * 17) * 0.6 + 0.1) * stepSize;
+      const wickL = (pseudoRand(i * 19) * 0.6 + 0.1) * stepSize;
+      const h = +(Math.max(o, c) + wickH).toFixed(precision);
+      const l = +(Math.min(o, c) - wickL).toFixed(precision);
       const v = Math.floor(pseudoRand(i * 23) * 8500 + 1200);
       const t = nowMs - (barsCount - 1 - i) * intervalMs;
       bars.push({ i, o, h, l, c, v, t });
     }
     return bars;
-  }, [realKlines]);
+  }, [realKlines, currentPrice]);
 
   const displayBars = useMemo(() => {
     if (chartStyle === 'heikin') {
@@ -515,11 +533,12 @@ export default function ManualProStudio({
 
       // Dynamic Price Bounds with PanY & PriceScaleY
       const centerP = (hi + lo) / 2 + transform.panY;
-      const rawHalf = (hi - lo) / 2 || 200;
-      const halfRange = Math.max(5, rawHalf * (1.18 / transform.priceScaleY));
+      const rawHalf = (hi - lo) / 2 || (centerP * 0.005);
+      const minHalf = Math.max(0.0001, centerP * 0.0005);
+      const halfRange = Math.max(minHalf, rawHalf * (1.18 / transform.priceScaleY));
       const curLo = centerP - halfRange;
       const curHi = centerP + halfRange;
-      const curRange = curHi - curLo || 1;
+      const curRange = curHi - curLo || (centerP * 0.001);
 
       transform.curLo = curLo;
       transform.curHi = curHi;
@@ -535,13 +554,24 @@ export default function ManualProStudio({
       ctx.fillStyle = bgCanvas;
       ctx.fillRect(0, 0, w, h);
 
-      // 1. TradingView Grid Lines
+      // 1. TradingView Dynamic Grid Lines
       ctx.strokeStyle = gridCol;
       ctx.lineWidth = 1;
-      const priceSteps = [81640, 81680, 81720, 81760, 81800, 81840, 81880, 81920, 81960, 82000, 82040, 82080, 82120, 82160, 82200, 82240];
-      priceSteps.forEach(pVal => {
-        if (pVal >= curLo && pVal <= curHi) {
-          const yk = Math.round(getY(pVal));
+      const numSteps = 7;
+      const rawStep = curRange / numSteps;
+      const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep || 1)));
+      const normalizedStep = rawStep / (magnitude || 1);
+      let niceFactor = 1;
+      if (normalizedStep >= 5) niceFactor = 5;
+      else if (normalizedStep >= 2) niceFactor = 2;
+      const gridStep = niceFactor * magnitude || 1;
+
+      const firstGridVal = Math.ceil(curLo / gridStep) * gridStep;
+      const numDecimals = gridStep < 0.01 ? 4 : (gridStep < 1 ? 3 : 2);
+
+      for (let pVal = firstGridVal; pVal <= curHi; pVal += gridStep) {
+        const yk = Math.round(getY(pVal));
+        if (yk >= topPad && yk <= topPad + chartH) {
           ctx.beginPath();
           ctx.moveTo(0, yk + 0.5);
           ctx.lineTo(chartW, yk + 0.5);
@@ -551,9 +581,9 @@ export default function ManualProStudio({
           ctx.fillStyle = textCol;
           ctx.font = '500 10px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, sans-serif';
           ctx.textAlign = 'right';
-          ctx.fillText(pVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), w - 6, yk + 3.5);
+          ctx.fillText(pVal.toLocaleString('en-US', { minimumFractionDigits: numDecimals, maximumFractionDigits: numDecimals }), w - 6, yk + 3.5);
         }
-      });
+      }
 
       // Vertical Bar Grid Lines
       const vGridStep = Math.max(6, Math.round(visibleCount / 8));
@@ -607,7 +637,8 @@ export default function ManualProStudio({
       // B. LuxAlgo Smart Money Concepts (SMC) & Order Blocks
       if (acts.includes('lux_smc')) {
         // Bottom Long Green Support Line
-        const supportY = getY(81648);
+        const supportPrice = lo + curRange * 0.04;
+        const supportY = getY(supportPrice);
         ctx.strokeStyle = '#00897b';
         ctx.lineWidth = 1.2;
         ctx.beginPath();
@@ -616,10 +647,12 @@ export default function ManualProStudio({
         ctx.stroke();
 
         // Blue Demand Order Block Box
-        const demX1 = getBarX(totalBars - 48);
-        const demX2 = getBarX(totalBars - 12);
-        const demY1 = getY(81898);
-        const demY2 = getY(81868);
+        const demX1 = getBarX(Math.max(0, totalBars - 48));
+        const demX2 = getBarX(Math.max(0, totalBars - 12));
+        const demPriceTop = lo + curRange * 0.32;
+        const demPriceBot = lo + curRange * 0.24;
+        const demY1 = getY(demPriceTop);
+        const demY2 = getY(demPriceBot);
         ctx.fillStyle = 'rgba(13, 37, 63, 0.85)';
         ctx.fillRect(demX1, demY1, demX2 - demX1, demY2 - demY1);
         ctx.strokeStyle = '#2962ff';
@@ -631,10 +664,12 @@ export default function ManualProStudio({
         ctx.fillText('CHoCH / Demand OB', (demX1 + demX2) / 2, demY2 - 8);
 
         // Maroon Supply Order Block Box
-        const supX1 = getBarX(totalBars - 22);
+        const supX1 = getBarX(Math.max(0, totalBars - 22));
         const supX2 = chartW;
-        const supY1 = getY(82170);
-        const supY2 = getY(82040);
+        const supPriceTop = hi - curRange * 0.05;
+        const supPriceBot = hi - curRange * 0.18;
+        const supY1 = getY(supPriceTop);
+        const supY2 = getY(supPriceBot);
         ctx.fillStyle = 'rgba(59, 23, 30, 0.85)';
         ctx.fillRect(supX1, supY1, supX2 - supX1, supY2 - supY1);
         ctx.strokeStyle = '#f23645';
@@ -647,8 +682,8 @@ export default function ManualProStudio({
 
         // Dashed Structure Lines
         const drawSmcLevel = (barStart, barEnd, price, label, color) => {
-          const x1 = getBarX(barStart);
-          const x2 = getBarX(barEnd);
+          const x1 = getBarX(Math.max(0, barStart));
+          const x2 = getBarX(Math.min(totalBars - 1, barEnd));
           const yy = getY(price);
           ctx.strokeStyle = color;
           ctx.lineWidth = 1;
@@ -664,16 +699,23 @@ export default function ManualProStudio({
           ctx.fillText(label, (x1 + x2) / 2, yy - 3);
         };
 
-        drawSmcLevel(totalBars - 85, totalBars - 60, 81965, 'CHoCH', '#00b4d8');
-        drawSmcLevel(totalBars - 68, totalBars - 52, 81755, 'CHoCH', '#e63946');
-        drawSmcLevel(totalBars - 50, totalBars - 36, 81930, 'EQH', '#e63946');
-        drawSmcLevel(totalBars - 32, totalBars - 20, 82130, 'BOS', '#00b4d8');
-        drawSmcLevel(totalBars - 18, totalBars - 2, 81960, 'CHoCH', '#00b4d8');
+        drawSmcLevel(totalBars - 85, totalBars - 60, lo + curRange * 0.55, 'CHoCH', '#00b4d8');
+        drawSmcLevel(totalBars - 68, totalBars - 52, lo + curRange * 0.22, 'CHoCH', '#e63946');
+        drawSmcLevel(totalBars - 50, totalBars - 36, lo + curRange * 0.48, 'EQH', '#e63946');
+        drawSmcLevel(totalBars - 32, totalBars - 20, hi - curRange * 0.15, 'BOS', '#00b4d8');
+        drawSmcLevel(totalBars - 18, totalBars - 2, lo + curRange * 0.52, 'CHoCH', '#00b4d8');
       }
 
       // C. Fair Value Gaps (FVG) Boxes
       if (acts.includes('fvg')) {
-        const fvgBox1 = { x1: getBarX(totalBars - 42), x2: getBarX(totalBars - 25), y1: getY(81920), y2: getY(81950) };
+        const fvgP1 = lo + curRange * 0.40;
+        const fvgP2 = lo + curRange * 0.46;
+        const fvgBox1 = {
+          x1: getBarX(Math.max(0, totalBars - 42)),
+          x2: getBarX(Math.max(0, totalBars - 25)),
+          y1: getY(fvgP2),
+          y2: getY(fvgP1)
+        };
         ctx.fillStyle = 'rgba(0, 230, 118, 0.14)';
         ctx.fillRect(fvgBox1.x1, fvgBox1.y1, fvgBox1.x2 - fvgBox1.x1, fvgBox1.y2 - fvgBox1.y1);
         ctx.strokeStyle = 'rgba(0, 230, 118, 0.6)';
@@ -685,9 +727,10 @@ export default function ManualProStudio({
 
       // D. Liquidity Sweeps (Buy-side / Sell-side Liquidity grab arrows)
       if (acts.includes('liquidity_sweep')) {
-        const sweepBarIdx = totalBars - 44;
+        const sweepBarIdx = Math.max(0, totalBars - 44);
         const sx = getBarX(sweepBarIdx);
-        const sy = getY(81660);
+        const sweepBar = sBars[sweepBarIdx];
+        const sy = getY(sweepBar ? sweepBar.l : (lo + curRange * 0.05));
         ctx.fillStyle = '#ffd600';
         ctx.font = 'bold 11px JetBrains Mono, monospace';
         ctx.textAlign = 'center';
@@ -738,12 +781,13 @@ export default function ManualProStudio({
       // F. SuperTrend AI (Dynamic Bullish/Bearish Trend Cloud)
       if (acts.includes('supertrend')) {
         ctx.lineWidth = 2;
+        const offset = curRange * 0.035;
         for (let i = Math.max(1, startBarIdx); i <= Math.min(totalBars - 1, endBarIdx); i++) {
           const bPrev = sBars[i - 1];
           const bCur = sBars[i];
-          const isBull = bCur.c >= 81850;
-          const targetY = getY(isBull ? bCur.l - 22 : bCur.h + 22);
-          const prevY = getY(isBull ? bPrev.l - 22 : bPrev.h + 22);
+          const isBull = bCur.c >= (sBars[Math.max(0, i - 12)]?.c || bCur.o);
+          const targetY = getY(isBull ? bCur.l - offset : bCur.h + offset);
+          const prevY = getY(isBull ? bPrev.l - offset : bPrev.h + offset);
 
           ctx.strokeStyle = isBull ? '#00e676' : '#f23645';
           ctx.beginPath();
@@ -909,8 +953,14 @@ export default function ManualProStudio({
         }
       });
 
-      // 5. Current Live Price Line & Badges (Matching Screenshot)
-      const curY = getY(currentPrice);
+      // 5. Current Live Price Line & Badges (Dynamic to Current Asset)
+      const lastBar = sBars[sBars.length - 1];
+      const liveP = lastBar ? lastBar.c : currentPrice;
+      const prevP = sBars.length > 1 ? sBars[sBars.length - 2].c : (liveP * 0.9998);
+      const curY = getY(liveP);
+      const pxPrecision = liveP < 2 ? 4 : (liveP < 50 ? 3 : 2);
+      const fmtLivePx = (val) => (typeof val === 'number' && !isNaN(val)) ? val.toLocaleString('en-US', { minimumFractionDigits: pxPrecision, maximumFractionDigits: pxPrecision }) : '0.00';
+
       // Dashed line across canvas
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
       ctx.lineWidth = 1;
@@ -921,23 +971,23 @@ export default function ManualProStudio({
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Previous Close / Tick line (Red badge at 81,943.43)
-      const prevCloseY = getY(81943.43);
+      // Previous Close / Tick line (Red badge)
+      const prevCloseY = getY(prevP);
       ctx.fillStyle = '#f23645';
       ctx.fillRect(chartW + 2, prevCloseY - 9, rightPad - 4, 18);
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 9.5px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('81,943.43', chartW + rightPad / 2, prevCloseY + 3.5);
+      ctx.fillText(fmtLivePx(prevP), chartW + rightPad / 2, prevCloseY + 3.5);
 
-      // Top live price badge at 81,948.17 with countdown timer 01:47
-      const livePillY = getY(81948.17);
+      // Top live price badge with countdown timer
+      const livePillY = getY(liveP);
       ctx.fillStyle = '#2a2e39';
       ctx.fillRect(chartW + 2, livePillY - 14, rightPad - 4, 28);
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 9.5px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('81,948.17', chartW + rightPad / 2, livePillY - 2);
+      ctx.fillText(fmtLivePx(liveP), chartW + rightPad / 2, livePillY - 2);
       ctx.fillStyle = '#787b86';
       ctx.font = '500 8.5px JetBrains Mono, monospace';
       ctx.fillText(candlesRemainingRef.current, chartW + rightPad / 2, livePillY + 10);
@@ -1209,29 +1259,31 @@ export default function ManualProStudio({
               type="button"
               className="mps-tv-btn-sell"
               onClick={() => {
-                setToastNotice('🔴 SELL Order Executed @ 81,943.43');
+                const p = (currentPrice * 0.9998).toFixed(currentPrice < 2 ? 4 : (currentPrice < 50 ? 3 : 2));
+                setToastNotice(`🔴 SELL Order Executed @ ${p}`);
                 setTimeout(() => setToastNotice(null), 2000);
               }}
             >
               <span>SELL</span>
-              <span>81,943.43</span>
+              <span>{(currentPrice * 0.9998).toFixed(currentPrice < 2 ? 4 : (currentPrice < 50 ? 3 : 2))}</span>
             </button>
             <button
               type="button"
               className="mps-tv-btn-buy"
               onClick={() => {
-                setToastNotice('🟢 BUY Order Executed @ 81,945.38');
+                const p = (currentPrice * 1.0002).toFixed(currentPrice < 2 ? 4 : (currentPrice < 50 ? 3 : 2));
+                setToastNotice(`🟢 BUY Order Executed @ ${p}`);
                 setTimeout(() => setToastNotice(null), 2000);
               }}
             >
-              <span>81,945.38</span>
+              <span>{(currentPrice * 1.0002).toFixed(currentPrice < 2 ? 4 : (currentPrice < 50 ? 3 : 2))}</span>
               <span>BUY</span>
             </button>
           </div>
 
           {/* LuxAlgo Smart Money Concepts Parameters */}
           <div className="mps-tv-lux-title">
-            <span style={{ color: '#00e676', fontWeight: 800 }}>!</span> LuxAlgo - Smart Money Concepts Historical Colored All All tiny All All small 50 5 5 Atr High/Low 3 0.1 tiny 1 — <span style={{ color: '#f23645' }}>81,912.88</span> <span style={{ color: '#089981' }}>81,863.43</span> <span style={{ color: '#2962ff' }}>81,880.72</span>
+            <span style={{ color: '#00e676', fontWeight: 800 }}>!</span> LuxAlgo - Smart Money Concepts Historical Colored All All tiny All All small 50 5 5 Atr High/Low 3 0.1 tiny 1 — <span style={{ color: '#f23645' }}>{(currentPrice * 1.0012).toFixed(currentPrice < 2 ? 4 : 2)}</span> <span style={{ color: '#089981' }}>{(currentPrice * 0.9984).toFixed(currentPrice < 2 ? 4 : 2)}</span> <span style={{ color: '#2962ff' }}>{(currentPrice * 0.9996).toFixed(currentPrice < 2 ? 4 : 2)}</span>
           </div>
         </div>
 
